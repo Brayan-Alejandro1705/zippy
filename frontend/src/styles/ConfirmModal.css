@@ -1,0 +1,73 @@
+.cm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: cm-fade 0.15s ease;
+}
+
+@keyframes cm-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cm-modal {
+  background: white;
+  border-radius: 10px;
+  padding: 32px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  animation: cm-slide 0.2s ease;
+}
+
+@keyframes cm-slide {
+  from { transform: scale(0.95) translateY(-8px); }
+  to   { transform: scale(1) translateY(0); }
+}
+
+.cm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.cm-message {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.cm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cm-btn-danger {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: #e74c3c;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.cm-btn-danger:hover { background-color: #c0392b; }
+
+/* Dark mode */
+.dark-theme .cm-modal {
+  background: #1e293b;
+  border: 1px solid #334155;
+}
+
+.dark-theme .cm-title { color: #e2e8f0; }
+.dark-theme .cm-message { color: #94a3b8; }

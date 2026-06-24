@@ -1,0 +1,75 @@
+/* VendorVentas */
+.vv-page-header { margin-bottom:20px; }
+.vv-title { font-size:22px; font-weight:700; color:#1e293b; margin-bottom:2px; }
+.vv-sub   { font-size:13px; color:#64748b; }
+
+.vv-stats { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+.vv-stat  {
+  background:white; border-radius:10px; padding:14px 20px;
+  display:flex; align-items:center; gap:12px; flex:1; min-width:140px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.06);
+}
+.vv-stat-icon { font-size:22px; }
+.vv-stat-val   { font-size:20px; font-weight:700; color:#1e293b; line-height:1.2; }
+.vv-stat-label { font-size:12px; color:#64748b; }
+
+.vv-filters { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+
+.vv-filter-btn {
+  padding:8px 14px; border:1.5px solid #e2e8f0; border-radius:8px;
+  background:white; color:#555; font-size:13px; cursor:pointer; transition:all 0.2s;
+}
+.vv-filter-btn--active { border-color:#FF7A00; color:#FF7A00; background:#fff8f0; font-weight:600; }
+.vv-filter-btn:hover   { border-color:#FF7A00; color:#FF7A00; }
+
+.vv-estado-sel {
+  padding:8px 12px; border:1.5px solid #e2e8f0; border-radius:8px;
+  font-size:13px; background:white; color:#555; cursor:pointer;
+}
+
+.vv-export-btn {
+  padding:8px 16px; border:none; border-radius:8px; background:#FF7A00;
+  color:white; font-size:13px; font-weight:600; cursor:pointer; margin-left:auto;
+  transition:background 0.2s;
+}
+.vv-export-btn:hover { background:#e56e00; }
+
+/* Table */
+.vv-table-wrap { background:white; border-radius:10px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06); margin-bottom:20px; }
+.vv-table { width:100%; border-collapse:collapse; }
+.vv-table thead { background:#4c1d95; }
+.vv-table th { padding:14px 12px; color:white; font-size:12px; font-weight:600; text-align:left; text-transform:uppercase; letter-spacing:0.5px; }
+.vv-table td { padding:14px 12px; border-bottom:1px solid #f5f5f5; font-size:13px; color:#444; vertical-align:middle; }
+.vv-table tbody tr:hover { background:#fafafa; }
+.vv-table tbody tr:last-child td { border-bottom:none; }
+
+.vv-id   { font-family:monospace; font-size:13px; font-weight:600; color:#1e293b; }
+.vv-dir  { font-size:11px; color:#aaa; font-family:inherit; }
+.vv-prods { font-size:12px; color:#666; }
+.vv-total { font-weight:700; color:#FF7A00; }
+.vv-link {
+  color:#7c3aed; font-weight:600; text-decoration:none; font-size:13px;
+  background:none; border:none; cursor:pointer; padding:0; font-family:inherit;
+}
+.vv-link:hover { text-decoration:underline; }
+
+.vv-badge {
+  display:inline-block; padding:4px 10px; border-radius:12px;
+  font-size:12px; font-weight:600;
+}
+.vv-badge--completada { background:#dcfce7; color:#15803d; }
+.vv-badge--camino     { background:#fef3c7; color:#b45309; }
+.vv-badge--pendiente  { background:#e0e7ff; color:#3730a3; }
+.vv-badge--cancelada  { background:#fee2e2; color:#b91c1c; }
+
+.vv-table-footer { padding:10px 16px; font-size:12px; color:#aaa; background:#fafafa; }
+
+/* Chart */
+.vv-chart-card { background:white; border-radius:10px; padding:20px 24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.vv-chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.vv-chart-header h3 { font-size:15px; font-weight:600; color:#1e293b; }
+.vv-chart-meta { display:flex; gap:20px; font-size:12px; color:#64748b; }
+.vv-chart-meta strong { color:#1e293b; }
+
+.vv-tooltip { background:#1e293b; color:white; padding:8px 12px; border-radius:8px; font-size:13px; }
+.vv-tooltip-val { font-weight:700; color:#FF7A00; margin-top:2px; }

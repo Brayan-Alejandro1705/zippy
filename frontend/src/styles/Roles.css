@@ -1,0 +1,65 @@
+/* ============================================================================
+   src/styles/Roles.css - Roles y permisos
+   ============================================================================ */
+
+.rpm-roles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rpm-role-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  border-top: 4px solid #bdc3c7;
+}
+
+.rpm-role-card h3 {
+  font-size: 16px;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.rpm-role-card p {
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+.rpm-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  color: #2ecc71;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rpm-check--on {
+  background: #e8f5e9;
+  border-color: #2ecc71;
+}
+
+.rpm-check--locked {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@media (max-width: 1024px) {
+  .rpm-roles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode */
+.dark-theme .rpm-role-card { background-color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.dark-theme .rpm-role-card h3 { color: #e2e8f0; }
+.dark-theme .rpm-role-card p { color: #64748b; }
+.dark-theme .rpm-check { background: #0f1729; border-color: #334155; }
+.dark-theme .rpm-check--on { background: #14532d; border-color: #2ecc71; }

@@ -1,0 +1,263 @@
+/* UserLayout — mobile-first */
+
+.ulo-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f5f6f8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+.ulo-header {
+  background: #FF7A00;
+  height: 58px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 10px rgba(255,122,0,0.25);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.ulo-brand {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ulo-brand span { letter-spacing: 0.3px; }
+
+.ulo-search-wrap {
+  flex: 1;
+  position: relative;
+}
+.ulo-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: #aaa;
+  pointer-events: none;
+}
+.ulo-search {
+  width: 100%;
+  padding: 9px 12px 9px 32px;
+  border: none;
+  border-radius: 22px;
+  font-size: 13px;
+  background: rgba(255,255,255,0.95);
+  color: #333;
+  outline: none;
+  box-sizing: border-box;
+}
+.ulo-search::placeholder { color: #aaa; }
+
+.ulo-cart-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.ulo-cart-btn:hover { background: rgba(255,255,255,0.3); }
+
+.ulo-logout-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.ulo-logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+/* Acceso a Perfil/Pedidos desde el header: solo en escritorio, donde el menú
+   inferior (que ya tiene "Perfil") está oculto por la media query de abajo. */
+.ulo-profile-btn {
+  display: none;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.ulo-profile-btn:hover { background: rgba(255,255,255,0.3); }
+
+.ulo-cart-badge {
+  position: absolute;
+  top: -4px; right: -4px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #FF7A00;
+}
+
+/* ── Contenido ───────────────────────────────────────────── */
+.ulo-main {
+  flex: 1;
+  padding: 0 0 16px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ── Carrito flotante ────────────────────────────────────── */
+.ulo-cart-bar {
+  position: fixed;
+  bottom: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 560px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+  z-index: 200;
+  transition: transform 0.2s;
+  animation: ulo-bar-in 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.ulo-cart-bar:hover { transform: translateX(-50%) translateY(-2px); }
+@keyframes ulo-bar-in {
+  from { transform: translateX(-50%) translateY(80px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+.ulo-cart-bar-l { display: flex; align-items: center; gap: 10px; }
+.ulo-cart-bar-badge {
+  background: #FF7A00; color: white;
+  font-size: 13px; font-weight: 800;
+  min-width: 28px; height: 28px;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 8px;
+}
+.ulo-cart-bar-label { font-size: 15px; font-weight: 700; }
+.ulo-cart-bar-r     { display: flex; align-items: center; gap: 8px; }
+.ulo-cart-bar-total { font-size: 16px; font-weight: 800; color: #FF7A00; }
+.ulo-cart-bar-arrow { font-size: 18px; color: rgba(255,255,255,0.5); }
+
+/* ── Navegación inferior ─────────────────────────────────── */
+.ulo-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 62px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: stretch;
+  z-index: 300;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+
+.ulo-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 4px 10px;
+  transition: background 0.15s;
+  font-family: inherit;
+  position: relative;
+}
+.ulo-nav-item:hover { background: #f8fafc; }
+.ulo-nav-item--active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 3px;
+  background: #FF7A00;
+  border-radius: 0 0 3px 3px;
+}
+
+.ulo-nav-icon {
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.15s;
+}
+.ulo-nav-item--active .ulo-nav-icon { transform: scale(1.15); }
+
+.ulo-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: color 0.15s;
+}
+.ulo-nav-item--active .ulo-nav-label { color: #FF7A00; }
+
+/* Dark theme */
+.dark-theme .ulo-bottom-nav { background: #1e293b; border-top-color: #334155; }
+.dark-theme .ulo-nav-item:hover { background: #0f172a; }
+.dark-theme .ulo-cart-bar { background: #0f172a; }
+.dark-theme .ulo-container { background: #0f172a; }
+.dark-theme .ulo-main { background: #0f172a; }
+
+/* Desktop */
+@media (min-width: 768px) {
+  .ulo-main {
+    max-width: 1160px;
+    padding: 24px 32px 48px;
+  }
+  .ulo-bottom-nav { display: none; }
+  .ulo-profile-btn { display: flex; }
+  .ulo-cart-bar   { bottom: 24px; max-width: 420px; }
+  .ulo-header     { padding: 0 32px; height: 62px; }
+  .ulo-brand      { font-size: 20px; }
+}

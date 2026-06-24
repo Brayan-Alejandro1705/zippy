@@ -1,0 +1,177 @@
+/* UserProductModal — Bottom sheet */
+
+.upm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 400;
+  display: flex;
+  align-items: flex-end;
+  animation: upm-fade 0.2s ease;
+}
+@keyframes upm-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.upm-sheet {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 24px 24px 0 0;
+  max-height: 92vh;
+  overflow-y: auto;
+  animation: upm-slide 0.32s cubic-bezier(0.34, 1.1, 0.64, 1);
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+@keyframes upm-slide {
+  from { transform: translateY(100%) }
+  to   { transform: translateY(0) }
+}
+.upm-sheet::-webkit-scrollbar { display: none; }
+
+/* Handle */
+.upm-handle-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 16px 0;
+  position: relative;
+}
+.upm-handle {
+  width: 40px; height: 4px;
+  background: #e2e8f0; border-radius: 2px;
+}
+.upm-close {
+  position: absolute; right: 16px; top: 8px;
+  background: #f1f5f9; border: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  font-size: 13px; cursor: pointer; color: #64748b;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.upm-close:hover { background: #e2e8f0; }
+
+/* Photo */
+.upm-photo {
+  height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; margin: 10px 16px 0;
+  border-radius: 16px; overflow: hidden;
+}
+.upm-emoji { font-size: 70px; filter: drop-shadow(0 6px 16px rgba(0,0,0,0.15)); }
+
+.upm-badge-new {
+  position: absolute; top: 12px; left: 12px;
+  background: #ef4444; color: white;
+  font-size: 10px; font-weight: 800;
+  padding: 3px 9px; border-radius: 6px; letter-spacing: 0.5px;
+}
+
+/* Body */
+.upm-body { padding: 18px 20px 110px; }
+
+.upm-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+
+.upm-cat {
+  background: #fff3e6; color: #FF7A00;
+  font-size: 10px; font-weight: 800;
+  padding: 3px 10px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.upm-review-count { font-size: 12px; color: #94a3b8; }
+
+.upm-name   { font-size: 22px; font-weight: 900; color: #1e293b; margin-bottom: 4px; line-height: 1.25; }
+.upm-tienda { font-size: 13px; color: #64748b; margin-bottom: 10px; }
+
+.upm-stock-warn {
+  background: #fef2f2; color: #ef4444;
+  font-size: 12px; font-weight: 700;
+  padding: 8px 12px; border-radius: 8px;
+  margin-bottom: 12px; border-left: 3px solid #ef4444;
+}
+
+.upm-desc {
+  font-size: 14px; color: #475569;
+  line-height: 1.65; margin-bottom: 20px;
+}
+
+.upm-divider { height: 1px; background: #f0f0f0; margin-bottom: 18px; }
+
+.upm-section-title { font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 12px; }
+
+.upm-rating-summary {
+  display: flex; align-items: center; gap: 14px;
+  background: #f8fafc; border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.upm-rating-big   { font-size: 36px; font-weight: 900; color: #1e293b; }
+.upm-rating-sub   { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+/* Review */
+.upm-review {
+  padding: 14px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+.upm-review:last-child { border-bottom: none; }
+
+.upm-review-header {
+  display: flex; align-items: flex-start;
+  gap: 10px; margin-bottom: 8px;
+}
+.upm-review-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, #FF7A00, #FF9A3C);
+  color: white; font-size: 14px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.upm-review-meta  { flex: 1; }
+.upm-review-name  { font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 2px; }
+.upm-review-fecha { font-size: 11px; color: #94a3b8; white-space: nowrap; }
+.upm-review-text  { font-size: 13px; color: #475569; line-height: 1.55; }
+
+/* Sticky footer */
+.upm-footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: white;
+  padding: 14px 20px 20px;
+  border-top: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 -6px 24px rgba(0,0,0,0.1);
+  z-index: 10;
+  max-width: 520px; margin: 0 auto;
+}
+.upm-footer-price {
+  font-size: 18px; font-weight: 900; color: #FF7A00;
+  white-space: nowrap;
+}
+
+.upm-qty {
+  display: flex; align-items: center; gap: 0;
+  background: #f8fafc; border-radius: 10px;
+  border: 1.5px solid #e2e8f0; overflow: hidden;
+  flex-shrink: 0;
+}
+.upm-qty button {
+  width: 36px; height: 36px; border: none;
+  background: none; font-size: 20px; font-weight: 700;
+  cursor: pointer; color: #FF7A00;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.upm-qty button:hover { background: #fff3e6; }
+.upm-qty span {
+  font-size: 15px; font-weight: 800; color: #1e293b;
+  min-width: 28px; text-align: center;
+}
+
+.upm-add-btn {
+  flex: 1; padding: 13px 12px;
+  background: linear-gradient(135deg, #FF7A00, #FF9A3C);
+  color: white; border: none; border-radius: 12px;
+  font-size: 14px; font-weight: 800;
+  cursor: pointer; transition: opacity 0.2s;
+  white-space: nowrap; font-family: inherit;
+  box-shadow: 0 4px 14px rgba(255,122,0,0.35);
+}
+.upm-add-btn:hover { opacity: 0.92; }

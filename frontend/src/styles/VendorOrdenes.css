@@ -1,0 +1,151 @@
+/* VendorOrdenes */
+.vo-title { font-size:22px; font-weight:700; color:#1e293b; margin-bottom:18px; }
+
+.vo-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+.vo-tab {
+  padding:8px 16px; border:1.5px solid #e2e8f0; border-radius:20px;
+  background:white; font-size:13px; font-weight:500; color:#555;
+  cursor:pointer; transition:all 0.2s;
+}
+.vo-tab--active { background:#FF7A00; border-color:#FF7A00; color:white; font-weight:600; }
+.vo-tab:hover:not(.vo-tab--active) { border-color:#FF7A00; color:#FF7A00; }
+.vo-tab-count { font-size:12px; opacity:0.8; }
+
+.vo-list { display:flex; flex-direction:column; gap:12px; margin-bottom:16px; }
+
+.vo-card {
+  background:white; border-radius:10px; border-left:4px solid #ddd;
+  box-shadow:0 2px 6px rgba(0,0,0,0.06); overflow:hidden;
+  transition:box-shadow 0.2s;
+}
+.vo-card:hover { box-shadow:0 4px 14px rgba(0,0,0,0.1); }
+
+.vo-card-main { display:flex; justify-content:space-between; padding:16px 18px; gap:16px; }
+
+.vo-card-info { flex:1; }
+.vo-card-top  { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+
+.vo-order-id   { font-size:14px; font-weight:700; color:#1e293b; font-family:monospace; }
+.vo-order-date { font-size:12px; color:#aaa; }
+.vo-negocio    { font-size:13px; font-weight:500; color:#555; margin-bottom:3px; }
+.vo-dir        { font-size:12px; color:#94a3b8; }
+
+.vo-card-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:140px; }
+.vo-card-total { font-size:16px; font-weight:700; color:#1e293b; }
+.vo-eta        { font-size:11px; color:#64748b; }
+
+.vo-badge {
+  display:inline-block; padding:4px 12px; border-radius:12px;
+  font-size:12px; font-weight:600;
+}
+.vo-badge--camino    { background:#fef3c7; color:#b45309; }
+.vo-badge--entregada { background:#dcfce7; color:#15803d; }
+.vo-badge--cancelada { background:#fee2e2; color:#b91c1c; }
+.vo-badge--pendiente { background:#e0e7ff; color:#3730a3; }
+
+.vo-card-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+
+.vo-btn-ver {
+  padding:6px 14px; background:#3b82f6; color:white; border:none;
+  border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; transition:background 0.2s;
+}
+.vo-btn-ver:hover { background:#2563eb; }
+
+.vo-btn-contact-sm {
+  padding:6px 10px; background:white; border:1px solid #e2e8f0; color:#555;
+  border-radius:6px; font-size:12px; cursor:pointer; transition:all 0.2s;
+}
+.vo-btn-contact-sm:hover { border-color:#FF7A00; color:#FF7A00; }
+
+.vo-btn-detail {
+  padding:6px 12px; background:white; border:1px solid #e2e8f0; color:#555;
+  border-radius:6px; font-size:12px; cursor:pointer; transition:all 0.2s;
+}
+.vo-btn-detail:hover { border-color:#94a3b8; }
+
+.vo-footer { font-size:12px; color:#aaa; text-align:center; padding:8px; }
+
+/* ── Order Detail Modal ───────────────────────────── */
+.vo-modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; animation:vo-fade 0.15s ease; padding:20px;
+}
+@keyframes vo-fade { from{opacity:0} to{opacity:1} }
+
+.vo-modal {
+  background:white; border-radius:16px; width:100%; max-width:480px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.2); overflow:hidden;
+  animation:vo-slide 0.2s ease;
+}
+@keyframes vo-slide { from{transform:translateY(-12px) scale(0.97)} to{transform:none} }
+
+.vo-modal-header {
+  background:#4c1d95; padding:18px 24px;
+  display:flex; justify-content:space-between; align-items:center;
+}
+.vo-modal-header h3 { font-size:17px; font-weight:700; color:white; }
+.vo-modal-close {
+  background:rgba(255,255,255,0.15); border:none; color:white;
+  width:28px; height:28px; border-radius:50%; font-size:14px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background 0.2s;
+}
+.vo-modal-close:hover { background:rgba(255,255,255,0.25); }
+
+/* Stepper */
+.vo-stepper {
+  display:flex; align-items:center; justify-content:center;
+  padding:20px 16px; gap:0;
+}
+.vo-step { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.vo-step-dot {
+  width:14px; height:14px; border-radius:50%;
+  background:#e2e8f0; border:2px solid #e2e8f0;
+  transition:all 0.2s;
+}
+.vo-step--done   .vo-step-dot { background:#22c55e; border-color:#22c55e; }
+.vo-step--current .vo-step-dot { background:#FF7A00; border-color:#FF7A00; box-shadow:0 0 0 4px rgba(255,122,0,0.2); }
+.vo-step-label { font-size:11px; color:#94a3b8; font-weight:500; white-space:nowrap; }
+.vo-step--done .vo-step-label, .vo-step--current .vo-step-label { color:#1e293b; }
+.vo-step-line { flex:1; height:2px; background:#e2e8f0; margin:0 4px; margin-bottom:20px; transition:background 0.2s; }
+.vo-step-line--done { background:#22c55e; }
+
+/* Items */
+.vo-items { padding:0 20px 16px; }
+.vo-item-row {
+  display:flex; justify-content:space-between; align-items:flex-start;
+  padding:12px 0; border-bottom:1px solid #f5f5f5; gap:12px;
+}
+.vo-item-row:last-of-type { border-bottom:none; }
+.vo-item-name { font-size:14px; font-weight:600; color:#1e293b; margin-bottom:3px; }
+.vo-item-meta { font-size:12px; color:#94a3b8; }
+.vo-item-price { font-size:14px; font-weight:700; color:#1e293b; white-space:nowrap; }
+
+.vo-total-row {
+  display:flex; justify-content:space-between; padding:12px 16px;
+  background:#fff8f0; border-radius:8px; margin-top:8px;
+  font-size:14px; font-weight:600; color:#555;
+}
+.vo-total-val { font-size:18px; font-weight:800; color:#FF7A00; }
+
+/* Delivery */
+.vo-delivery {
+  margin:0 20px 16px; padding:14px 16px; background:#f8fafc;
+  border-radius:10px; display:flex; flex-direction:column; gap:6px;
+  font-size:13px; color:#555; line-height:1.5;
+}
+.vo-delivery-name { font-weight:600; color:#1e293b; }
+
+/* Actions */
+.vo-modal-actions {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;
+  padding:16px 20px; border-top:1px solid #f0f0f0;
+}
+
+.vo-btn-map     { padding:10px 8px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:background 0.2s; }
+.vo-btn-map:hover { background:#2563eb; }
+.vo-btn-contact { padding:10px 8px; background:white; border:1.5px solid #e2e8f0; color:#555; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.vo-btn-contact:hover { border-color:#FF7A00; color:#FF7A00; }
+.vo-btn-invoice { padding:10px 8px; background:white; border:1.5px solid #e2e8f0; color:#555; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.vo-btn-invoice:hover { border-color:#94a3b8; }

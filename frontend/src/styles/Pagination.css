@@ -1,0 +1,74 @@
+.pg-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid #ecf0f1;
+  background: #fafafa;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pg-info {
+  font-size: 13px;
+  color: #999;
+}
+
+.pg-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pg-btn {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 36px;
+}
+
+.pg-btn:hover:not(:disabled) {
+  border-color: #FF7A00;
+  color: #FF7A00;
+}
+
+.pg-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pg-btn--active {
+  background: #FF7A00;
+  border-color: #FF7A00;
+  color: white;
+  font-weight: 700;
+}
+
+.pg-ellipsis {
+  padding: 0 4px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* Dark mode */
+.dark-theme .pg-wrapper {
+  background: #162032;
+  border-color: #1e293b;
+}
+
+.dark-theme .pg-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.dark-theme .pg-btn--active {
+  background: #FF7A00;
+  border-color: #FF7A00;
+  color: white;
+}
