@@ -1,6 +1,18 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1';
+const getApiBaseUrl = () => {
+  if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
+
+  // Forzar 10.0.2.2 para el emulador de Android
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // Si detectamos que es Capacitor, usamos la IP del host
+    return window.Capacitor ? 'http://10.0.2.2:8000/api/v1' : 'http://localhost:8000/api/v1';
+  }
+
+  return 'http://10.0.2.2:8000/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
