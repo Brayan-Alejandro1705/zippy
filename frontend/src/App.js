@@ -75,7 +75,7 @@ const App = () => (
           <Route path="/tienda/pedido-especial" element={<PedidoEspecialPage />} />
           <Route path="/tienda/servicios"       element={<ServiciosPage />} />
           <Route path="/repartidor"             element={<RepartidorPage />} />
-          <Route path="/" element={<Navigate to="/tienda" replace />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
       </CartProvider>
