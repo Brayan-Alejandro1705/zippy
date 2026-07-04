@@ -1,22 +1,30 @@
 import axios from 'axios';
 
+// ── URLs base ────────────────────────────────────────────────────────────────
+const PROD_API_URL  = 'https://zippy-eedd.onrender.com/api/v1';  // servidor en la nube (Render)
+const LOCAL_API_URL = 'http://localhost:8000/api/v1';            // desarrollo web local
+
 const getApiBaseUrl = () => {
+  // 1. Override manual por variable de entorno
   if (process.env.REACT_APP_API_URL) return process.env.REACT_APP_API_URL;
 
-  // Forzar 10.0.2.2 para el emulador de Android
+  // 2. Dentro del APK (Capacitor) → SIEMPRE el servidor en la nube
+  if (window.Capacitor) return PROD_API_URL;
+
+  // 3. Desarrollo web en tu PC → backend local
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    // Si detectamos que es Capacitor, usamos la IP del host
-    return window.Capacitor ? 'http://10.0.2.2:8000/api/v1' : 'http://localhost:8000/api/v1';
+    return LOCAL_API_URL;
   }
 
-  return 'http://10.0.2.2:8000/api/v1';
+  // 4. Cualquier otro caso (web desplegada) → nube
+  return PROD_API_URL;
 };
 
 const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
