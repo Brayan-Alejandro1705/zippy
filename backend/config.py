@@ -16,7 +16,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/toutain"
+    "sqlite:///./toutain.db"
 )
 
 # Crear engine de SQLAlchemy
@@ -44,7 +44,7 @@ Base = declarative_base()
 
 class Settings:
     # API
-    API_TITLE = os.getenv("API_TITLE", "TOUTAIN API")
+    API_TITLE = os.getenv("API_TITLE", "ZIPPY API")
     API_VERSION = os.getenv("API_VERSION", "1.0.0")
     DEBUG = os.getenv("DEBUG", "True") == "True"
     
@@ -59,21 +59,20 @@ class Settings:
     REFRESH_TOKEN_EXPIRE_DAYS = 7
     
     # CORS
-    CORS_ORIGINS_STR = os.getenv("CORS_ORIGINS", '["http://localhost:3000", "http://localhost:3002", "http://localhost:3003", "http://localhost:5173", "http://localhost:8000", "http://127.0.0.1:3000", "http://127.0.0.1:3002", "http://127.0.0.1:3003"]')
-    try:
-        import json
-        CORS_ORIGINS = json.loads(CORS_ORIGINS_STR)
-    except:
-        CORS_ORIGINS = [
-            "http://localhost:3000",
-            "http://localhost:3002",
-            "http://localhost:3003",
-            "http://localhost:5173",
-            "http://localhost:8000",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3002",
-            "http://127.0.0.1:3003",
-        ]
+    CORS_ORIGINS = [
+        "http://localhost:3000",
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://localhost:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:3003",
+        # ── Capacitor (APK Android/iOS) ──
+        "http://localhost",
+        "https://localhost",
+        "capacitor://localhost",
+    ]
     # Configuración de negocio
     COMISION_TOUTAIN = float(os.getenv("COMISION_TOUTAIN", 5))  # Porcentaje
     IMPUESTO_IVA = float(os.getenv("IMPUESTO_IVA", 19))  # Porcentaje
