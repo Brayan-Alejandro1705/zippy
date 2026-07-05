@@ -91,6 +91,22 @@
 .vl-user-icon { font-size: 18px; }
 .vl-user-name { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
 
+.vl-logout-btn {
+  background: rgba(255,255,255,0.18);
+  border: none;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.vl-logout-btn:hover { background: rgba(255,255,255,0.32); }
+
 /* Body */
 .vl-body {
   display: flex;
@@ -155,6 +171,14 @@
   padding: 28px;
   overflow-y: auto;
 }
+
+/* ── Dark theme ──────────────────────────────────────────── */
+.dark-theme .vl-container  { background: #0f172a; }
+.dark-theme .vl-sidebar    { background: #0a0f1a; }
+.dark-theme .vl-nav-item   { color: rgba(255,255,255,0.4); }
+.dark-theme .vl-nav-item:hover { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.04); }
+.dark-theme .vl-nav-item--active { color: #FF7A00; background: rgba(255,122,0,0.1); }
+.dark-theme .vl-content    { background: #0f172a; }
 
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 600px) {

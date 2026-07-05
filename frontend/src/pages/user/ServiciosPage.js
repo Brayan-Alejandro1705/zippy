@@ -324,8 +324,7 @@ const ServiciosPage = () => {
 
         {/* Header */}
         <div className="sv-page-header">
-          <button className="sv-back" onClick={() => navigate('/tienda')}>← Volver</button>
-          <div className="sv-title-wrap">
+<div className="sv-title-wrap">
             <span className="sv-page-icon">🛠️</span>
             <div>
               <h1 className="sv-page-title">Servicios locales</h1>

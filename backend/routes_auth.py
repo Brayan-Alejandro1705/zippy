@@ -185,13 +185,13 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo_usuario)
     
-    # Crear negocio predeterminado si es vendedor
+    # Crear negocio si es vendedor
     if nuevo_usuario.tipo_usuario == "vendedor":
         nuevo_negocio = Negocio(
             vendedor_id=nuevo_usuario.id,
-            nombre_negocio=f"Negocio de {nuevo_usuario.nombre}",
-            descripcion="Descripción de mi negocio",
-            categoria="General",
+            nombre_negocio=usuario.nombre_negocio or f"Negocio de {nuevo_usuario.nombre}",
+            categoria=usuario.categoria_negocio or "General",
+            ciudad=usuario.ciudad,
             estado="activo",
             fecha_creacion=datetime.utcnow()
         )

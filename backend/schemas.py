@@ -21,7 +21,12 @@ class UsuarioBase(BaseModel):
 
 class UsuarioCreate(UsuarioBase):
     password: str = Field(..., min_length=8)
-    
+    documento: Optional[str] = None
+    # Campos para vendedor (opcionales en registro)
+    nombre_negocio: Optional[str] = None
+    categoria_negocio: Optional[str] = None
+    ciudad: Optional[str] = None
+
     @validator('password')
     def validate_password(cls, v):
         if not any(c.isupper() for c in v):

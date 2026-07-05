@@ -61,8 +61,7 @@ const UsuarioDetallePage = () => {
   return (
     <Layout>
       <div className="ud-page-header">
-        <button className="nv-back-btn" onClick={() => navigate(-1)}>← Volver</button>
-        <div>
+<div>
           <h1 className="ud-title">👤 Detalle de Usuario</h1>
           <p className="ud-subtitle">Información completa del usuario</p>
         </div>

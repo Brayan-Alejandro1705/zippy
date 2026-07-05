@@ -33,7 +33,7 @@ const UserLayout = ({ children, onSearch }) => {
       {/* ── Header ─────────────────────────────────────── */}
       <header className="ulo-header">
         <button className="ulo-brand" onClick={() => navigate('/tienda')}>
-          🔥 <span>Zippy</span>
+          <img src="/logo-zippy.jpeg" alt="Zippy Go" className="ulo-brand-logo" />
         </button>
 
         <div className="ulo-search-wrap">

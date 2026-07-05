@@ -77,20 +77,6 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Nuevo vendedor CTA */}
-      <div className="form-section">
-        <div className="form-header">
-          <span>➕</span>
-          <h3>Nuevo Vendedor</h3>
-        </div>
-        <p style={{ color: '#7f8c8d', fontSize: 14, marginBottom: 16 }}>
-          Registra un nuevo vendedor con su información de negocio y asígnale un rol desde el formulario.
-        </p>
-        <button className="btn-create" onClick={() => navigate('/vendedores/nuevo')}>
-          ➕ Nuevo Vendedor
-        </button>
-      </div>
-
       {/* Users Table */}
       <div className="tables-container">
         <section className="table-section">

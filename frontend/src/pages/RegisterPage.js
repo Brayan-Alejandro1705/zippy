@@ -5,7 +5,13 @@ import '../styles/RegisterPage.css';
 
 const ROLES = [
   { value: 'cliente',      icon: '🛒', label: 'Cliente',      desc: 'Compra en la plataforma' },
+  { value: 'vendedor',     icon: '🏪', label: 'Vendedor',     desc: 'Vende tus productos'      },
   { value: 'domiciliario', icon: '🛵', label: 'Domiciliario', desc: 'Entrega pedidos'          },
+];
+
+const CATEGORIAS = [
+  'Restaurante', 'Comida rápida', 'Panadería', 'Cafetería', 'Frutas y verduras',
+  'Supermercado', 'Droguería', 'Ropa', 'Electrónica', 'Mascotas', 'General',
 ];
 
 const getPasswordStrength = (pass) => {
@@ -21,7 +27,6 @@ const getPasswordStrength = (pass) => {
 const STRENGTH_LABEL = ['', 'Débil', 'Regular', 'Buena', 'Fuerte'];
 const STRENGTH_COLOR = ['', '#ef4444', '#f59e0b', '#3b82f6', '#22c55e'];
 
-// FastAPI devuelve detail como string o como lista de errores de validación de pydantic
 const extractErrorMessage = (data, fallback) => {
   const detail = data?.detail;
   if (typeof detail === 'string') return detail;
@@ -35,14 +40,17 @@ const RegisterPage = () => {
     nombre: '', apellido: '', email: '',
     telefono: '', tipo_usuario: 'cliente',
     password: '', confirmPassword: '',
+    // Campos vendedor
+    nombre_negocio: '', categoria_negocio: 'General', ciudad: '',
   });
-  const [showPass, setShowPass]     = useState(false);
+  const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
-  const [shake, setShake]           = useState(false);
-  const [touched, setTouched]       = useState({});
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState('');
+  const [shake, setShake]             = useState(false);
+  const [touched, setTouched]         = useState({});
 
+  const isVendedor = form.tipo_usuario === 'vendedor';
   const strength   = getPasswordStrength(form.password);
   const strengthPct = (strength / 4) * 100;
 
@@ -56,7 +64,7 @@ const RegisterPage = () => {
 
   const fieldError = (name) => {
     if (!touched[name]) return '';
-    if (!form[name].trim()) return 'Requerido';
+    if (!form[name]?.trim()) return 'Requerido';
     if (name === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Email inválido';
     if (name === 'password' && form.password.length < 8) return 'Mínimo 8 caracteres';
     if (name === 'password' && !/[A-Z]/.test(form.password)) return 'Debe incluir una mayúscula';
@@ -69,11 +77,15 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // touch all fields
-    setTouched({ nombre: true, apellido: true, email: true, password: true, confirmPassword: true });
+    const baseFields = { nombre: true, apellido: true, email: true, password: true, confirmPassword: true };
+    const vendorFields = isVendedor ? { nombre_negocio: true, ciudad: true } : {};
+    setTouched({ ...baseFields, ...vendorFields });
 
     if (!form.nombre || !form.apellido || !form.email || !form.password || !form.confirmPassword) {
       setError('Completa todos los campos obligatorios'); triggerShake(); return;
+    }
+    if (isVendedor && !form.nombre_negocio) {
+      setError('El nombre del negocio es obligatorio'); triggerShake(); return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       setError('El email no es válido'); triggerShake(); return;
@@ -99,7 +111,10 @@ const RegisterPage = () => {
       localStorage.setItem('access_token',  response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
       localStorage.setItem('usuario',       JSON.stringify(response.data.usuario));
-      navigate(response.data.usuario.tipo_usuario === 'domiciliario' ? '/repartidor' : '/tienda');
+      const tipo = response.data.usuario.tipo_usuario;
+      if (tipo === 'domiciliario') navigate('/repartidor');
+      else if (tipo === 'vendedor') navigate('/tienda');
+      else navigate('/tienda');
     } catch (err) {
       setError(extractErrorMessage(err.response?.data, 'Error al crear la cuenta'));
       triggerShake();
@@ -110,14 +125,12 @@ const RegisterPage = () => {
 
   return (
     <div className="rp-container">
-      {/* Background blobs */}
       <div className="rp-blob rp-blob--1" />
       <div className="rp-blob rp-blob--2" />
       <div className="rp-blob rp-blob--3" />
 
       <div className={`rp-card ${shake ? 'rp-shake' : ''}`}>
 
-        {/* Header */}
         <div className="rp-header">
           <a href="/login" className="rp-back">← Volver al login</a>
           <div className="rp-logo">
@@ -130,7 +143,7 @@ const RegisterPage = () => {
 
         <form onSubmit={handleSubmit} noValidate>
 
-          {/* Role selector */}
+          {/* Tipo de cuenta */}
           <div className="rp-section-label">Tipo de cuenta</div>
           <div className="rp-roles">
             {ROLES.map(({ value, icon, label, desc }) => (
@@ -147,9 +160,55 @@ const RegisterPage = () => {
             ))}
           </div>
 
+          {/* Campos extra para vendedor */}
+          {isVendedor && (
+            <>
+              <div className="rp-section-label">Información del negocio</div>
+              <div className="rp-field">
+                <label>Nombre del negocio <span className="rp-req">*</span></label>
+                <div className="rp-input-wrap">
+                  <span className="rp-input-icon">🏪</span>
+                  <input
+                    name="nombre_negocio" value={form.nombre_negocio}
+                    onChange={handleChange} onBlur={handleBlur}
+                    placeholder="Ej: Restaurante El Buen Sabor"
+                    className={fieldError('nombre_negocio') ? 'rp-input--err' : ''}
+                  />
+                </div>
+                {fieldError('nombre_negocio') && <span className="rp-field-err">{fieldError('nombre_negocio')}</span>}
+              </div>
+
+              <div className="rp-grid-2">
+                <div className="rp-field">
+                  <label>Categoría <span className="rp-req">*</span></label>
+                  <select
+                    name="categoria_negocio" value={form.categoria_negocio}
+                    onChange={handleChange}
+                    className="rp-select"
+                  >
+                    {CATEGORIAS.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rp-field">
+                  <label>Ciudad <span className="rp-optional">(opcional)</span></label>
+                  <div className="rp-input-wrap">
+                    <span className="rp-input-icon">📍</span>
+                    <input
+                      name="ciudad" value={form.ciudad}
+                      onChange={handleChange}
+                      placeholder="Garzón, Huila"
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
           {error && <div className="rp-error"><span>⚠</span> {error}</div>}
 
-          {/* Name row */}
+          {/* Información personal */}
           <div className="rp-section-label">Información personal</div>
           <div className="rp-grid-2">
             <div className="rp-field">
@@ -200,7 +259,7 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          {/* Password */}
+          {/* Contraseña */}
           <div className="rp-section-label">Seguridad</div>
           <div className="rp-grid-2">
             <div className="rp-field">
@@ -221,10 +280,7 @@ const RegisterPage = () => {
               {form.password && (
                 <div className="rp-strength">
                   <div className="rp-strength-bar">
-                    <div
-                      className="rp-strength-fill"
-                      style={{ width: `${strengthPct}%`, background: STRENGTH_COLOR[strength] }}
-                    />
+                    <div className="rp-strength-fill" style={{ width: `${strengthPct}%`, background: STRENGTH_COLOR[strength] }} />
                   </div>
                   <span className="rp-strength-label" style={{ color: STRENGTH_COLOR[strength] }}>
                     {STRENGTH_LABEL[strength]}

@@ -1,0 +1,297 @@
+/* ============================================================
+   Negocios.css
+   ============================================================ */
+
+.ng-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.ng-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.ng-subtitle {
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* Stats */
+.ng-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.ng-stat {
+  flex: 1;
+  min-width: 100px;
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  border-left: 4px solid #FF7A00;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.ng-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.ng-stat-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.ng-stat-sub {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Charts */
+.ng-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ng-chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.ng-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.ng-chart-empty {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* Filters */
+.ng-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.ng-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.ng-search:focus {
+  border-color: #FF7A00;
+}
+
+.ng-select {
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+  cursor: pointer;
+}
+
+/* Cards grid */
+.ng-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.ng-card {
+  background: white;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.ng-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.ng-card-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.ng-card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ng-card-info {
+  flex: 1;
+}
+
+.ng-card-nombre {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.ng-card-categoria {
+  font-size: 12px;
+  color: #FF7A00;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ng-card-ciudad {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Badge */
+.ng-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.ng-badge--activo    { background: #dcfce7; color: #166534; }
+.ng-badge--suspendido { background: #fee2e2; color: #991b1b; }
+
+/* Mini stats dentro de la card */
+.ng-card-stats {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.ng-mini-stat {
+  flex: 1;
+  text-align: center;
+}
+
+.ng-mini-stat + .ng-mini-stat {
+  border-left: 1px solid #f1f5f9;
+}
+
+.ng-mini-val {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ng-mini-label {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Barra de ventas relativa */
+.ng-card-bar-wrap {
+  height: 5px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ng-card-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+/* Skeleton */
+.ng-skeleton {
+  background: white;
+  border-radius: 14px;
+  height: 200px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: ng-shimmer 1.4s infinite;
+}
+
+@keyframes ng-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty state */
+.ng-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.ng-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ng-stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ng-charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ng-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ng-title {
+    font-size: 20px;
+  }
+}

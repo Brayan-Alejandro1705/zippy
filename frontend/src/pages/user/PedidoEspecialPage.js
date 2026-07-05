@@ -78,8 +78,7 @@ const PedidoEspecialPage = () => {
     <UserLayout>
       <div className="pe-page">
         <div className="pe-header">
-          <button className="pe-back" onClick={() => navigate('/tienda')}>← Volver</button>
-          <div className="pe-title-wrap">
+<div className="pe-title-wrap">
             <span className="pe-icon">📋</span>
             <div>
               <h1 className="pe-title">Pedido Especial</h1>

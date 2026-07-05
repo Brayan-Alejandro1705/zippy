@@ -37,6 +37,13 @@
 }
 .ulo-brand span { letter-spacing: 0.3px; }
 
+.ulo-brand-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
 .ulo-search-wrap {
   flex: 1;
   position: relative;

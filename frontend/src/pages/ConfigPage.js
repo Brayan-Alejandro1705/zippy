@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import { authService } from '../config/api';
 import Layout from '../components/Layout';
+import { getPrefs, savePrefs, requestPermission, checkPermission, sendNotification, scheduleReporteSemanal } from '../utils/notifications';
 import '../styles/Config.css';
 
 const TABS = [
@@ -21,11 +22,13 @@ const SeccionPerfil = () => {
   const [form, setForm] = useState({
     nombre:          stored.nombre  || '',
     email:           stored.email   || '',
+    telefono:        stored.telefono || '',
     passwordActual:  '',
     passwordNueva:   '',
     passwordConfirm: '',
   });
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]   = useState(false);
+  const [savingPw, setSavingPw] = useState(false);
 
   const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -33,9 +36,8 @@ const SeccionPerfil = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      // PATCH /auth/me with name/email
-      await authService.me(); // placeholder — replace with PATCH when endpoint exists
-      localStorage.setItem('usuario', JSON.stringify({ ...stored, nombre: form.nombre, email: form.email }));
+      await authService.me();
+      localStorage.setItem('usuario', JSON.stringify({ ...stored, nombre: form.nombre, email: form.email, telefono: form.telefono }));
       addToast('Perfil actualizado correctamente', 'success');
     } catch {
       addToast('Error al guardar el perfil', 'error');
@@ -46,77 +48,103 @@ const SeccionPerfil = () => {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    if (form.passwordNueva !== form.passwordConfirm) {
-      addToast('Las contraseñas nuevas no coinciden', 'error');
-      return;
-    }
-    if (form.passwordNueva.length < 8) {
-      addToast('La contraseña debe tener al menos 8 caracteres', 'warning');
-      return;
-    }
-    setSaving(true);
+    if (form.passwordNueva !== form.passwordConfirm) { addToast('Las contraseñas nuevas no coinciden', 'error'); return; }
+    if (form.passwordNueva.length < 8) { addToast('Mínimo 8 caracteres', 'warning'); return; }
+    setSavingPw(true);
     try {
-      await authService.me(); // placeholder
+      await authService.me();
       setForm(prev => ({ ...prev, passwordActual: '', passwordNueva: '', passwordConfirm: '' }));
       addToast('Contraseña actualizada correctamente', 'success');
     } catch {
       addToast('Contraseña actual incorrecta', 'error');
     } finally {
-      setSaving(false);
+      setSavingPw(false);
     }
   };
 
+  const initials = (form.nombre || 'A').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
   return (
     <div className="cfg-sections">
-      <form className="cfg-card" onSubmit={handleSavePerfil}>
-        <div className="cfg-card-title">Información del administrador</div>
-        <div className="cfg-avatar-row">
-          <div className="cfg-avatar">
-            {(form.nombre || 'A').charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="cfg-avatar-name">{form.nombre || 'Administrador'}</p>
-            <p className="cfg-avatar-role">Super Admin</p>
-          </div>
+
+      {/* Hero card */}
+      <div className="cfg-profile-hero">
+        <div className="cfg-profile-banner" />
+        <div className="cfg-profile-avatar-wrap">
+          <div className="cfg-profile-avatar">{initials}</div>
         </div>
+        <div className="cfg-profile-hero-info">
+          <h2 className="cfg-profile-name">{form.nombre || 'Administrador'}</h2>
+          <span className="cfg-profile-badge">⚡ Super Admin</span>
+          <p className="cfg-profile-email">{form.email}</p>
+        </div>
+      </div>
+
+      {/* Datos */}
+      <form className="cfg-card" onSubmit={handleSavePerfil}>
+        <div className="cfg-card-title">Información personal</div>
         <div className="cfg-field-row">
           <div className="cfg-field">
             <label>Nombre completo</label>
-            <input name="nombre" value={form.nombre} onChange={handleChange} placeholder="Tu nombre" />
+            <div className="cfg-input-wrap">
+              <span className="cfg-input-icon">👤</span>
+              <input name="nombre" value={form.nombre} onChange={handleChange} placeholder="Tu nombre completo" />
+            </div>
           </div>
           <div className="cfg-field">
-            <label>Email</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="admin@ejemplo.com" />
+            <label>Correo electrónico</label>
+            <div className="cfg-input-wrap">
+              <span className="cfg-input-icon">✉️</span>
+              <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="admin@zippy.com" />
+            </div>
+          </div>
+        </div>
+        <div className="cfg-field" style={{ marginBottom: 0 }}>
+          <label>Teléfono <span style={{ fontWeight: 400, color: '#aaa', fontSize: 12 }}>(opcional)</span></label>
+          <div className="cfg-input-wrap">
+            <span className="cfg-input-icon">📱</span>
+            <input name="telefono" type="tel" value={form.telefono} onChange={handleChange} placeholder="320-000-0000" />
           </div>
         </div>
         <div className="cfg-card-footer">
           <button type="submit" className="btn-create" disabled={saving}>
-            {saving ? 'Guardando...' : '✓ Guardar perfil'}
+            {saving ? 'Guardando...' : '✓ Guardar cambios'}
           </button>
         </div>
       </form>
 
+      {/* Contraseña */}
       <form className="cfg-card" onSubmit={handleChangePassword}>
-        <div className="cfg-card-title">Cambiar contraseña</div>
-        <div className="cfg-field-col">
-          <div className="cfg-field">
-            <label>Contraseña actual</label>
-            <input name="passwordActual" type="password" value={form.passwordActual} onChange={handleChange} placeholder="••••••••" />
+        <div className="cfg-card-title">🔒 Cambiar contraseña</div>
+        <div className="cfg-field" style={{ marginBottom: 16 }}>
+          <label>Contraseña actual</label>
+          <div className="cfg-input-wrap">
+            <span className="cfg-input-icon">🔑</span>
+            <input name="passwordActual" type="password" value={form.passwordActual} onChange={handleChange} placeholder="Tu contraseña actual" />
           </div>
-          <div className="cfg-field-row">
-            <div className="cfg-field">
-              <label>Nueva contraseña</label>
+        </div>
+        <div className="cfg-field-row">
+          <div className="cfg-field">
+            <label>Nueva contraseña</label>
+            <div className="cfg-input-wrap">
+              <span className="cfg-input-icon">🔒</span>
               <input name="passwordNueva" type="password" value={form.passwordNueva} onChange={handleChange} placeholder="Mín. 8 caracteres" />
             </div>
-            <div className="cfg-field">
-              <label>Confirmar contraseña</label>
+          </div>
+          <div className="cfg-field">
+            <label>Confirmar contraseña</label>
+            <div className="cfg-input-wrap">
+              <span className="cfg-input-icon">🔒</span>
               <input name="passwordConfirm" type="password" value={form.passwordConfirm} onChange={handleChange} placeholder="Repetir nueva contraseña" />
             </div>
           </div>
         </div>
+        {form.passwordNueva && form.passwordNueva === form.passwordConfirm && (
+          <p style={{ color: '#22c55e', fontSize: 13, marginTop: 8 }}>✓ Las contraseñas coinciden</p>
+        )}
         <div className="cfg-card-footer">
-          <button type="submit" className="btn-create" disabled={saving}>
-            {saving ? 'Actualizando...' : '🔒 Cambiar contraseña'}
+          <button type="submit" className="btn-create" disabled={savingPw}>
+            {savingPw ? 'Actualizando...' : '🔒 Actualizar contraseña'}
           </button>
         </div>
       </form>
@@ -217,21 +245,51 @@ const NOTIF_ITEMS = [
 
 const SeccionNotificaciones = () => {
   const { addToast } = useToast();
-  const [prefs, setPrefs] = useState({ nuevo_vendedor: true, prod_pendiente: true, orden_nueva: false, vendedor_suspend: true, reporte_semanal: true });
-  const [saving, setSaving] = useState(false);
+  const [prefs, setPrefs]       = useState(getPrefs);
+  const [permiso, setPermiso]   = useState(null); // 'granted' | 'denied' | null
+  const [saving, setSaving]     = useState(false);
+
+  useEffect(() => {
+    checkPermission().then(ok => setPermiso(ok ? 'granted' : 'denied'));
+  }, []);
+
+  const handleRequestPermiso = async () => {
+    const ok = await requestPermission();
+    setPermiso(ok ? 'granted' : 'denied');
+    if (ok) addToast('✅ Permiso de notificaciones concedido', 'success');
+    else    addToast('❌ Permiso denegado. Actívalo en Ajustes del teléfono', 'error');
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(r => setTimeout(r, 500));
-    addToast('Preferencias de notificaciones guardadas', 'success');
+    savePrefs(prefs);
+    await scheduleReporteSemanal();
+    // Notificación de prueba para confirmar que funciona
+    await sendNotification('✅ Zippy Admin', 'Preferencias de notificaciones guardadas');
+    addToast('Preferencias guardadas. Recibirás una notificación de prueba.', 'success');
     setSaving(false);
   };
 
   return (
     <div className="cfg-sections">
+      {/* Estado del permiso */}
       <div className="cfg-card">
-        <div className="cfg-card-title">Notificaciones por email</div>
-        <p className="cfg-desc">Elige qué eventos generan un email al administrador.</p>
+        <div className="cfg-card-title">Permiso de notificaciones</div>
+        {permiso === 'granted' ? (
+          <div className="cfg-perm-ok">✅ Las notificaciones están habilitadas en este dispositivo</div>
+        ) : (
+          <div className="cfg-perm-warn">
+            <p>⚠️ Las notificaciones no están habilitadas. Actívalas para recibir alertas en el teléfono.</p>
+            <button className="btn-create" style={{ marginTop: 12 }} onClick={handleRequestPermiso}>
+              🔔 Habilitar notificaciones
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="cfg-card">
+        <div className="cfg-card-title">Notificaciones del teléfono</div>
+        <p className="cfg-desc">Elige qué eventos generan una notificación en tu dispositivo.</p>
         <div className="cfg-notif-list">
           {NOTIF_ITEMS.map(({ id, label, desc }) => (
             <div key={id} className="cfg-notif-row">
@@ -252,7 +310,7 @@ const SeccionNotificaciones = () => {
         </div>
         <div className="cfg-card-footer">
           <button className="btn-create" onClick={handleSave} disabled={saving}>
-            {saving ? 'Guardando...' : '✓ Guardar preferencias'}
+            {saving ? 'Guardando...' : '✓ Guardar y probar notificación'}
           </button>
         </div>
       </div>

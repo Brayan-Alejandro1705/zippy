@@ -247,6 +247,24 @@
   box-shadow: 0 0 0 3px rgba(255,122,0,0.1);
 }
 
+.rp-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #0f172a;
+  background: white;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.rp-select:focus {
+  border-color: #FF7A00;
+  box-shadow: 0 0 0 3px rgba(255,122,0,0.1);
+}
+
 .rp-input--err {
   border-color: #ef4444 !important;
   box-shadow: 0 0 0 3px rgba(239,68,68,0.08) !important;

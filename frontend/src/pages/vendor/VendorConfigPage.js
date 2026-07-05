@@ -42,65 +42,139 @@ const SeccionTienda = () => {
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
   const [form, setForm] = useState({
     nombre:      usuario.negocio || 'Tienda Demo',
+    categoria:   'Restaurante',
     descripcion: 'Productos frescos y artesanales elaborados con ingredientes locales.',
     direccion:   'Cra 5 #12-45, Garzón, Huila',
     telefono:    '310-555-0123',
+    whatsapp:    '',
     horario:     '7:00 AM - 8:00 PM',
     ciudad:      'Garzón',
   });
   const [saving, setSaving] = useState(false);
-
   const set = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     await new Promise(r => setTimeout(r, 600));
-    addToast('Información de la tienda actualizada', 'success');
+    addToast('Información de la tienda actualizada ✓', 'success');
     setSaving(false);
   };
 
+  const initials = (form.nombre || 'T').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
   return (
     <form className="vc-sections" onSubmit={handleSave}>
-      <CardBlock
-        icon="🏪" iconBg="linear-gradient(135deg,#fff3e6,#fde8cc)"
-        title="Información de la tienda"
-        desc="Datos visibles para tus clientes"
-        footer={
-          <button type="submit" className="vc-btn-save" disabled={saving}>
-            {saving ? '⏳ Guardando...' : '✓ Guardar cambios'}
-          </button>
-        }
-      >
-        <div className="vc-field-row">
-          <Field label="Nombre del negocio">
+
+      {/* Hero de tienda */}
+      <div className="vc-store-hero">
+        <div className="vc-store-banner" />
+        <div className="vc-store-avatar-wrap">
+          <div className="vc-store-avatar">{initials}</div>
+        </div>
+        <div className="vc-store-hero-info">
+          <h2 className="vc-store-name">{form.nombre}</h2>
+          <span className="vc-store-cat-badge">{form.categoria}</span>
+          <p className="vc-store-city">📍 {form.ciudad}</p>
+        </div>
+      </div>
+
+      {/* Datos generales */}
+      <div className="vc-card">
+        <div className="vc-card-header">
+          <div className="vc-card-header-icon" style={{ background: 'linear-gradient(135deg,#fff3e6,#fde8cc)' }}>🏪</div>
+          <div className="vc-card-header-text">
+            <p className="vc-card-title">Datos del negocio</p>
+            <p className="vc-card-desc">Información visible para tus clientes</p>
+          </div>
+        </div>
+
+        <Field label="Nombre del negocio">
+          <div className="vc-input-wrap">
+            <span className="vc-input-icon">🏪</span>
             <input name="nombre" value={form.nombre} onChange={set} placeholder="Nombre de tu tienda" />
-          </Field>
-          <Field label="Ciudad">
-            <select name="ciudad" value={form.ciudad} onChange={set}>
-              {['Garzón', 'Neiva', 'Pitalito', 'La Plata', 'Campoalegre'].map(c =>
+          </div>
+        </Field>
+
+        <div className="vc-field-row">
+          <Field label="Categoría">
+            <select name="categoria" value={form.categoria} onChange={set}>
+              {['Restaurante','Comida rápida','Panadería','Cafetería','Frutas y verduras',
+                'Supermercado','Droguería','Ropa','Electrónica','General'].map(c =>
                 <option key={c}>{c}</option>
               )}
             </select>
           </Field>
+          <Field label="Ciudad">
+            <div className="vc-input-wrap">
+              <span className="vc-input-icon">📍</span>
+              <select name="ciudad" value={form.ciudad} onChange={set} style={{ paddingLeft: 36 }}>
+                {['Garzón','Neiva','Pitalito','La Plata','Campoalegre'].map(c =>
+                  <option key={c}>{c}</option>
+                )}
+              </select>
+            </div>
+          </Field>
         </div>
+
         <Field label="Descripción">
-          <textarea name="descripcion" rows={3} value={form.descripcion} onChange={set} />
+          <textarea name="descripcion" rows={3} value={form.descripcion} onChange={set}
+            placeholder="Cuéntales a tus clientes qué ofreces..." />
         </Field>
+
+        <div className="vc-card-footer">
+          <button type="submit" className="vc-btn-save" disabled={saving}>
+            {saving ? '⏳ Guardando...' : '✓ Guardar'}
+          </button>
+        </div>
+      </div>
+
+      {/* Contacto y ubicación */}
+      <div className="vc-card">
+        <div className="vc-card-header">
+          <div className="vc-card-header-icon" style={{ background: 'linear-gradient(135deg,#e0f2fe,#bae6fd)' }}>📞</div>
+          <div className="vc-card-header-text">
+            <p className="vc-card-title">Contacto y ubicación</p>
+            <p className="vc-card-desc">Cómo encontrarte</p>
+          </div>
+        </div>
+
         <div className="vc-field-row">
-          <Field label="Dirección">
-            <input name="direccion" value={form.direccion} onChange={set} />
-          </Field>
           <Field label="Teléfono">
-            <input name="telefono" value={form.telefono} onChange={set} />
+            <div className="vc-input-wrap">
+              <span className="vc-input-icon">📱</span>
+              <input name="telefono" value={form.telefono} onChange={set} placeholder="310-000-0000" />
+            </div>
+          </Field>
+          <Field label="WhatsApp">
+            <div className="vc-input-wrap">
+              <span className="vc-input-icon">💬</span>
+              <input name="whatsapp" value={form.whatsapp} onChange={set} placeholder="310-000-0000" />
+            </div>
           </Field>
         </div>
-        <div style={{ maxWidth: 260 }}>
-          <Field label="Horario de atención">
+
+        <Field label="Dirección">
+          <div className="vc-input-wrap">
+            <span className="vc-input-icon">📍</span>
+            <input name="direccion" value={form.direccion} onChange={set} placeholder="Dirección completa" />
+          </div>
+        </Field>
+
+        <Field label="Horario de atención">
+          <div className="vc-input-wrap">
+            <span className="vc-input-icon">🕐</span>
             <input name="horario" value={form.horario} onChange={set} placeholder="Ej: 8:00 AM - 6:00 PM" />
-          </Field>
+          </div>
+        </Field>
+
+        <div className="vc-card-footer">
+          <button type="submit" className="vc-btn-save" disabled={saving}>
+            {saving ? '⏳ Guardando...' : '✓ Guardar'}
+          </button>
         </div>
-      </CardBlock>
+      </div>
+
     </form>
   );
 };

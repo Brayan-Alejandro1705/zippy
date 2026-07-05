@@ -36,8 +36,11 @@ const VendorLayout = ({ children, searchPlaceholder = 'Buscar...', onSearch }) =
       <header className="vl-header">
         <div className="vl-header-inner">
           <div className="vl-brand">
-            <span className="vl-brand-name">{nombre}</span>
-            <span className="vl-brand-neg">{negocio}</span>
+            <img src="/logo-zippy.jpeg" alt="Zippy Go" style={{ height: 32, width: 'auto', borderRadius: 6, objectFit: 'contain' }} />
+            <div>
+              <span className="vl-brand-name">{nombre}</span>
+              <span className="vl-brand-neg">{negocio}</span>
+            </div>
           </div>
           <div className="vl-search-wrap">
             <svg className="vl-search-icon" viewBox="0 0 20 20" fill="none">
@@ -55,6 +58,9 @@ const VendorLayout = ({ children, searchPlaceholder = 'Buscar...', onSearch }) =
             <span className="vl-user-icon">👤</span>
             <span className="vl-user-name">{nombre.toUpperCase()}</span>
           </div>
+          <button className="vl-logout-btn" onClick={handleLogout} title="Cerrar sesión">
+            🚪
+          </button>
         </div>
       </header>
 

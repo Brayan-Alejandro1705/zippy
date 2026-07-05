@@ -22,6 +22,7 @@ import SolicitudesPage from './pages/SolicitudesPage';
 import RepartidoresPage from './pages/RepartidoresPage';
 import RolesPermisosPage from './pages/RolesPermisosPage';
 import LogsActividadPage from './pages/LogsActividadPage';
+import NegociosPage from './pages/NegociosPage';
 import VendorProductosPage from './pages/vendor/VendorProductosPage';
 import VendorNuevoProductoPage from './pages/vendor/VendorNuevoProductoPage';
 import VendorEditarProductoPage from './pages/vendor/VendorEditarProductoPage';
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/vendedores/nuevo" element={<ProtectedRoute><NuevoVendedorPage /></ProtectedRoute>} />
           <Route path="/vendedores" element={<ProtectedRoute><VendedoresPage /></ProtectedRoute>} />
           <Route path="/solicitudes" element={<ProtectedRoute><SolicitudesPage /></ProtectedRoute>} />
+          <Route path="/negocios"    element={<ProtectedRoute><NegociosPage /></ProtectedRoute>} />
           <Route path="/repartidores" element={<ProtectedRoute><RepartidoresPage /></ProtectedRoute>} />
           <Route path="/roles" element={<ProtectedRoute><RolesPermisosPage /></ProtectedRoute>} />
           <Route path="/logs" element={<ProtectedRoute><LogsActividadPage /></ProtectedRoute>} />
