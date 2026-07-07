@@ -380,6 +380,13 @@
   border-radius: 10px; font-size: 13px; color: #555; line-height: 1.5;
 }
 
+.up-track-call-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px; padding: 8px 14px;
+  background: #10b981; color: white; font-size: 13px; font-weight: 700;
+  border-radius: 8px; text-decoration: none;
+}
+
 .up-track-steps { padding: 0 16px 18px; }
 .up-track-step { display: flex; gap: 12px; padding: 8px 0; }
 .up-track-step-dot {

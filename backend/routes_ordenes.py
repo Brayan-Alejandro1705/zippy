@@ -12,8 +12,8 @@ from decimal import Decimal
 
 from config import get_db, settings
 from models import (
-    Orden, ItemOrden, Producto, Negocio, Usuario, 
-    Transaccion, SeguimientoOrden, Carrito, ItemCarrito
+    Orden, ItemOrden, Producto, Negocio, Usuario,
+    Transaccion, SeguimientoOrden, Carrito, ItemCarrito, MensajeOrden
 )
 from schemas import OrdenCreate, OrdenUpdate, OrdenResponse
 from routes_auth import get_current_user
@@ -599,3 +599,102 @@ async def seguimiento_orden(
         }
         for s in seguimientos
     ]
+
+# ============================================================================
+# ENDPOINTS: CHAT DE ORDEN (cliente ↔ domiciliario)
+# ============================================================================
+
+def _verificar_acceso_chat(orden: Orden, current_user: Usuario):
+    """Cliente, domiciliario o admin de la orden pueden ver/usar el chat"""
+    puede = (
+        orden.cliente_id == current_user.id or
+        orden.domiciliario_id == current_user.id or
+        current_user.tipo_usuario == "admin"
+    )
+    if not puede:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para acceder a este chat"
+        )
+
+@router.get(
+    "/{orden_id}/mensajes",
+    response_model=List[dict],
+    summary="Mensajes del chat de la orden",
+    description="Lista los mensajes del chat entre cliente y domiciliario para esta orden"
+)
+async def listar_mensajes(
+    orden_id: UUID,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+
+    _verificar_acceso_chat(orden, current_user)
+
+    mensajes = db.query(MensajeOrden).filter(
+        MensajeOrden.orden_id == orden_id
+    ).order_by(MensajeOrden.fecha_creacion.asc()).all()
+
+    return [
+        {
+            "id": str(m.id),
+            "remitente_id": str(m.remitente_id),
+            "es_mio": m.remitente_id == current_user.id,
+            "contenido": m.contenido,
+            "fecha": m.fecha_creacion.isoformat(),
+        }
+        for m in mensajes
+    ]
+
+@router.post(
+    "/{orden_id}/mensajes",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="Enviar mensaje en el chat de la orden",
+    description="El cliente o el domiciliario de la orden envían un mensaje de chat"
+)
+async def enviar_mensaje(
+    orden_id: UUID,
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+
+    es_cliente_o_domiciliario = (
+        orden.cliente_id == current_user.id or
+        orden.domiciliario_id == current_user.id
+    )
+    if not es_cliente_o_domiciliario:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo el cliente o el domiciliario de la orden pueden enviar mensajes"
+        )
+
+    contenido = (datos.get("contenido") or "").strip()
+    if not contenido:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje no puede estar vacío")
+
+    if not orden.domiciliario_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta orden aún no tiene un domiciliario asignado"
+        )
+
+    mensaje = MensajeOrden(orden_id=orden_id, remitente_id=current_user.id, contenido=contenido[:1000])
+    db.add(mensaje)
+    db.commit()
+    db.refresh(mensaje)
+
+    return {
+        "id": str(mensaje.id),
+        "remitente_id": str(mensaje.remitente_id),
+        "es_mio": True,
+        "contenido": mensaje.contenido,
+        "fecha": mensaje.fecha_creacion.isoformat(),
+    }

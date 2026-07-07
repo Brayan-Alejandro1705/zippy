@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
+import { mapUsuario, ESTADO_LABEL_TO_RAW } from '../utils/usuarios';
 import '../styles/Usuarios.css';
 
 const PAGE_SIZE = 8;
@@ -97,7 +98,7 @@ const UsuariosPage = () => {
     setLoading(true);
     try {
       const res = await usuariosService.listar();
-      setUsuarios(res.data.results ?? res.data);
+      setUsuarios((res.data.usuarios ?? []).map(mapUsuario));
     } catch {
       setUsuarios(MOCK_USERS);
     } finally {
@@ -112,7 +113,7 @@ const UsuariosPage = () => {
     const u = confirm;
     const nuevo = u.estado === 'Activo' ? 'Suspendido' : 'Activo';
     setConfirm(null);
-    try { await usuariosService.cambiarEstado(u.id, nuevo); } catch { /* mock */ }
+    try { await usuariosService.cambiarEstado(u.id, ESTADO_LABEL_TO_RAW[nuevo]); } catch { /* mock */ }
     setUsuarios(prev => prev.map(x => x.id === u.id ? { ...x, estado: nuevo } : x));
     addToast(`${u.nombre} ${nuevo === 'Activo' ? 'activado' : 'suspendido'}`, nuevo === 'Activo' ? 'success' : 'warning');
   };

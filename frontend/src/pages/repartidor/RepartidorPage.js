@@ -4,6 +4,7 @@ import { useLoadScript, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from
 import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, usuariosService, productosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
+import OrdenChat from '../../components/OrdenChat';
 import '../../styles/RepartidorPage.css';
 
 const MAP_OPTIONS = {
@@ -454,7 +455,7 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
 };
 
 /* ── Order card ─────────────────────────────────────────── */
-const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported }) => {
+const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, onChat }) => {
   const cfg    = ESTADO_CFG[orden.estado];
   const pago   = PAGO_CFG[orden.pago];
   const nav    = orden.position ? navUrls(orden.position) : null;
@@ -531,6 +532,13 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported })
             onClick={e => { e.stopPropagation(); onReport(orden); }}
             title="Reportar problema"
           >⚠️</button>
+          {orden.estado === 'en_domicilio' && (
+            <button
+              className="rp-report-btn"
+              onClick={e => { e.stopPropagation(); onChat(orden); }}
+              title="Chat con el cliente"
+            >💬</button>
+          )}
           {cfg.btnLabel && (
             <button
               className={`rp-action-btn ${cfg.btnClass}`}
@@ -609,6 +617,21 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
   );
 };
 
+/* ── Modal de chat con el cliente ────────────────────────── */
+const ChatModal = ({ orden, onClose }) => {
+  if (!orden) return null;
+  return (
+    <div className="rp-modal-overlay" onClick={onClose}>
+      <div className="rp-modal" onClick={e => e.stopPropagation()}>
+        <h3 className="rp-modal-title">💬 Chat con {orden.cliente || 'el cliente'}</h3>
+        <p className="rp-modal-sub">{orden.id} · {orden.direccion}</p>
+        <OrdenChat ordenId={orden.idCompleto} />
+        <button className="rp-modal-cancel" onClick={onClose}>Cerrar</button>
+      </div>
+    </div>
+  );
+};
+
 /* ── Página principal ────────────────────────────────────── */
 const RepartidorPage = () => {
   const navigate = useNavigate();
@@ -633,6 +656,7 @@ const RepartidorPage = () => {
   const [sheetState, setSheetState] = useState('half');
   const [showCierre, setShowCierre] = useState(false);
   const [showCuenta, setShowCuenta] = useState(false);
+  const [chatOrden,  setChatOrden]  = useState(null);
 
   const sheetRef  = useRef(null);
   const dragState = useRef(null);
@@ -849,7 +873,7 @@ const RepartidorPage = () => {
       {/* Header */}
       <header className="rp-header">
         <div className="rp-header-left">
-          <span className="rp-brand">🔥 Zippy</span>
+          <img src="/logo-zippy.jpeg" alt="Zippy Go" className="rp-brand-logo" />
           <span className="rp-role-badge">REPARTIDOR</span>
         </div>
         <div className="rp-header-right">
@@ -967,7 +991,7 @@ const RepartidorPage = () => {
             [...enCamino, ...disponibles].map(o => (
               <OrdenCard
                 key={o.id} orden={o} onAvanzar={avanzar} onSelect={setSelected} selected={selected}
-                onReport={setReportTarget} reported={reportedMap[o.id]}
+                onReport={setReportTarget} reported={reportedMap[o.id]} onChat={setChatOrden}
               />
             ))
           )}
@@ -1003,6 +1027,7 @@ const RepartidorPage = () => {
       <ReportModal orden={reportTarget} onClose={() => setReportTarget(null)} onSubmit={handleReportSubmit} />
       <CierreModal open={showCierre} onClose={() => setShowCierre(false)} entregadas={entregadasHoy} ganado={ganado} />
       <CuentaModal open={showCuenta} usuario={usuario} onClose={() => setShowCuenta(false)} onSave={handleCuentaSave} onLogout={handleLogout} />
+      <ChatModal orden={chatOrden} onClose={() => setChatOrden(null)} />
     </div>
   );
 };

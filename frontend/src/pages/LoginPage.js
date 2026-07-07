@@ -46,7 +46,7 @@ const LoginPage = () => {
     localStorage.setItem('access_token',  'demo-token-' + tipo);
     localStorage.setItem('refresh_token', 'demo-refresh-' + tipo);
     localStorage.setItem('usuario',       JSON.stringify(usuarios[tipo]));
-    redirectByTipo(tipo);
+    redirectByTipo(usuarios[tipo].tipo_usuario);
   };
 
   const handleLogin = async (e) => {

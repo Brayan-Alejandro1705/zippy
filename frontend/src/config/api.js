@@ -155,6 +155,8 @@ export const ordenesService = {
   actualizar:(id, datos) => api.put(`/ordenes/${id}`, datos),
   seguimiento:(id) => api.get(`/ordenes/${id}/seguimiento`),
   ubicacionDomiciliario:(id) => api.get(`/ordenes/${id}/ubicacion`),
+  mensajes:      (id) => api.get(`/ordenes/${id}/mensajes`),
+  enviarMensaje: (id, contenido) => api.post(`/ordenes/${id}/mensajes`, { contenido }),
 };
 
 export const resenasService = {

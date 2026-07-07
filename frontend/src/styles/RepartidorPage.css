@@ -25,6 +25,7 @@
 }
 .rp-header-left { display: flex; align-items: center; gap: 10px; }
 .rp-brand { font-size: 16px; font-weight: 900; color: white; }
+.rp-brand-logo { height: 32px; width: auto; border-radius: 6px; object-fit: contain; }
 
 .rp-role-badge {
   background: rgba(0,0,0,0.2);

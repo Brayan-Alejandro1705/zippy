@@ -89,6 +89,7 @@ class Usuario(Base):
     tipo_usuario = Column(SQLEnum(TipoUsuario, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     estado = Column(SQLEnum(EstadoUsuario, native_enum=False, values_callable=lambda x: [e.value for e in x]), default=EstadoUsuario.ACTIVO, index=True)
     es_verificado = Column(Boolean, default=False)
+    es_super_admin = Column(Boolean, default=False, nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     fecha_ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     fecha_eliminacion = Column(DateTime)
@@ -262,6 +263,7 @@ class Orden(Base):
     transacciones = relationship("Transaccion", back_populates="orden")
     resenas = relationship("ResenaCalificacion", back_populates="orden")
     seguimientos = relationship("SeguimientoOrden", back_populates="orden", cascade="all, delete-orphan")
+    mensajes = relationship("MensajeOrden", back_populates="orden", cascade="all, delete-orphan")
     tickets = relationship("SoporteTicket", back_populates="orden")
 
     def __repr__(self):
@@ -486,6 +488,28 @@ class SeguimientoOrden(Base):
 
     def __repr__(self):
         return f"<SeguimientoOrden {self.id}>"
+
+# ============================================================================
+# TABLA: MENSAJES DE ORDEN (chat cliente ↔ domiciliario)
+# ============================================================================
+
+class MensajeOrden(Base):
+    __tablename__ = "mensajes_orden"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    orden_id = Column(UUID(as_uuid=True), ForeignKey("ordenes.id"), nullable=False, index=True)
+    remitente_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, index=True)
+
+    contenido = Column(Text, nullable=False)
+
+    fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relaciones
+    orden = relationship("Orden", back_populates="mensajes")
+    remitente = relationship("Usuario", foreign_keys=[remitente_id])
+
+    def __repr__(self):
+        return f"<MensajeOrden {self.id}>"
 
 # ============================================================================
 # TABLA: NOTIFICACIONES

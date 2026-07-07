@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker } from '@react-google-maps/api';
 import UserLayout from '../../components/UserLayout';
+import OrdenChat from '../../components/OrdenChat';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -279,13 +280,22 @@ const SeguimientoModal = ({ pedido, onClose }) => {
 
         <div className="up-track-status">
           {ubicacion?.asignado ? (
-            <p>🛵 <strong>{ubicacion.domiciliario_nombre || 'Un repartidor'}</strong> va en camino con tu pedido.</p>
+            <>
+              <p>🛵 <strong>{ubicacion.domiciliario_nombre || 'Un repartidor'}</strong> va en camino con tu pedido.</p>
+              {ubicacion.domiciliario_telefono && (
+                <a className="up-track-call-btn" href={`tel:${ubicacion.domiciliario_telefono}`}>
+                  📞 Llamar al repartidor
+                </a>
+              )}
+            </>
           ) : pedido.estado === 'En camino' ? (
             <p>🛵 Tu pedido va en camino.</p>
           ) : (
             <p>📦 Tu pedido está siendo preparado. Aún no hay un repartidor asignado.</p>
           )}
         </div>
+
+        {ubicacion?.asignado && <OrdenChat ordenId={pedido.idCompleto} />}
 
         {pasos.length > 0 && (
           <div className="up-track-steps">

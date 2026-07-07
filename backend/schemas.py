@@ -47,6 +47,7 @@ class UsuarioResponse(UsuarioBase):
     id: uuid.UUID
     foto_perfil: Optional[str]
     es_verificado: bool
+    es_super_admin: bool = False
     estado: str
     fecha_creacion: datetime
 

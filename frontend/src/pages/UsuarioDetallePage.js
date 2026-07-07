@@ -4,6 +4,7 @@ import { usuariosService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
+import { mapUsuario, ESTADO_LABEL_TO_RAW } from '../utils/usuarios';
 import '../styles/Usuarios.css';
 import '../styles/UsuarioDetalle.css';
 
@@ -29,7 +30,7 @@ const UsuarioDetallePage = () => {
       setLoading(true);
       try {
         const res = await usuariosService.obtener(id);
-        setUsuario(res.data);
+        setUsuario(mapUsuario(res.data));
       } catch {
         setUsuario(MOCK_USERS[id] || null);
       } finally {
@@ -45,7 +46,7 @@ const UsuarioDetallePage = () => {
     setConfirm(false);
     setToggling(true);
     try {
-      await usuariosService.cambiarEstado(id, nuevoEstado);
+      await usuariosService.cambiarEstado(id, ESTADO_LABEL_TO_RAW[nuevoEstado]);
     } catch {
       // mock mode
     } finally {

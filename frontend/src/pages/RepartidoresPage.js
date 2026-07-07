@@ -1,24 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../context/ToastContext';
+import { usuariosService } from '../config/api';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
+import { mapUsuario, ESTADO_LABEL_TO_RAW } from '../utils/usuarios';
 import '../styles/Usuarios.css';
 import '../styles/Vendedores.css';
 
-const MOCK_REPARTIDORES = [];
-
 const RepartidoresPage = () => {
   const { addToast } = useToast();
-  const [repartidores, setRepartidores] = useState(MOCK_REPARTIDORES);
+  const [repartidores, setRepartidores] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState(null);
+
+  const cargarRepartidores = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await usuariosService.listar({ tipo: 'domiciliario' });
+      setRepartidores((res.data.usuarios ?? []).map(mapUsuario));
+    } catch {
+      setRepartidores([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { cargarRepartidores(); }, [cargarRepartidores]);
 
   const totalActivos  = repartidores.filter(r => r.estado === 'Activo').length;
   const totalEntregas = repartidores.reduce((s, r) => s + r.entregas, 0);
 
-  const handleToggle = () => {
+  const handleToggle = async () => {
     const r = confirm;
     const nuevo = r.estado === 'Activo' ? 'Suspendido' : 'Activo';
     setConfirm(null);
+    try { await usuariosService.cambiarEstado(r.id, ESTADO_LABEL_TO_RAW[nuevo]); } catch { /* mock */ }
     setRepartidores(prev => prev.map(x => x.id === r.id ? { ...x, estado: nuevo } : x));
     addToast(`${r.nombre} ${nuevo === 'Activo' ? 'activado' : 'suspendido'}`, nuevo === 'Activo' ? 'success' : 'warning');
   };
@@ -60,7 +76,11 @@ const RepartidoresPage = () => {
             </tr>
           </thead>
           <tbody>
-            {repartidores.map(r => (
+            {loading ? (
+              <tr><td colSpan={8} className="us-email">Cargando repartidores...</td></tr>
+            ) : repartidores.length === 0 ? (
+              <tr><td colSpan={8} className="us-email">No hay repartidores registrados</td></tr>
+            ) : repartidores.map(r => (
               <tr key={r.id}>
                 <td className="us-id">{r.id}</td>
                 <td>
