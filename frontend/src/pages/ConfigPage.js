@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
-import { authService } from '../config/api';
+import { authService, usuariosService } from '../config/api';
 import Layout from '../components/Layout';
 import { getPrefs, savePrefs, requestPermission, checkPermission, sendNotification, scheduleReporteSemanal } from '../utils/notifications';
 import '../styles/Config.css';
@@ -48,15 +48,17 @@ const SeccionPerfil = () => {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
+    if (!form.passwordActual) { addToast('Ingresa tu contraseña actual', 'error'); return; }
     if (form.passwordNueva !== form.passwordConfirm) { addToast('Las contraseñas nuevas no coinciden', 'error'); return; }
     if (form.passwordNueva.length < 8) { addToast('Mínimo 8 caracteres', 'warning'); return; }
     setSavingPw(true);
     try {
-      await authService.me();
+      await usuariosService.cambiarPassword(form.passwordActual, form.passwordNueva);
       setForm(prev => ({ ...prev, passwordActual: '', passwordNueva: '', passwordConfirm: '' }));
+      sessionStorage.setItem('pw_banner_dismissed', '1');
       addToast('Contraseña actualizada correctamente', 'success');
-    } catch {
-      addToast('Contraseña actual incorrecta', 'error');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo actualizar la contraseña', 'error');
     } finally {
       setSavingPw(false);
     }

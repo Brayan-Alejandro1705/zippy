@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../config/api';
+import ZLoader from '../components/ZLoader';
 import '../styles/RegisterPage.css';
 
 const ROLES = [
@@ -40,6 +41,7 @@ const RegisterPage = () => {
     nombre: '', apellido: '', email: '',
     telefono: '', tipo_usuario: 'cliente',
     password: '', confirmPassword: '',
+    metodo_verificacion: 'email',
     // Campos vendedor
     nombre_negocio: '', categoria_negocio: 'General', ciudad: '',
   });
@@ -108,13 +110,14 @@ const RegisterPage = () => {
     try {
       const { confirmPassword, ...payload } = form;
       const response = await authService.registro(payload);
-      localStorage.setItem('access_token',  response.data.access_token);
-      localStorage.setItem('refresh_token', response.data.refresh_token);
-      localStorage.setItem('usuario',       JSON.stringify(response.data.usuario));
-      const tipo = response.data.usuario.tipo_usuario;
-      if (tipo === 'domiciliario') navigate('/repartidor');
-      else if (tipo === 'vendedor') navigate('/tienda');
-      else navigate('/tienda');
+      navigate('/verificar', {
+        state: {
+          email: form.email,
+          metodo: response.data.metodo_verificacion,
+          tipo_usuario: form.tipo_usuario,
+          envioOk: response.data.envio_ok,
+        },
+      });
     } catch (err) {
       setError(extractErrorMessage(err.response?.data, 'Error al crear la cuenta'));
       triggerShake();
@@ -124,38 +127,37 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="rp-container">
-      <div className="rp-blob rp-blob--1" />
-      <div className="rp-blob rp-blob--2" />
-      <div className="rp-blob rp-blob--3" />
+    <div className="reg-container">
+      <div className="reg-blob reg-blob--1" />
+      <div className="reg-blob reg-blob--2" />
+      <div className="reg-blob reg-blob--3" />
 
-      <div className={`rp-card ${shake ? 'rp-shake' : ''}`}>
+      <div className={`reg-card ${shake ? 'reg-shake' : ''}`}>
 
-        <div className="rp-header">
-          <a href="/login" className="rp-back">← Volver al login</a>
-          <div className="rp-logo">
-            <span className="rp-logo-icon">🛒</span>
-            <span className="rp-logo-text">ZIPPY</span>
+        <div className="reg-header">
+          <div className="reg-logo">
+            <span className="reg-logo-icon">🛒</span>
+            <span className="reg-logo-text">ZIPPY</span>
           </div>
-          <h2 className="rp-title">Crear cuenta</h2>
-          <p className="rp-sub">Únete a la plataforma de Garzón, Huila</p>
+          <h2 className="reg-title">Crear cuenta</h2>
+          <p className="reg-sub">Únete a la plataforma de Garzón, Huila</p>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
 
           {/* Tipo de cuenta */}
-          <div className="rp-section-label">Tipo de cuenta</div>
-          <div className="rp-roles">
+          <div className="reg-section-label">Tipo de cuenta</div>
+          <div className="reg-roles">
             {ROLES.map(({ value, icon, label, desc }) => (
               <button
                 key={value}
                 type="button"
-                className={`rp-role-card ${form.tipo_usuario === value ? 'rp-role-card--active' : ''}`}
+                className={`reg-role-card ${form.tipo_usuario === value ? 'reg-role-card--active' : ''}`}
                 onClick={() => setForm(prev => ({ ...prev, tipo_usuario: value }))}
               >
-                <span className="rp-role-icon">{icon}</span>
-                <span className="rp-role-label">{label}</span>
-                <span className="rp-role-desc">{desc}</span>
+                <span className="reg-role-icon">{icon}</span>
+                <span className="reg-role-label">{label}</span>
+                <span className="reg-role-desc">{desc}</span>
               </button>
             ))}
           </div>
@@ -163,38 +165,38 @@ const RegisterPage = () => {
           {/* Campos extra para vendedor */}
           {isVendedor && (
             <>
-              <div className="rp-section-label">Información del negocio</div>
-              <div className="rp-field">
-                <label>Nombre del negocio <span className="rp-req">*</span></label>
-                <div className="rp-input-wrap">
-                  <span className="rp-input-icon">🏪</span>
+              <div className="reg-section-label">Información del negocio</div>
+              <div className="reg-field">
+                <label>Nombre del negocio <span className="reg-req">*</span></label>
+                <div className="reg-input-wrap">
+                  <span className="reg-input-icon">🏪</span>
                   <input
                     name="nombre_negocio" value={form.nombre_negocio}
                     onChange={handleChange} onBlur={handleBlur}
                     placeholder="Ej: Restaurante El Buen Sabor"
-                    className={fieldError('nombre_negocio') ? 'rp-input--err' : ''}
+                    className={fieldError('nombre_negocio') ? 'reg-input--err' : ''}
                   />
                 </div>
-                {fieldError('nombre_negocio') && <span className="rp-field-err">{fieldError('nombre_negocio')}</span>}
+                {fieldError('nombre_negocio') && <span className="reg-field-err">{fieldError('nombre_negocio')}</span>}
               </div>
 
-              <div className="rp-grid-2">
-                <div className="rp-field">
-                  <label>Categoría <span className="rp-req">*</span></label>
+              <div className="reg-grid-2">
+                <div className="reg-field">
+                  <label>Categoría <span className="reg-req">*</span></label>
                   <select
                     name="categoria_negocio" value={form.categoria_negocio}
                     onChange={handleChange}
-                    className="rp-select"
+                    className="reg-select"
                   >
                     {CATEGORIAS.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
-                <div className="rp-field">
-                  <label>Ciudad <span className="rp-optional">(opcional)</span></label>
-                  <div className="rp-input-wrap">
-                    <span className="rp-input-icon">📍</span>
+                <div className="reg-field">
+                  <label>Ciudad <span className="reg-optional">(opcional)</span></label>
+                  <div className="reg-input-wrap">
+                    <span className="reg-input-icon">📍</span>
                     <input
                       name="ciudad" value={form.ciudad}
                       onChange={handleChange}
@@ -206,51 +208,51 @@ const RegisterPage = () => {
             </>
           )}
 
-          {error && <div className="rp-error"><span>⚠</span> {error}</div>}
+          {error && <div className="reg-error"><span>⚠</span> {error}</div>}
 
           {/* Información personal */}
-          <div className="rp-section-label">Información personal</div>
-          <div className="rp-grid-2">
-            <div className="rp-field">
-              <label>Nombre <span className="rp-req">*</span></label>
+          <div className="reg-section-label">Información personal</div>
+          <div className="reg-grid-2">
+            <div className="reg-field">
+              <label>Nombre <span className="reg-req">*</span></label>
               <input
                 name="nombre" value={form.nombre}
                 onChange={handleChange} onBlur={handleBlur}
                 placeholder="María" autoComplete="given-name"
-                className={fieldError('nombre') ? 'rp-input--err' : ''}
+                className={fieldError('nombre') ? 'reg-input--err' : ''}
               />
-              {fieldError('nombre') && <span className="rp-field-err">{fieldError('nombre')}</span>}
+              {fieldError('nombre') && <span className="reg-field-err">{fieldError('nombre')}</span>}
             </div>
-            <div className="rp-field">
-              <label>Apellido <span className="rp-req">*</span></label>
+            <div className="reg-field">
+              <label>Apellido <span className="reg-req">*</span></label>
               <input
                 name="apellido" value={form.apellido}
                 onChange={handleChange} onBlur={handleBlur}
                 placeholder="García" autoComplete="family-name"
-                className={fieldError('apellido') ? 'rp-input--err' : ''}
+                className={fieldError('apellido') ? 'reg-input--err' : ''}
               />
-              {fieldError('apellido') && <span className="rp-field-err">{fieldError('apellido')}</span>}
+              {fieldError('apellido') && <span className="reg-field-err">{fieldError('apellido')}</span>}
             </div>
           </div>
 
-          <div className="rp-field">
-            <label>Correo electrónico <span className="rp-req">*</span></label>
-            <div className="rp-input-wrap">
-              <span className="rp-input-icon">✉</span>
+          <div className="reg-field">
+            <label>Correo electrónico <span className="reg-req">*</span></label>
+            <div className="reg-input-wrap">
+              <span className="reg-input-icon">✉</span>
               <input
                 name="email" type="email" value={form.email}
                 onChange={handleChange} onBlur={handleBlur}
                 placeholder="maria@ejemplo.com" autoComplete="email"
-                className={fieldError('email') ? 'rp-input--err' : ''}
+                className={fieldError('email') ? 'reg-input--err' : ''}
               />
             </div>
-            {fieldError('email') && <span className="rp-field-err">{fieldError('email')}</span>}
+            {fieldError('email') && <span className="reg-field-err">{fieldError('email')}</span>}
           </div>
 
-          <div className="rp-field">
-            <label>Teléfono <span className="rp-optional">(opcional)</span></label>
-            <div className="rp-input-wrap">
-              <span className="rp-input-icon">📱</span>
+          <div className="reg-field">
+            <label>Teléfono <span className="reg-optional">(opcional)</span></label>
+            <div className="reg-input-wrap">
+              <span className="reg-input-icon">📱</span>
               <input
                 name="telefono" type="tel" value={form.telefono}
                 onChange={handleChange}
@@ -260,64 +262,64 @@ const RegisterPage = () => {
           </div>
 
           {/* Contraseña */}
-          <div className="rp-section-label">Seguridad</div>
-          <div className="rp-grid-2">
-            <div className="rp-field">
-              <label>Contraseña <span className="rp-req">*</span></label>
-              <div className="rp-input-wrap">
-                <span className="rp-input-icon">🔒</span>
+          <div className="reg-section-label">Seguridad</div>
+          <div className="reg-grid-2">
+            <div className="reg-field">
+              <label>Contraseña <span className="reg-req">*</span></label>
+              <div className="reg-input-wrap">
+                <span className="reg-input-icon">🔒</span>
                 <input
                   name="password" type={showPass ? 'text' : 'password'} value={form.password}
                   onChange={handleChange} onBlur={handleBlur}
                   placeholder="Mín. 8 caracteres" autoComplete="new-password"
-                  className={fieldError('password') ? 'rp-input--err' : ''}
+                  className={fieldError('password') ? 'reg-input--err' : ''}
                 />
-                <button type="button" className="rp-toggle-pass" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
+                <button type="button" className="reg-toggle-pass" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
                   {showPass ? '🙈' : '👁'}
                 </button>
               </div>
-              {fieldError('password') && <span className="rp-field-err">{fieldError('password')}</span>}
+              {fieldError('password') && <span className="reg-field-err">{fieldError('password')}</span>}
               {form.password && (
-                <div className="rp-strength">
-                  <div className="rp-strength-bar">
-                    <div className="rp-strength-fill" style={{ width: `${strengthPct}%`, background: STRENGTH_COLOR[strength] }} />
+                <div className="reg-strength">
+                  <div className="reg-strength-bar">
+                    <div className="reg-strength-fill" style={{ width: `${strengthPct}%`, background: STRENGTH_COLOR[strength] }} />
                   </div>
-                  <span className="rp-strength-label" style={{ color: STRENGTH_COLOR[strength] }}>
+                  <span className="reg-strength-label" style={{ color: STRENGTH_COLOR[strength] }}>
                     {STRENGTH_LABEL[strength]}
                   </span>
                 </div>
               )}
             </div>
 
-            <div className="rp-field">
-              <label>Confirmar contraseña <span className="rp-req">*</span></label>
-              <div className="rp-input-wrap">
-                <span className="rp-input-icon">🔒</span>
+            <div className="reg-field">
+              <label>Confirmar contraseña <span className="reg-req">*</span></label>
+              <div className="reg-input-wrap">
+                <span className="reg-input-icon">🔒</span>
                 <input
                   name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
                   onChange={handleChange} onBlur={handleBlur}
                   placeholder="Repetir contraseña" autoComplete="new-password"
-                  className={fieldError('confirmPassword') ? 'rp-input--err' : ''}
+                  className={fieldError('confirmPassword') ? 'reg-input--err' : ''}
                 />
-                <button type="button" className="rp-toggle-pass" onClick={() => setShowConfirm(p => !p)} tabIndex={-1}>
+                <button type="button" className="reg-toggle-pass" onClick={() => setShowConfirm(p => !p)} tabIndex={-1}>
                   {showConfirm ? '🙈' : '👁'}
                 </button>
               </div>
-              {fieldError('confirmPassword') && <span className="rp-field-err">{fieldError('confirmPassword')}</span>}
+              {fieldError('confirmPassword') && <span className="reg-field-err">{fieldError('confirmPassword')}</span>}
               {form.confirmPassword && form.confirmPassword === form.password && (
-                <span className="rp-match">✓ Las contraseñas coinciden</span>
+                <span className="reg-match">✓ Las contraseñas coinciden</span>
               )}
             </div>
           </div>
 
-          <button type="submit" className="rp-submit" disabled={loading}>
+          <button type="submit" className="reg-submit" disabled={loading}>
             {loading
-              ? <span className="rp-spinner" />
+              ? <ZLoader size="sm" inverted />
               : `Crear cuenta como ${ROLES.find(r => r.value === form.tipo_usuario)?.label} →`
             }
           </button>
 
-          <p className="rp-footer">
+          <p className="reg-footer">
             ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
           </p>
 

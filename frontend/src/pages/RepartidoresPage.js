@@ -4,6 +4,7 @@ import { usuariosService } from '../config/api';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
 import { mapUsuario, ESTADO_LABEL_TO_RAW } from '../utils/usuarios';
+import ZLoader from '../components/ZLoader';
 import '../styles/Usuarios.css';
 import '../styles/Vendedores.css';
 
@@ -77,7 +78,7 @@ const RepartidoresPage = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="us-email">Cargando repartidores...</td></tr>
+              <tr><td colSpan={8}><ZLoader size="sm" label="Cargando repartidores..." /></td></tr>
             ) : repartidores.length === 0 ? (
               <tr><td colSpan={8} className="us-email">No hay repartidores registrados</td></tr>
             ) : repartidores.map(r => (

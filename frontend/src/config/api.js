@@ -104,6 +104,8 @@ export const authService = {
   registro: (datos) => api.post('/auth/registro', datos),
   me:       () => api.get('/auth/me'),
   logout:   () => api.post('/auth/logout'),
+  verificarCodigo: (email, codigo) => api.post('/auth/verificar-codigo', { email, codigo }),
+  reenviarCodigo:  (email, metodo_verificacion) => api.post('/auth/reenviar-codigo', { email, metodo_verificacion }),
 };
 
 export const adminService = {
@@ -115,6 +117,8 @@ export const usuariosService = {
   obtener:      (id) => api.get(`/usuarios/${id}/`),
   cambiarEstado:(id, estado) => api.patch(`/usuarios/${id}/`, { estado }),
   actualizarPerfil: (datos) => api.put('/usuarios/me/', datos),
+  cambiarPassword: (passwordActual, passwordNueva) =>
+    api.post('/usuarios/me/password/', { password_actual: passwordActual, password_nueva: passwordNueva }),
 };
 
 export const vendedoresService = {

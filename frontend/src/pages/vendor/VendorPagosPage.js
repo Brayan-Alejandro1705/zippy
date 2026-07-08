@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { negociosService, ordenesService } from '../../config/api';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorPagos.css';
 import '../../styles/VendorOrdenes.css';
 import '../../styles/VendorProductos.css';
@@ -80,7 +81,7 @@ const VendorPagosPage = () => {
       </div>
 
       {loading ? (
-        <p>Cargando...</p>
+        <ZLoader size="sm" />
       ) : (
         <>
           <div className="vpg-stats">

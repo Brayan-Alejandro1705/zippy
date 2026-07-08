@@ -12,6 +12,7 @@ import ServiciosPage from './pages/user/ServiciosPage';
 import RepartidorPage from './pages/repartidor/RepartidorPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import VerificarCuentaPage from './pages/VerificarCuentaPage';
 import DashboardPage from './pages/DashboardPage';
 import NuevoVendedorPage from './pages/NuevoVendedorPage';
 import UsuariosPage from './pages/UsuariosPage';
@@ -49,6 +50,7 @@ const App = () => (
         <Routes>
           <Route path="/login"    element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verificar" element={<VerificarCuentaPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/usuarios/:id" element={<ProtectedRoute><UsuarioDetallePage /></ProtectedRoute>} />
           <Route path="/usuarios"     element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />

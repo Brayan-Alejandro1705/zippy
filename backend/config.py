@@ -85,6 +85,14 @@ class Settings:
     SMTP_USER = os.getenv("SMTP_USER", "")
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
+    # SMS - Twilio (opcional)
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "")
+
+    # Verificación de cuenta
+    CODIGO_VERIFICACION_MINUTOS = int(os.getenv("CODIGO_VERIFICACION_MINUTOS", 15))
+
 # Instancia global de settings
 settings = Settings()
 

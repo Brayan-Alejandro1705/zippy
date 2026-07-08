@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorOrdenes.css';
 
 const TABS = [
@@ -278,7 +279,7 @@ const VendorOrdenesPage = () => {
       </div>
 
       {loading ? (
-        <p>Cargando órdenes...</p>
+        <ZLoader size="sm" label="Cargando órdenes..." />
       ) : filtradas.length === 0 ? (
         <p>No tienes órdenes{tab !== 'Todos' ? ` en "${tab}"` : ''}.</p>
       ) : (

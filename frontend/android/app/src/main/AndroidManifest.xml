@@ -32,4 +32,15 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Ubicación: rastreo en vivo del repartidor y mapa de seguimiento del pedido -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- Cámara: opción "Tomar foto" al subir la imagen de un producto -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Notificaciones (Android 13+); @capacitor/local-notifications ya la aporta, se declara explícita para claridad -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

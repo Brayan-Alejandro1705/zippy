@@ -22,6 +22,7 @@ class UsuarioBase(BaseModel):
 class UsuarioCreate(UsuarioBase):
     password: str = Field(..., min_length=8)
     documento: Optional[str] = None
+    metodo_verificacion: str = "email"
     # Campos para vendedor (opcionales en registro)
     nombre_negocio: Optional[str] = None
     categoria_negocio: Optional[str] = None
@@ -33,6 +34,14 @@ class UsuarioCreate(UsuarioBase):
             raise ValueError('Password debe contener al menos una mayúscula')
         if not any(c.isdigit() for c in v):
             raise ValueError('Password debe contener al menos un número')
+        return v
+
+    @validator('metodo_verificacion')
+    def validate_metodo_verificacion(cls, v, values):
+        if v not in ('email', 'sms'):
+            raise ValueError("metodo_verificacion debe ser 'email' o 'sms'")
+        if v == 'sms' and not values.get('telefono'):
+            raise ValueError('Se requiere teléfono para verificación por SMS')
         return v
 
 class UsuarioUpdate(BaseModel):

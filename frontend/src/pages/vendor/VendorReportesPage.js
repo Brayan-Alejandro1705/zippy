@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService } from '../../config/api';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorReportes.css';
 
 const DIA_ABR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -172,7 +173,7 @@ const VendorReportesPage = () => {
       </div>
 
       {loading ? (
-        <p>Cargando reportes...</p>
+        <ZLoader label="Cargando reportes..." />
       ) : (
         <>
           {/* KPIs */}

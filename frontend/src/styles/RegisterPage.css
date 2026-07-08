@@ -1,12 +1,16 @@
 /* ============================================================================
-   RegisterPage.css — Modern redesign
+   RegisterPage.css — Dark glassmorphism (mismos colores que LoginPage)
    ============================================================================ */
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.reg-container, .reg-container *, .reg-container *::before, .reg-container *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+}
 
-.rp-container {
+.reg-container {
   min-height: 100vh;
-  background: #f8fafc;
+  background: linear-gradient(-45deg, #0d0d1a, #1a0a2e, #0a1628, #0f0f1f);
+  background-size: 400% 400%;
+  animation: reg-bg-shift 12s ease infinite;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,8 +20,14 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
+@keyframes reg-bg-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 /* Ambient blobs */
-.rp-blob {
+.reg-blob {
   position: fixed;
   border-radius: 50%;
   filter: blur(100px);
@@ -25,95 +35,86 @@
   z-index: 0;
 }
 
-.rp-blob--1 {
+.reg-blob--1 {
   width: 500px; height: 500px;
-  background: rgba(255, 122, 0, 0.07);
-  top: -150px; right: -100px;
+  background: radial-gradient(circle, rgba(255, 122, 0, 0.22) 0%, transparent 65%);
+  top: -160px; right: -120px;
 }
 
-.rp-blob--2 {
-  width: 350px; height: 350px;
-  background: rgba(255, 122, 0, 0.05);
-  bottom: -80px; left: -80px;
+.reg-blob--2 {
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.18) 0%, transparent 65%);
+  bottom: -100px; left: -80px;
 }
 
-.rp-blob--3 {
-  width: 250px; height: 250px;
-  background: rgba(59, 130, 246, 0.04);
-  top: 50%; left: 30%;
+.reg-blob--3 {
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, transparent 65%);
+  top: 55%; left: 15%;
 }
 
 /* Card */
-.rp-card {
+.reg-card {
   position: relative;
   z-index: 1;
-  background: white;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 20px;
   padding: 44px 48px;
   width: 100%;
   max-width: 640px;
   box-shadow:
-    0 0 0 1px rgba(0,0,0,0.05),
-    0 24px 64px rgba(0,0,0,0.09);
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 32px 72px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 /* Header */
-.rp-header {
+.reg-header {
   margin-bottom: 32px;
 }
 
-.rp-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #64748b;
-  text-decoration: none;
-  margin-bottom: 24px;
-  transition: color 0.2s;
-}
-
-.rp-back:hover { color: #FF7A00; }
-
-.rp-logo {
+.reg-logo {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 20px;
 }
 
-.rp-logo-icon {
+.reg-logo-icon {
   font-size: 22px;
-  background: #FF7A00;
+  background: linear-gradient(135deg, #FF7A00, #ff9d3a);
   width: 38px; height: 38px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(255,122,0,0.3);
+  box-shadow: 0 4px 16px rgba(255,122,0,0.4);
 }
 
-.rp-logo-text {
+.reg-logo-text {
   font-size: 20px;
   font-weight: 800;
-  color: #0f172a;
+  color: white;
   letter-spacing: 1.5px;
 }
 
-.rp-title {
+.reg-title {
   font-size: 26px;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
   margin-bottom: 6px;
 }
 
-.rp-sub {
+.reg-sub {
   font-size: 14px;
-  color: #64748b;
+  color: rgba(255,255,255,0.4);
 }
 
 /* Section labels */
-.rp-section-label {
+.reg-section-label {
   font-size: 11px;
   font-weight: 700;
   color: #FF7A00;
@@ -123,64 +124,64 @@
 }
 
 /* Role cards */
-.rp-roles {
+.reg-roles {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 4px;
 }
 
-.rp-role-card {
+.reg-role-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   padding: 14px 10px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid rgba(255,255,255,0.1);
   border-radius: 12px;
-  background: white;
+  background: rgba(255,255,255,0.04);
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
 }
 
-.rp-role-card:hover {
-  border-color: #FF7A00;
-  background: #fff8f0;
+.reg-role-card:hover {
+  border-color: rgba(255,122,0,0.4);
+  background: rgba(255,122,0,0.08);
 }
 
-.rp-role-card--active {
+.reg-role-card--active {
   border-color: #FF7A00;
-  background: #fff3e6;
+  background: rgba(255,122,0,0.12);
 }
 
-.rp-role-icon {
+.reg-role-icon {
   font-size: 24px;
 }
 
-.rp-role-label {
+.reg-role-label {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: white;
 }
 
-.rp-role-desc {
+.reg-role-desc {
   font-size: 11px;
-  color: #94a3b8;
+  color: rgba(255,255,255,0.4);
   line-height: 1.3;
 }
 
-.rp-role-card--active .rp-role-label { color: #FF7A00; }
+.reg-role-card--active .reg-role-label { color: #FF7A00; }
 
 /* Error banner */
-.rp-error {
+.reg-error {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-left: 4px solid #ef4444;
-  color: #991b1b;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-left: 3px solid #ef4444;
+  color: #fca5a5;
   padding: 12px 16px;
   border-radius: 8px;
   font-size: 14px;
@@ -188,138 +189,143 @@
 }
 
 /* Grid & fields */
-.rp-grid-2 {
+.reg-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 
-.rp-field {
+.reg-field {
   display: flex;
   flex-direction: column;
   margin-bottom: 14px;
 }
 
-.rp-field label {
+.reg-field label {
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: rgba(255,255,255,0.6);
   margin-bottom: 7px;
 }
 
-.rp-req { color: #ef4444; margin-left: 2px; }
-.rp-optional { font-weight: 400; color: #aaa; font-size: 12px; }
+.reg-req { color: #ef4444; margin-left: 2px; }
+.reg-optional { font-weight: 400; color: rgba(255,255,255,0.3); font-size: 12px; }
 
-.rp-input-wrap {
+.reg-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.rp-input-icon {
+.reg-input-icon {
   position: absolute;
   left: 13px;
   font-size: 14px;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: 0.6;
   z-index: 1;
 }
 
-.rp-field input {
+.reg-field input {
   width: 100%;
   padding: 12px 16px;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
   font-size: 14px;
-  color: #0f172a;
-  background: white;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  color: white;
+  background: rgba(255,255,255,0.06);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
   outline: none;
 }
 
-.rp-input-wrap input {
+.reg-field input::placeholder { color: rgba(255,255,255,0.22); }
+
+.reg-input-wrap input {
   padding-left: 40px;
   padding-right: 42px;
 }
 
-.rp-field input:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255,122,0,0.1);
+.reg-field input:focus {
+  border-color: rgba(255,122,0,0.6);
+  background: rgba(255,122,0,0.07);
+  box-shadow: 0 0 0 3px rgba(255,122,0,0.12);
 }
 
-.rp-select {
+.reg-select {
   width: 100%;
   padding: 12px 16px;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
   font-size: 14px;
-  color: #0f172a;
-  background: white;
+  color: white;
+  background: #1a1a2e;
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.rp-select:focus {
-  border-color: #FF7A00;
-  box-shadow: 0 0 0 3px rgba(255,122,0,0.1);
+.reg-select:focus {
+  border-color: rgba(255,122,0,0.6);
+  box-shadow: 0 0 0 3px rgba(255,122,0,0.12);
 }
 
-.rp-input--err {
+.reg-input--err {
   border-color: #ef4444 !important;
-  box-shadow: 0 0 0 3px rgba(239,68,68,0.08) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.12) !important;
 }
 
-.rp-field-err {
+.reg-field-err {
   font-size: 12px;
-  color: #ef4444;
+  color: #fca5a5;
   margin-top: 5px;
 }
 
-.rp-toggle-pass {
+.reg-toggle-pass {
   position: absolute;
   right: 12px;
   background: none;
   border: none;
   cursor: pointer;
   font-size: 15px;
-  opacity: 0.45;
+  opacity: 0.5;
   padding: 0;
   transition: opacity 0.2s;
   line-height: 1;
+  color: rgba(255,255,255,0.6);
 }
-.rp-toggle-pass:hover { opacity: 1; }
+.reg-toggle-pass:hover { opacity: 1; }
 
 /* Password strength */
-.rp-strength {
+.reg-strength {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 8px;
 }
 
-.rp-strength-bar {
+.reg-strength-bar {
   flex: 1;
   height: 4px;
-  background: #e2e8f0;
+  background: rgba(255,255,255,0.1);
   border-radius: 2px;
   overflow: hidden;
 }
 
-.rp-strength-fill {
+.reg-strength-fill {
   height: 100%;
   border-radius: 2px;
   transition: width 0.35s ease, background 0.35s ease;
 }
 
-.rp-strength-label {
+.reg-strength-label {
   font-size: 12px;
   font-weight: 600;
   min-width: 50px;
   text-align: right;
+  color: rgba(255,255,255,0.6);
 }
 
-.rp-match {
+.reg-match {
   font-size: 12px;
   color: #22c55e;
   margin-top: 6px;
@@ -327,10 +333,10 @@
 }
 
 /* Submit */
-.rp-submit {
+.reg-submit {
   width: 100%;
   padding: 14px;
-  background: #FF7A00;
+  background: linear-gradient(135deg, #FF7A00 0%, #ff9a38 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -342,31 +348,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  box-shadow: 0 4px 20px rgba(255,122,0,0.35);
 }
 
-.rp-submit:hover:not(:disabled) {
-  background: #e56e00;
+.reg-submit:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(255,122,0,0.3);
+  box-shadow: 0 10px 32px rgba(255,122,0,0.5);
 }
 
-.rp-submit:active:not(:disabled) { transform: translateY(0); }
-.rp-submit:disabled { opacity: 0.7; cursor: not-allowed; }
-
-/* Spinner */
-.rp-spinner {
-  width: 20px; height: 20px;
-  border: 2.5px solid rgba(255,255,255,0.35);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: rp-spin 0.7s linear infinite;
-}
-
-@keyframes rp-spin { to { transform: rotate(360deg); } }
+.reg-submit:active:not(:disabled) { transform: translateY(0); }
+.reg-submit:disabled { opacity: 0.65; cursor: not-allowed; }
 
 /* Shake */
-@keyframes rp-shake {
+@keyframes reg-shake {
   0%, 100% { transform: translateX(0); }
   15%       { transform: translateX(-7px); }
   30%       { transform: translateX(7px); }
@@ -376,27 +371,28 @@
   90%       { transform: translateX(3px); }
 }
 
-.rp-shake { animation: rp-shake 0.5s ease; }
+.reg-shake { animation: reg-shake 0.5s ease; }
 
 /* Footer */
-.rp-footer {
+.reg-footer {
   text-align: center;
   margin-top: 24px;
   font-size: 13px;
-  color: #64748b;
+  color: rgba(255,255,255,0.35);
 }
 
-.rp-footer a {
-  color: #FF7A00;
+.reg-footer a {
+  color: rgba(255,122,0,0.85);
   font-weight: 600;
   text-decoration: none;
+  transition: color 0.2s;
 }
 
-.rp-footer a:hover { text-decoration: underline; }
+.reg-footer a:hover { color: #FF7A00; }
 
 /* Responsive */
 @media (max-width: 600px) {
-  .rp-card { padding: 32px 24px; }
-  .rp-roles { grid-template-columns: 1fr; }
-  .rp-grid-2 { grid-template-columns: 1fr; }
+  .reg-card { padding: 32px 24px; }
+  .reg-roles { grid-template-columns: 1fr; }
+  .reg-grid-2 { grid-template-columns: 1fr; }
 }

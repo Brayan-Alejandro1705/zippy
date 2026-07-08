@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../config/api';
+import ZLoader from '../components/ZLoader';
 import '../styles/LoginPage.css';
 
 const LoginPage = () => {
@@ -61,7 +62,12 @@ const LoginPage = () => {
       localStorage.setItem('usuario',       JSON.stringify(response.data.usuario));
       redirectByTipo(response.data.usuario.tipo_usuario);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Credenciales incorrectas');
+      const detail = err.response?.data?.detail;
+      if (detail && typeof detail === 'object' && detail.code === 'CUENTA_NO_VERIFICADA') {
+        navigate('/verificar', { state: { email, metodo: detail.metodo_verificacion } });
+        return;
+      }
+      setError((typeof detail === 'string' && detail) || 'Credenciales incorrectas');
       triggerShake();
     } finally {
       setLoading(false);
@@ -154,7 +160,7 @@ const LoginPage = () => {
           </div>
 
           <button type="submit" className="lp-submit" disabled={loading}>
-            {loading ? <span className="lp-spinner" /> : <><span>Iniciar sesión</span><span className="lp-arrow">→</span></>}
+            {loading ? <ZLoader size="sm" inverted /> : <><span>Iniciar sesión</span><span className="lp-arrow">→</span></>}
           </button>
         </form>
 

@@ -40,11 +40,24 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showPwBanner, setShowPwBanner] = useState(
+    () => !sessionStorage.getItem('pw_banner_dismissed')
+  );
 
   const usuario  = JSON.parse(localStorage.getItem('usuario') || '{}');
   const matrix   = getMatrix();
   const rolKey   = getRolKey(usuario);
   const displayName = usuario.nombre || usuario.email || 'ADMIN';
+
+  const dismissPwBanner = () => {
+    sessionStorage.setItem('pw_banner_dismissed', '1');
+    setShowPwBanner(false);
+  };
+
+  const irACambiarPassword = () => {
+    dismissPwBanner();
+    navigate('/config');
+  };
 
   const visibleNav    = NAV.filter(({ permId }) => canSee(permId, rolKey, matrix));
   const visibleBottom = BOTTOM_NAV.filter(({ permId }) => canSee(permId, rolKey, matrix));
@@ -118,6 +131,15 @@ const Layout = ({ children }) => {
         </aside>
 
         <main className="dashboard-content">
+          {showPwBanner && (
+            <div className="pw-banner">
+              <span>🔒 Por seguridad, te recomendamos cambiar tu contraseña.</span>
+              <div className="pw-banner-actions">
+                <button className="pw-banner-btn pw-banner-btn--primary" onClick={irACambiarPassword}>Cambiar ahora</button>
+                <button className="pw-banner-btn" onClick={dismissPwBanner}>Ahora no</button>
+              </div>
+            </div>
+          )}
           {children}
         </main>
       </div>

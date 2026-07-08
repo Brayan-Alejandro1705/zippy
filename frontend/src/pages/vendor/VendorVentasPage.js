@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorVentas.css';
 import '../../styles/VendorOrdenes.css';
 
@@ -333,7 +334,7 @@ const VendorVentasPage = () => {
       {/* Table */}
       <div className="vv-table-wrap">
         {loading ? (
-          <p style={{ padding: 16 }}>Cargando órdenes...</p>
+          <div style={{ padding: 16 }}><ZLoader size="sm" label="Cargando órdenes..." /></div>
         ) : filtradas.length === 0 ? (
           <p style={{ padding: 16 }}>No tienes órdenes{estadoFiltro !== 'Todos' ? ` en "${estadoFiltro}"` : ''}.</p>
         ) : (

@@ -10,9 +10,10 @@ from jose import JWTError, jwt
 from config import get_db, settings
 from models import Usuario, Negocio
 from schemas import (
-    UsuarioCreate, UsuarioResponse, LoginRequest, 
+    UsuarioCreate, UsuarioResponse, LoginRequest,
     LoginResponse, MensajeResponse
 )
+from notificaciones import generar_codigo, enviar_codigo
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Autenticación"])
 
@@ -169,7 +170,9 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
             detail=f"Tipo de usuario inválido. Válidos: {tipos_validos}"
         )
     
-    # Crear nuevo usuario
+    codigo = generar_codigo()
+
+    # Crear nuevo usuario (sin verificar hasta que confirme el código)
     nuevo_usuario = Usuario(
         email=usuario.email,
         nombre=usuario.nombre,
@@ -178,13 +181,17 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         tipo_usuario=usuario.tipo_usuario,
         password_hash=hash_password(usuario.password),
         estado="activo",
+        es_verificado=False,
+        codigo_verificacion=codigo,
+        codigo_verificacion_expira=datetime.utcnow() + timedelta(minutes=settings.CODIGO_VERIFICACION_MINUTOS),
+        metodo_verificacion=usuario.metodo_verificacion,
         fecha_creacion=datetime.utcnow()
     )
-    
+
     db.add(nuevo_usuario)
     db.commit()
     db.refresh(nuevo_usuario)
-    
+
     # Crear negocio si es vendedor
     if nuevo_usuario.tipo_usuario == "vendedor":
         nuevo_negocio = Negocio(
@@ -197,16 +204,21 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         )
         db.add(nuevo_negocio)
         db.commit()
-    
-    # Crear tokens
-    access_token = create_access_token(data={"sub": nuevo_usuario.email})
-    refresh_token = create_refresh_token(data={"sub": nuevo_usuario.email})
-    
+
+    envio_ok = True
+    try:
+        enviar_codigo(usuario.metodo_verificacion, nuevo_usuario.email, nuevo_usuario.telefono, nuevo_usuario.nombre, codigo)
+    except Exception as e:
+        envio_ok = False
+        print(f"⚠️ No se pudo enviar el código de verificación a {nuevo_usuario.email}: {e}")
+
     return {
-        "mensaje": "Usuario registrado exitosamente",
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
+        "mensaje": "Cuenta creada. Revisa tu " + ("SMS" if usuario.metodo_verificacion == "sms" else "correo") + " para verificarla."
+                   if envio_ok else
+                   "Cuenta creada, pero no se pudo enviar el código de verificación. Usa 'reenviar código' para intentar de nuevo.",
+        "requiere_verificacion": True,
+        "envio_ok": envio_ok,
+        "metodo_verificacion": usuario.metodo_verificacion,
         "usuario": {
             "id": str(nuevo_usuario.id),
             "email": nuevo_usuario.email,
@@ -241,7 +253,17 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos"
         )
-    
+
+    if not usuario.es_verificado:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "CUENTA_NO_VERIFICADA",
+                "mensaje": "Debes verificar tu cuenta antes de iniciar sesión",
+                "metodo_verificacion": usuario.metodo_verificacion or "email",
+            }
+        )
+
     # Verificar que el usuario esté activo
     if usuario.estado != "activo":
         raise HTTPException(
@@ -260,7 +282,80 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
         token_type="bearer"
     )
 
+@router.post(
+    "/verificar-codigo",
+    response_model=LoginResponse,
+    summary="Verificar cuenta con el código enviado",
+    description="Confirma el código de verificación (email o SMS) y activa la sesión"
+)
+async def verificar_codigo(datos: dict, db: Session = Depends(get_db)):
+    email = (datos.get("email") or "").strip()
+    codigo = (datos.get("codigo") or "").strip()
 
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    if usuario.es_verificado:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Esta cuenta ya está verificada")
+
+    if not usuario.codigo_verificacion or not codigo or usuario.codigo_verificacion != codigo:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código incorrecto")
+
+    if not usuario.codigo_verificacion_expira or usuario.codigo_verificacion_expira < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El código venció, solicita uno nuevo")
+
+    usuario.es_verificado = True
+    usuario.codigo_verificacion = None
+    usuario.codigo_verificacion_expira = None
+    db.commit()
+    db.refresh(usuario)
+
+    access_token = create_access_token(data={"sub": usuario.email})
+    refresh_token = create_refresh_token(data={"sub": usuario.email})
+
+    return LoginResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        usuario=UsuarioResponse.from_orm(usuario),
+        token_type="bearer"
+    )
+
+@router.post(
+    "/reenviar-codigo",
+    response_model=MensajeResponse,
+    summary="Reenviar código de verificación",
+    description="Genera y reenvía un nuevo código de verificación por el mismo canal"
+)
+async def reenviar_codigo(datos: dict, db: Session = Depends(get_db)):
+    email = (datos.get("email") or "").strip()
+
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    if usuario.es_verificado:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Esta cuenta ya está verificada")
+
+    metodo = datos.get("metodo_verificacion") or usuario.metodo_verificacion or "email"
+    if metodo not in ("email", "sms"):
+        metodo = "email"
+
+    codigo = generar_codigo()
+    usuario.codigo_verificacion = codigo
+    usuario.codigo_verificacion_expira = datetime.utcnow() + timedelta(minutes=settings.CODIGO_VERIFICACION_MINUTOS)
+    usuario.metodo_verificacion = metodo
+    db.commit()
+
+    try:
+        enviar_codigo(metodo, usuario.email, usuario.telefono, usuario.nombre, codigo)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"No se pudo enviar el código: {e}"
+        )
+
+    return MensajeResponse(mensaje=f"Código reenviado por {'SMS' if metodo == 'sms' else 'correo'}")
 
 @router.post(
     "/refresh",

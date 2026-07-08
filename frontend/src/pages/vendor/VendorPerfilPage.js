@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { negociosService, productosService } from '../../config/api';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorPerfil.css';
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -97,7 +98,7 @@ const VendorPerfilPage = () => {
   if (loading) {
     return (
       <VendorLayout searchPlaceholder="Buscar...">
-        <p>Cargando perfil de la tienda...</p>
+        <ZLoader label="Cargando perfil de la tienda..." />
       </VendorLayout>
     );
   }

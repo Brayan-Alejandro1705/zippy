@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import VendorLayout from '../../components/VendorLayout';
 import { productosService, negociosService } from '../../config/api';
 import { useToast } from '../../context/ToastContext';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorProductos.css';
 
 const productoDeApi = (p) => ({
@@ -168,7 +169,7 @@ const VendorProductosPage = () => {
 
       {loading ? (
         <div className="vp-empty">
-          <p>Cargando productos...</p>
+          <ZLoader label="Cargando productos..." />
         </div>
       ) : filtrados.length === 0 ? (
         <div className="vp-empty">

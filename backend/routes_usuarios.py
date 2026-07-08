@@ -39,6 +39,32 @@ async def actualizar_mi_perfil(
     db.refresh(usuario)
     return usuario
 
+@router.post(
+    "/me/password/",
+    response_model=MensajeResponse,
+    summary="Cambiar mi contraseña",
+    description="Cambia la contraseña del usuario autenticado, verificando la contraseña actual"
+)
+async def cambiar_mi_password(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    password_actual = datos.get("password_actual") or ""
+    password_nueva = datos.get("password_nueva") or ""
+
+    if not verify_password(password_actual, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual es incorrecta")
+
+    if len(password_nueva) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La nueva contraseña debe tener al menos 8 caracteres")
+
+    usuario = db.query(Usuario).filter(Usuario.id == current_user.id).first()
+    usuario.password_hash = hash_password(password_nueva)
+    db.commit()
+
+    return MensajeResponse(mensaje="Contraseña actualizada correctamente")
+
 # ============================================================================
 # ENDPOINTS: CREAR VENDEDOR (desde admin)
 # ============================================================================
@@ -96,6 +122,7 @@ async def crear_vendedor(datos: dict, db: Session = Depends(get_db)):
             tipo_usuario='vendedor',
             password_hash=hash_password(datos['password']),
             estado='activo',
+            es_verificado=True,  # lo crea un admin, no pasa por el flujo de verificación público
             fecha_creacion=datetime.utcnow()
         )
         

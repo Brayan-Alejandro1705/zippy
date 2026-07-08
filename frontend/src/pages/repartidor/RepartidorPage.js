@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, usuariosService, productosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 
 const MAP_OPTIONS = {
@@ -922,8 +923,7 @@ const RepartidorPage = () => {
           )}
           {!isLoaded && !loadError && (
             <div className="rp-map-loading">
-              <div className="rp-map-spinner"/>
-              <span>Cargando mapa...</span>
+              <ZLoader size="md" label="Cargando mapa..." />
             </div>
           )}
           {isLoaded && (
@@ -980,7 +980,7 @@ const RepartidorPage = () => {
               <p className="rp-offline-sub">Activa "En línea" para recibir pedidos</p>
             </div>
           ) : loading ? (
-            <p style={{ padding: 16 }}>Cargando pedidos...</p>
+            <div style={{ padding: 16 }}><ZLoader size="sm" label="Cargando pedidos..." /></div>
           ) : activasCount === 0 ? (
             <div className="rp-offline-msg">
               <span>✅</span>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker } from '@react-google-maps/api';
 import UserLayout from '../../components/UserLayout';
 import OrdenChat from '../../components/OrdenChat';
+import ZLoader from '../../components/ZLoader';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -64,7 +65,7 @@ const TABS = [
 
 /* ── Pedidos ─────────────────────────────────────────────── */
 const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
-  if (loading) return <p>Cargando pedidos...</p>;
+  if (loading) return <ZLoader size="sm" label="Cargando pedidos..." />;
   if (pedidos.length === 0) return (
     <div className="up-empty">
       <span>📦</span>
@@ -172,7 +173,7 @@ const CalificarModal = ({ pedido, onClose }) => {
         </div>
 
         {loading ? (
-          <p style={{ padding: 20 }}>Cargando...</p>
+          <div style={{ padding: 20 }}><ZLoader size="sm" /></div>
         ) : existente ? (
           <div className="up-track-status" style={{ margin: 16 }}>
             <p>✓ Ya calificaste este pedido con {existente.calificacion_general} ⭐</p>
@@ -274,7 +275,7 @@ const SeguimientoModal = ({ pedido, onClose }) => {
               {driverPos && <Marker position={driverPos} label="🛵" />}
             </GoogleMap>
           ) : (
-            <div className="up-track-map-msg">Cargando mapa...</div>
+            <div className="up-track-map-msg"><ZLoader size="sm" label="Cargando mapa..." /></div>
           )}
         </div>
 

@@ -5,6 +5,7 @@ import UserProductModal from '../../components/UserProductModal';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService } from '../../config/api';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/UserHome.css';
 
 /* ── Countdown ──────────────────────────────────────────── */
@@ -169,7 +170,7 @@ const UserHomePage = () => {
   if (loading) {
     return (
       <UserLayout onSearch={setQuery}>
-        <p style={{ padding: 24 }}>Cargando catálogo...</p>
+        <div style={{ padding: 24 }}><ZLoader label="Cargando catálogo..." /></div>
       </UserLayout>
     );
   }

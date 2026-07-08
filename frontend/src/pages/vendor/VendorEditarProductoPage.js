@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { productosService } from '../../config/api';
+import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorProductos.css';
 
 const CATEGORIAS = ['Bebidas', 'Panadería', 'Pastelería', 'Frutas y Verduras', 'Lácteos', 'Carnes', 'Otros'];
@@ -116,7 +117,7 @@ const VendorEditarProductoPage = () => {
         <div className="vnp-wrapper">
           <div className="vnp-card">
             <div className="vnp-body" style={{ textAlign: 'center', padding: '48px 20px' }}>
-              <span className="vnp-spinner" />
+              <ZLoader />
             </div>
           </div>
         </div>
@@ -291,7 +292,7 @@ const VendorEditarProductoPage = () => {
               </button>
             ) : (
               <button className="vnp-btn-next" onClick={handleSave} disabled={saving}>
-                {saving ? <span className="vnp-spinner" /> : '✓ Guardar cambios'}
+                {saving ? <ZLoader size="sm" inverted /> : '✓ Guardar cambios'}
               </button>
             )}
           </div>
