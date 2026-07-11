@@ -633,6 +633,20 @@ body {
     min-width: 500px;
   }
 
+  /* Widget "Usuarios recientes": columnas secundarias fuera en mobile
+     para que quepa sin scroll horizontal */
+  .dash-recent-table {
+    min-width: 0;
+  }
+  .dash-recent-table th:nth-child(3),
+  .dash-recent-table td:nth-child(3),
+  .dash-recent-table th:nth-child(5),
+  .dash-recent-table td:nth-child(5),
+  .dash-recent-table th:nth-child(6),
+  .dash-recent-table td:nth-child(6) {
+    display: none;
+  }
+
   /* Form */
   .form-row {
     grid-template-columns: 1fr;

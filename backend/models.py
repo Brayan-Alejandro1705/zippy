@@ -128,6 +128,7 @@ class Negocio(Base):
     logo = Column(String(500))
     imagen_portada = Column(String(500))
     categoria = Column(String(100), nullable=False, index=True)
+    es_servicio = Column(Boolean, default=False, nullable=False)
     estado = Column(SQLEnum(EstadoNegocio, native_enum=False, values_callable=lambda x: [e.value for e in x]), default=EstadoNegocio.ACTIVO, index=True)
     calificacion_promedio = Column(DECIMAL(3, 2), default=0)
     total_ordenes = Column(Integer, default=0)

@@ -100,7 +100,9 @@ const SeccionTienda = () => {
           <Field label="Categoría">
             <select name="categoria" value={form.categoria} onChange={set}>
               {['Restaurante','Comida rápida','Panadería','Cafetería','Frutas y verduras',
-                'Supermercado','Droguería','Ropa','Electrónica','General'].map(c =>
+                'Supermercado','Droguería','Ropa','Electrónica','Mascotas',
+                'Transporte','Aseo y limpieza','Belleza','Plomería y electricidad',
+                'Reparaciones','Tutorías y clases','General'].map(c =>
                 <option key={c}>{c}</option>
               )}
             </select>

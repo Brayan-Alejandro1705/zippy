@@ -199,6 +199,7 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
             nombre_negocio=usuario.nombre_negocio or f"Negocio de {nuevo_usuario.nombre}",
             categoria=usuario.categoria_negocio or "General",
             ciudad=usuario.ciudad,
+            es_servicio=usuario.es_servicio or False,
             estado="activo",
             fecha_creacion=datetime.utcnow()
         )
@@ -350,9 +351,10 @@ async def reenviar_codigo(datos: dict, db: Session = Depends(get_db)):
     try:
         enviar_codigo(metodo, usuario.email, usuario.telefono, usuario.nombre, codigo)
     except Exception as e:
+        print(f"⚠️ No se pudo reenviar el código de verificación a {usuario.email}: {e}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"No se pudo enviar el código: {e}"
+            detail="No se pudo enviar el código. Intenta de nuevo en unos minutos."
         )
 
     return MensajeResponse(mensaje=f"Código reenviado por {'SMS' if metodo == 'sms' else 'correo'}")

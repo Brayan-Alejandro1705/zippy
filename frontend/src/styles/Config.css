@@ -524,11 +524,12 @@
 .dark-theme .cfg-preview-label { color: #64748b; }
 
 @media (max-width: 768px) {
-  .cfg-layout { flex-direction: column; }
+  .cfg-layout { flex-direction: column; align-items: stretch; }
   .cfg-nav { width: 100%; position: static; display: flex; overflow-x: auto; }
-  .cfg-nav-item { flex-direction: column; gap: 4px; padding: 10px 14px; font-size: 12px; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
+  .cfg-nav-item { flex: 1; flex-direction: column; gap: 4px; padding: 10px 14px; font-size: 12px; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
   .cfg-nav-item--active { border-bottom-color: #FF7A00; border-left: none; }
   .cfg-field-row { grid-template-columns: 1fr; }
+  .cfg-card-footer .btn-create { width: 100%; }
 }
 
 .cfg-perm-ok {

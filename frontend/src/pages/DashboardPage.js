@@ -4,14 +4,12 @@ import { adminService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
 import ConfirmModal from '../components/ConfirmModal';
-import { MOCK_SOLICITUDES } from './SolicitudesPage';
 import '../styles/Usuarios.css';
 
 const MOCK_STATS = {
   total_usuarios: 0,
   vendedores_activos: 0,
   vendedores_suspendidos: 0,
-  solicitudes_pendientes: MOCK_SOLICITUDES.length,
 };
 
 const MOCK_USERS = [];
@@ -54,26 +52,27 @@ const DashboardPage = () => {
   return (
     <Layout>
       {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card green">
-          <div className="stat-number">{loadingStats ? '...' : s.total_usuarios.toLocaleString()}</div>
-          <div className="stat-label">Total Usuarios</div>
-          <div className="stat-subtitle">Usuarios registrados en la plataforma</div>
+      <div className="us-stats">
+        <div className="us-stat-card">
+          <div className="us-stat-icon" style={{ background: '#fff3e8', color: '#FF7A00' }}>👥</div>
+          <div>
+            <p className="us-stat-num">{loadingStats ? '...' : s.total_usuarios.toLocaleString()}</p>
+            <p className="us-stat-label">Total Usuarios</p>
+          </div>
         </div>
-        <div className="stat-card orange">
-          <div className="stat-number">{loadingStats ? '...' : s.vendedores_activos.toLocaleString()}</div>
-          <div className="stat-label">Vendedores Activos</div>
-          <div className="stat-subtitle">Operando con normalidad</div>
+        <div className="us-stat-card">
+          <div className="us-stat-icon" style={{ background: '#dcfce7', color: '#15803d' }}>🏪</div>
+          <div>
+            <p className="us-stat-num">{loadingStats ? '...' : s.vendedores_activos.toLocaleString()}</p>
+            <p className="us-stat-label">Vendedores Activos</p>
+          </div>
         </div>
-        <div className="stat-card red" onClick={() => navigate('/vendedores')} style={{ cursor: 'pointer' }}>
-          <div className="stat-number">{loadingStats ? '...' : s.vendedores_suspendidos.toLocaleString()}</div>
-          <div className="stat-label">Vendedores Suspendidos</div>
-          <div className="stat-subtitle">Cuentas con acceso restringido</div>
-        </div>
-        <div className="stat-card purple" onClick={() => navigate('/solicitudes')} style={{ cursor: 'pointer' }}>
-          <div className="stat-number">{loadingStats ? '...' : s.solicitudes_pendientes.toLocaleString()}</div>
-          <div className="stat-label">Solicitudes Pendientes</div>
-          <div className="stat-subtitle">Nuevos vendedores por aprobar</div>
+        <div className="us-stat-card" onClick={() => navigate('/vendedores')} style={{ cursor: 'pointer' }}>
+          <div className="us-stat-icon" style={{ background: '#fee2e2', color: '#b91c1c' }}>🚫</div>
+          <div>
+            <p className="us-stat-num">{loadingStats ? '...' : s.vendedores_suspendidos.toLocaleString()}</p>
+            <p className="us-stat-label">Vendedores Suspendidos</p>
+          </div>
         </div>
       </div>
 
@@ -81,7 +80,7 @@ const DashboardPage = () => {
       <div className="tables-container">
         <section className="table-section">
           <div className="table-header"><span>👥</span><h2>Usuarios recientes</h2></div>
-          <table className="data-table">
+          <table className="data-table dash-recent-table">
             <thead>
               <tr>
                 <th>ID</th>

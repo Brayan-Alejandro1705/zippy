@@ -8,6 +8,8 @@ from datetime import datetime
 from decimal import Decimal
 import uuid
 
+from validators import validar_correo, validar_telefono
+
 # ============================================================================
 # SCHEMAS: USUARIOS
 # ============================================================================
@@ -27,6 +29,23 @@ class UsuarioCreate(UsuarioBase):
     nombre_negocio: Optional[str] = None
     categoria_negocio: Optional[str] = None
     ciudad: Optional[str] = None
+    es_servicio: Optional[bool] = False
+
+    @validator('email')
+    def validate_email_desechable(cls, v):
+        r = validar_correo(v)
+        if not r['valido']:
+            raise ValueError(r['error'])
+        return r['correo']
+
+    @validator('telefono')
+    def validate_telefono_formato(cls, v):
+        if not v:
+            return v
+        r = validar_telefono(v)
+        if not r['valido']:
+            raise ValueError(r['error'])
+        return r['telefono']
 
     @validator('password')
     def validate_password(cls, v):
@@ -51,6 +70,15 @@ class UsuarioUpdate(BaseModel):
     foto_perfil: Optional[str] = None
     latitud: Optional[Decimal] = None
     longitud: Optional[Decimal] = None
+
+    @validator('telefono')
+    def validate_telefono_formato(cls, v):
+        if not v:
+            return v
+        r = validar_telefono(v)
+        if not r['valido']:
+            raise ValueError(r['error'])
+        return r['telefono']
 
 class UsuarioResponse(UsuarioBase):
     id: uuid.UUID

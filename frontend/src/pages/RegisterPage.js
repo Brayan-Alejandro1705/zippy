@@ -10,9 +10,20 @@ const ROLES = [
   { value: 'domiciliario', icon: '🛵', label: 'Domiciliario', desc: 'Entrega pedidos'          },
 ];
 
-const CATEGORIAS = [
+const CATEGORIAS_NEGOCIO = [
   'Restaurante', 'Comida rápida', 'Panadería', 'Cafetería', 'Frutas y verduras',
   'Supermercado', 'Droguería', 'Ropa', 'Electrónica', 'Mascotas', 'General',
+];
+
+const CATEGORIAS_SERVICIO = [
+  'Aseo del hogar', 'Lavado y planchado', 'Jardinería y poda', 'Pintura',
+  'Albañilería', 'Carpintería', 'Cerrajería', 'Fumigación', 'Niñera',
+  'Cuidado de adultos mayores', 'Entrenador personal', 'Peluquería / barbería',
+  'Manicure y pedicure', 'Maquillaje', 'Repostería por pedido',
+  'Comida casera / catering', 'Fotografía y video', 'DJ / sonido', 'Decoración',
+  'Meseros', 'Lavado de motos y carros', 'Mecánica a domicilio',
+  'Modistería / arreglos de ropa', 'Mensajería y mandados', 'Soporte técnico',
+  'Clases particulares',
 ];
 
 const getPasswordStrength = (pass) => {
@@ -43,7 +54,7 @@ const RegisterPage = () => {
     password: '', confirmPassword: '',
     metodo_verificacion: 'email',
     // Campos vendedor
-    nombre_negocio: '', categoria_negocio: 'General', ciudad: '',
+    nombre_negocio: '', categoria_negocio: 'General', ciudad: '', es_servicio: false,
   });
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -79,15 +90,18 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const baseFields = { nombre: true, apellido: true, email: true, password: true, confirmPassword: true };
+    const baseFields = { nombre: true, apellido: true, email: true, telefono: true, password: true, confirmPassword: true };
     const vendorFields = isVendedor ? { nombre_negocio: true, ciudad: true } : {};
     setTouched({ ...baseFields, ...vendorFields });
 
-    if (!form.nombre || !form.apellido || !form.email || !form.password || !form.confirmPassword) {
+    if (!form.nombre || !form.apellido || !form.email || !form.telefono || !form.password || !form.confirmPassword) {
       setError('Completa todos los campos obligatorios'); triggerShake(); return;
     }
     if (isVendedor && !form.nombre_negocio) {
       setError('El nombre del negocio es obligatorio'); triggerShake(); return;
+    }
+    if (isVendedor && !form.ciudad) {
+      setError('La ciudad es obligatoria'); triggerShake(); return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       setError('El email no es válido'); triggerShake(); return;
@@ -165,15 +179,43 @@ const RegisterPage = () => {
           {/* Campos extra para vendedor */}
           {isVendedor && (
             <>
-              <div className="reg-section-label">Información del negocio</div>
+              <div className="reg-section-label">¿Qué vas a ofrecer?</div>
+              <div className="reg-modalidad-toggle">
+                <button
+                  type="button"
+                  className={`reg-modalidad-btn ${!form.es_servicio ? 'reg-modalidad-btn--active' : ''}`}
+                  onClick={() => setForm(prev => ({ ...prev, es_servicio: false, categoria_negocio: CATEGORIAS_NEGOCIO[0] }))}
+                >
+                  <span className="reg-modalidad-icon">🏪</span>
+                  <span>
+                    <span className="reg-modalidad-title">Negocio</span>
+                    <span className="reg-modalidad-desc">Tengo un local o tienda</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`reg-modalidad-btn ${form.es_servicio ? 'reg-modalidad-btn--active' : ''}`}
+                  onClick={() => setForm(prev => ({ ...prev, es_servicio: true, categoria_negocio: CATEGORIAS_SERVICIO[0] }))}
+                >
+                  <span className="reg-modalidad-icon">🧰</span>
+                  <span>
+                    <span className="reg-modalidad-title">Servicio</span>
+                    <span className="reg-modalidad-desc">Sin local fijo</span>
+                  </span>
+                </button>
+              </div>
+
+              <div className="reg-section-label">
+                {form.es_servicio ? 'Información del servicio' : 'Información del negocio'}
+              </div>
               <div className="reg-field">
-                <label>Nombre del negocio <span className="reg-req">*</span></label>
+                <label>{form.es_servicio ? 'Nombre del servicio' : 'Nombre del negocio'} <span className="reg-req">*</span></label>
                 <div className="reg-input-wrap">
-                  <span className="reg-input-icon">🏪</span>
+                  <span className="reg-input-icon">{form.es_servicio ? '🧰' : '🏪'}</span>
                   <input
                     name="nombre_negocio" value={form.nombre_negocio}
                     onChange={handleChange} onBlur={handleBlur}
-                    placeholder="Ej: Restaurante El Buen Sabor"
+                    placeholder={form.es_servicio ? 'Ej: Plomería Juan Pérez' : 'Ej: Restaurante El Buen Sabor'}
                     className={fieldError('nombre_negocio') ? 'reg-input--err' : ''}
                   />
                 </div>
@@ -188,21 +230,23 @@ const RegisterPage = () => {
                     onChange={handleChange}
                     className="reg-select"
                   >
-                    {CATEGORIAS.map(cat => (
+                    {(form.es_servicio ? CATEGORIAS_SERVICIO : CATEGORIAS_NEGOCIO).map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
                 <div className="reg-field">
-                  <label>Ciudad <span className="reg-optional">(opcional)</span></label>
+                  <label>Ciudad <span className="reg-req">*</span></label>
                   <div className="reg-input-wrap">
                     <span className="reg-input-icon">📍</span>
                     <input
                       name="ciudad" value={form.ciudad}
-                      onChange={handleChange}
+                      onChange={handleChange} onBlur={handleBlur}
                       placeholder="Garzón, Huila"
+                      className={fieldError('ciudad') ? 'reg-input--err' : ''}
                     />
                   </div>
+                  {fieldError('ciudad') && <span className="reg-field-err">{fieldError('ciudad')}</span>}
                 </div>
               </div>
             </>
@@ -250,15 +294,17 @@ const RegisterPage = () => {
           </div>
 
           <div className="reg-field">
-            <label>Teléfono <span className="reg-optional">(opcional)</span></label>
+            <label>Teléfono <span className="reg-req">*</span></label>
             <div className="reg-input-wrap">
               <span className="reg-input-icon">📱</span>
               <input
                 name="telefono" type="tel" value={form.telefono}
-                onChange={handleChange}
+                onChange={handleChange} onBlur={handleBlur}
                 placeholder="320-123-4567" autoComplete="tel"
+                className={fieldError('telefono') ? 'reg-input--err' : ''}
               />
             </div>
+            {fieldError('telefono') && <span className="reg-field-err">{fieldError('telefono')}</span>}
           </div>
 
           {/* Contraseña */}
