@@ -155,12 +155,35 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     usuario_existente = db.query(Usuario).filter(
         Usuario.email == usuario.email
     ).first()
-    
+
     if usuario_existente:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El email ya está registrado"
+        if usuario_existente.es_verificado:
+            # Cuenta real y confirmada: no se puede reusar el correo
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El email ya está registrado"
+            )
+
+        # Cuenta nunca verificada: solo se libera el correo si el código ya expiró.
+        # Así evitamos que un correo quede "atrapado" para siempre si la persona
+        # nunca recibió o nunca puso el código, pero también evitamos que se pueda
+        # reiniciar el registro a cada rato mientras el código sigue vigente.
+        codigo_expirado = (
+            usuario_existente.codigo_verificacion_expira is None
+            or usuario_existente.codigo_verificacion_expira < datetime.utcnow()
         )
+        if not codigo_expirado:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un registro pendiente de verificación con este correo. "
+                       "Revisa tu correo o espera unos minutos a que expire el código para volver a intentar."
+            )
+
+        # Código expirado: borrar el registro anterior (y su negocio, si tenía) para permitir reintentar
+        db.query(Negocio).filter(Negocio.vendedor_id == usuario_existente.id).delete()
+        db.delete(usuario_existente)
+        db.commit()
+
     
     # Validar tipo de usuario
     tipos_validos = ["cliente", "vendedor", "domiciliario", "admin"]
