@@ -3,12 +3,11 @@
 # ============================================================================
 
 import random
-import smtplib
+import json
 import base64
 import urllib.request
 import urllib.error
 import urllib.parse
-from email.mime.text import MIMEText
 
 from config import settings
 
@@ -19,10 +18,11 @@ def generar_codigo() -> str:
 
 
 def enviar_codigo_email(destinatario: str, nombre: str, codigo: str) -> None:
-    """Envía el código de verificación por correo vía SMTP.
+    """Envía el código de verificación por correo vía la API HTTP de Brevo.
+    (No usamos SMTP porque Render bloquea los puertos SMTP salientes en el plan free).
     Lanza una excepción si no está configurado o falla el envío."""
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        raise RuntimeError("SMTP no está configurado (SMTP_USER / SMTP_PASSWORD)")
+    if not settings.BREVO_API_KEY or not settings.SMTP_REMITENTE:
+        raise RuntimeError("Brevo no está configurado (BREVO_API_KEY / BREVO_REMITENTE)")
 
     cuerpo = (
         f"Hola {nombre},\n\n"
@@ -30,15 +30,29 @@ def enviar_codigo_email(destinatario: str, nombre: str, codigo: str) -> None:
         f"Vence en {settings.CODIGO_VERIFICACION_MINUTOS} minutos. "
         f"Si no creaste esta cuenta, ignora este mensaje.\n"
     )
-    mensaje = MIMEText(cuerpo, "plain", "utf-8")
-    mensaje["Subject"] = "Tu código de verificación de Zippy"
-    mensaje["From"] = settings.SMTP_REMITENTE
-    mensaje["To"] = destinatario
 
-    with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT, timeout=15) as server:
-        server.starttls()
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_REMITENTE, [destinatario], mensaje.as_string())
+    payload = json.dumps({
+        "sender": {"email": settings.SMTP_REMITENTE, "name": settings.SMTP_REMITENTE_NOMBRE},
+        "to": [{"email": destinatario, "name": nombre}],
+        "subject": "Tu código de verificación de Zippy",
+        "textContent": cuerpo,
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=payload,
+        method="POST",
+    )
+    request.add_header("accept", "application/json")
+    request.add_header("api-key", settings.BREVO_API_KEY)
+    request.add_header("content-type", "application/json")
+
+    try:
+        with urllib.request.urlopen(request, timeout=15) as resp:
+            resp.read()
+    except urllib.error.HTTPError as e:
+        detalle = e.read().decode(errors="ignore")
+        raise RuntimeError(f"Brevo respondió {e.code}: {detalle}") from e
 
 
 def enviar_codigo_sms(telefono: str, codigo: str) -> None:

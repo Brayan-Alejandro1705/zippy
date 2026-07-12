@@ -79,15 +79,17 @@ class Settings:
     COSTO_DOMICILIO_BASE = float(os.getenv("COSTO_DOMICILIO_BASE", 5000))  # COP
     COSTO_DOMICILIO_KM = float(os.getenv("COSTO_DOMICILIO_KM", 1000))  # COP por km
     
-    # Email (Brevo SMTP relay; cae a SMTP_* genérico si no hay variables BREVO_*)
+    # Email vía API HTTP de Brevo (Render bloquea SMTP saliente en el plan free,
+    # por eso usamos la API REST de Brevo por HTTPS en vez de smtplib)
+    BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+    SMTP_REMITENTE = os.getenv("BREVO_REMITENTE", "")
+    SMTP_REMITENTE_NOMBRE = os.getenv("BREVO_REMITENTE_NOMBRE", "Zippy")
+
+    # (Variables SMTP viejas, ya no se usan para email pero se dejan por si acaso)
     SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp-relay.brevo.com")
     SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
     SMTP_USER = os.getenv("BREVO_SMTP_USER", os.getenv("SMTP_USER", ""))
     SMTP_PASSWORD = os.getenv("BREVO_SMTP_KEY", os.getenv("SMTP_PASSWORD", ""))
-    # Correo remitente verificado en Brevo (el que aparece como "De:").
-    # Con Brevo, SMTP_USER es solo el login técnico (algo@smtp-brevo.com);
-    # el remitente real que ve el usuario debe ser un sender verificado en Brevo.
-    SMTP_REMITENTE = os.getenv("BREVO_REMITENTE", SMTP_USER)
 
     # SMS - Twilio (opcional)
     TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
