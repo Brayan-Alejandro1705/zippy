@@ -32,13 +32,13 @@ def enviar_codigo_email(destinatario: str, nombre: str, codigo: str) -> None:
     )
     mensaje = MIMEText(cuerpo, "plain", "utf-8")
     mensaje["Subject"] = "Tu código de verificación de Zippy"
-    mensaje["From"] = settings.SMTP_USER
+    mensaje["From"] = settings.SMTP_REMITENTE
     mensaje["To"] = destinatario
 
     with smtplib.SMTP(settings.SMTP_SERVER, settings.SMTP_PORT, timeout=15) as server:
         server.starttls()
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_USER, [destinatario], mensaje.as_string())
+        server.sendmail(settings.SMTP_REMITENTE, [destinatario], mensaje.as_string())
 
 
 def enviar_codigo_sms(telefono: str, codigo: str) -> None:
