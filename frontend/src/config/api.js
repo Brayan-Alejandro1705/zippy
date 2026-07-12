@@ -115,7 +115,7 @@ export const adminService = {
 export const usuariosService = {
   listar:       (params) => api.get('/usuarios/', { params }),
   obtener:      (id) => api.get(`/usuarios/${id}/`),
-  cambiarEstado:(id, estado) => api.patch(`/usuarios/${id}/`, { estado }),
+  cambiarEstado:(id, estado) => api.patch(`/usuarios/${id}/`, { estado: estado.toLowerCase() }),
   actualizarPerfil: (datos) => api.put('/usuarios/me/', datos),
   cambiarPassword: (passwordActual, passwordNueva) =>
     api.post('/usuarios/me/password/', { password_actual: passwordActual, password_nueva: passwordNueva }),
@@ -125,7 +125,7 @@ export const vendedoresService = {
   crear:        (datos) => api.post('/usuarios/vendedor/', datos),
   listar:       (params) => api.get('/usuarios/vendedores/', { params }),
   obtener:      (id) => api.get(`/usuarios/vendedores/${id}/`),
-  cambiarEstado:(id, estado) => api.patch(`/usuarios/${id}/`, { estado }),
+  cambiarEstado:(id, estado) => api.patch(`/usuarios/${id}/`, { estado: estado.toLowerCase() }),
 };
 
 export const productosService = {

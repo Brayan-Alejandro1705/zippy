@@ -9,7 +9,7 @@ from datetime import datetime
 import bcrypt
 
 from config import get_db, settings
-from models import Usuario, Negocio
+from models import Usuario, Negocio, Producto
 from schemas import UsuarioCreate, UsuarioResponse, UsuarioUpdate, MensajeResponse
 from routes_auth import hash_password, verify_password, get_current_user
 
@@ -237,7 +237,6 @@ async def listar_usuarios(
 
 @router.get(
     "/vendedores/",
-    response_model=dict,
     summary="Listar vendedores",
     description="Obtiene la lista de todos los vendedores"
 )
@@ -249,39 +248,43 @@ async def listar_vendedores(
     db: Session = Depends(get_db)
 ):
     """
-    Lista todos los vendedores con sus negocios asociados
+    Lista todos los vendedores con sus negocios asociados, en el formato
+    plano que consume la pantalla de administración de vendedores.
     """
-    
+
     query = db.query(Usuario).filter(Usuario.tipo_usuario == 'vendedor')
-    
+
     if estado:
-        query = query.filter(Usuario.estado == estado)
-    
-    total = query.count()
+        query = query.filter(Usuario.estado == estado.lower())
+
     usuarios = query.offset(skip).limit(limit).all()
-    
-    vendedores = []
+
+    resultados = []
     for u in usuarios:
         negocio = db.query(Negocio).filter(Negocio.vendedor_id == u.id).first()
-        vendedores.append({
+        total_productos = (
+            db.query(Producto).filter(Producto.negocio_id == negocio.id).count()
+            if negocio else 0
+        )
+        negocio_ciudad = negocio.ciudad if negocio else None
+
+        if ciudad and ciudad != 'Todas' and negocio_ciudad != ciudad:
+            continue
+
+        resultados.append({
             "id": str(u.id),
-            "nombre": u.nombre,
+            "nombre": f"{u.nombre} {u.apellido}".strip(),
+            "negocio": negocio.nombre_negocio if negocio else "Sin negocio",
             "email": u.email,
-            "estado": u.estado,
-            "telefono": u.telefono,
-            "negocio": {
-                "id": str(negocio.id) if negocio else None,
-                "nombre": negocio.nombre_negocio if negocio else None,
-                "ciudad": negocio.ciudad if negocio else None,
-            } if negocio else None,
-            "fecha_creacion": u.fecha_creacion.isoformat() if u.fecha_creacion else None,
+            "ciudad": negocio_ciudad or "",
+            "productos": total_productos,
+            "estado": "Activo" if u.estado == "activo" else "Suspendido",
+            "fechaRegistro": u.fecha_creacion.strftime("%Y-%m-%d") if u.fecha_creacion else "",
         })
-    
+
     return {
-        "total": total,
-        "skip": skip,
-        "limit": limit,
-        "vendedores": vendedores
+        "results": resultados,
+        "total": len(resultados),
     }
 
 # ============================================================================
