@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
+import { negociosService, usuariosService, authService } from '../../config/api';
 import '../../styles/VendorConfig.css';
 
 const TABS = [
@@ -39,29 +40,68 @@ const CardBlock = ({ icon, iconBg, title, desc, children, footer }) => (
 // ── Tienda ────────────────────────────────────────────────────────────────────
 const SeccionTienda = () => {
   const { addToast } = useToast();
-  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-  const [form, setForm] = useState({
-    nombre:      usuario.negocio || 'Tienda Demo',
-    categoria:   'Restaurante',
-    descripcion: 'Productos frescos y artesanales elaborados con ingredientes locales.',
-    direccion:   'Cra 5 #12-45, Garzón, Huila',
-    telefono:    '310-555-0123',
-    whatsapp:    '',
-    horario:     '7:00 AM - 8:00 PM',
-    ciudad:      'Garzón',
-  });
+  const [negocioId, setNegocioId] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    nombre: '', categoria: 'General', descripcion: '', direccion: '',
+    telefono: '', whatsapp: '', horaApertura: '', horaCierre: '', ciudad: 'Garzón',
+  });
+
+  useEffect(() => {
+    let activo = true;
+    negociosService.miNegocio()
+      .then(({ data }) => {
+        if (!activo) return;
+        setNegocioId(data.id);
+        setForm({
+          nombre:       data.nombre_negocio || '',
+          categoria:    data.categoria || 'General',
+          descripcion:  data.descripcion || '',
+          direccion:    data.direccion || '',
+          telefono:     data.telefono || '',
+          whatsapp:     data.whatsapp || '',
+          horaApertura: data.hora_apertura || '',
+          horaCierre:   data.hora_cierre || '',
+          ciudad:       data.ciudad || 'Garzón',
+        });
+      })
+      .catch(() => addToast('No se pudo cargar la información de tu tienda', 'error'))
+      .finally(() => activo && setLoading(false));
+    return () => { activo = false; };
+  }, [addToast]);
+
   const set = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!negocioId) return;
     setSaving(true);
-    await new Promise(r => setTimeout(r, 600));
-    addToast('Información de la tienda actualizada ✓', 'success');
-    setSaving(false);
+    try {
+      await negociosService.actualizar(negocioId, {
+        nombre_negocio: form.nombre,
+        categoria:      form.categoria,
+        descripcion:    form.descripcion,
+        direccion:      form.direccion,
+        telefono:       form.telefono,
+        whatsapp:       form.whatsapp,
+        hora_apertura:  form.horaApertura,
+        hora_cierre:    form.horaCierre,
+        ciudad:         form.ciudad,
+      });
+      addToast('Información de la tienda actualizada ✓', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo guardar la información', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const initials = (form.nombre || 'T').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  if (loading) {
+    return <div className="vc-sections"><p>Cargando información de tu tienda...</p></div>;
+  }
 
   return (
     <form className="vc-sections" onSubmit={handleSave}>
@@ -163,12 +203,20 @@ const SeccionTienda = () => {
           </div>
         </Field>
 
-        <Field label="Horario de atención">
-          <div className="vc-input-wrap">
-            <span className="vc-input-icon">🕐</span>
-            <input name="horario" value={form.horario} onChange={set} placeholder="Ej: 8:00 AM - 6:00 PM" />
-          </div>
-        </Field>
+        <div className="vc-field-row">
+          <Field label="Hora de apertura">
+            <div className="vc-input-wrap">
+              <span className="vc-input-icon">🕐</span>
+              <input name="horaApertura" value={form.horaApertura} onChange={set} placeholder="Ej: 8:00 AM" />
+            </div>
+          </Field>
+          <Field label="Hora de cierre">
+            <div className="vc-input-wrap">
+              <span className="vc-input-icon">🕐</span>
+              <input name="horaCierre" value={form.horaCierre} onChange={set} placeholder="Ej: 6:00 PM" />
+            </div>
+          </Field>
+        </div>
 
         <div className="vc-card-footer">
           <button type="submit" className="vc-btn-save" disabled={saving}>
@@ -184,36 +232,60 @@ const SeccionTienda = () => {
 // ── Cuenta ────────────────────────────────────────────────────────────────────
 const SeccionCuenta = () => {
   const { addToast } = useToast();
-  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const usuarioGuardado = JSON.parse(localStorage.getItem('usuario') || '{}');
   const [form, setForm] = useState({
-    nombre:          usuario.nombre || 'Vendedor Demo',
-    email:           usuario.email  || 'vendedor@demo.com',
+    nombre:          usuarioGuardado.nombre || '',
+    email:           usuarioGuardado.email  || '',
     passwordActual:  '',
     passwordNueva:   '',
     passwordConfirm: '',
   });
-  const [saving, setSaving] = useState(false);
+  const [savingPerfil, setSavingPerfil] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  useEffect(() => {
+    let activo = true;
+    authService.me()
+      .then(({ data }) => {
+        if (!activo) return;
+        setForm(p => ({ ...p, nombre: data.nombre || '', email: data.email || '' }));
+        localStorage.setItem('usuario', JSON.stringify({ ...usuarioGuardado, ...data }));
+      })
+      .catch(() => {});
+    return () => { activo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const set = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSavePerfil = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 500));
-    localStorage.setItem('usuario', JSON.stringify({ ...usuario, nombre: form.nombre, email: form.email }));
-    addToast('Perfil actualizado correctamente', 'success');
-    setSaving(false);
+    setSavingPerfil(true);
+    try {
+      const { data } = await usuariosService.actualizarPerfil({ nombre: form.nombre, email: form.email });
+      localStorage.setItem('usuario', JSON.stringify({ ...usuarioGuardado, nombre: data.nombre, email: data.email }));
+      addToast('Perfil actualizado correctamente', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo actualizar el perfil', 'error');
+    } finally {
+      setSavingPerfil(false);
+    }
   };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (form.passwordNueva !== form.passwordConfirm) { addToast('Las contraseñas no coinciden', 'error'); return; }
     if (form.passwordNueva.length < 8)               { addToast('Mínimo 8 caracteres', 'warning'); return; }
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 500));
-    setForm(p => ({ ...p, passwordActual: '', passwordNueva: '', passwordConfirm: '' }));
-    addToast('Contraseña actualizada correctamente', 'success');
-    setSaving(false);
+    setSavingPassword(true);
+    try {
+      await usuariosService.cambiarPassword(form.passwordActual, form.passwordNueva);
+      setForm(p => ({ ...p, passwordActual: '', passwordNueva: '', passwordConfirm: '' }));
+      addToast('Contraseña actualizada correctamente', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo cambiar la contraseña', 'error');
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   return (
@@ -224,8 +296,8 @@ const SeccionCuenta = () => {
           title="Información personal"
           desc="Tu nombre y correo electrónico"
           footer={
-            <button type="submit" className="vc-btn-save" disabled={saving}>
-              {saving ? '⏳ Guardando...' : '✓ Guardar perfil'}
+            <button type="submit" className="vc-btn-save" disabled={savingPerfil}>
+              {savingPerfil ? '⏳ Guardando...' : '✓ Guardar perfil'}
             </button>
           }
         >
@@ -253,8 +325,8 @@ const SeccionCuenta = () => {
           title="Cambiar contraseña"
           desc="Actualiza tu clave de acceso"
           footer={
-            <button type="submit" className="vc-btn-save" disabled={saving}>
-              {saving ? '⏳ Actualizando...' : '🔒 Cambiar contraseña'}
+            <button type="submit" className="vc-btn-save" disabled={savingPassword}>
+              {savingPassword ? '⏳ Actualizando...' : '🔒 Cambiar contraseña'}
             </button>
           }
         >
