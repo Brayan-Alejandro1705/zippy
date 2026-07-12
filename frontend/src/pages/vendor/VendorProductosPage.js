@@ -11,6 +11,9 @@ const productoDeApi = (p) => ({
   nombre: p.nombre,
   categoria: p.categoria || 'Otros',
   precio: Number(p.precio),
+  precioOriginal: p.precio_original ? Number(p.precio_original) : null,
+  enOferta: !!p.en_oferta,
+  ofertaExpira: p.oferta_expira || null,
   stock: p.stock,
   foto: p.imagenes?.[0] || null,
   pausado: !p.es_visible,
@@ -48,6 +51,135 @@ const stockStatus = (stock) => {
   return { label: 'Disponible', color: '#10b981', bg: '#ecfdf5' };
 };
 
+const DURACIONES_RAPIDAS = [
+  { label: '1 hora',   horas: 1 },
+  { label: '6 horas',  horas: 6 },
+  { label: '24 horas', horas: 24 },
+  { label: '3 días',   horas: 72 },
+  { label: '7 días',   horas: 168 },
+];
+
+const fmtFecha = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+};
+
+// ── Modal de oferta ───────────────────────────────────────────────────────────
+const OfertaModal = ({ producto, onClose, onCreada, onCancelada }) => {
+  const { addToast } = useToast();
+  const [precioOferta, setPrecioOferta] = useState('');
+  const [duracion, setDuracion] = useState(24);
+  const [personalizada, setPersonalizada] = useState(false);
+  const [fechaFin, setFechaFin] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  if (!producto) return null;
+
+  const handleCrear = async () => {
+    const precio = Number(precioOferta);
+    if (!precio || precio <= 0) { addToast('Ingresa un precio de oferta válido', 'error'); return; }
+    if (precio >= producto.precio) { addToast('El precio de oferta debe ser menor al precio actual', 'error'); return; }
+    if (personalizada && !fechaFin) { addToast('Elige la fecha y hora de fin', 'error'); return; }
+
+    setSaving(true);
+    try {
+      const payload = personalizada
+        ? { precio_oferta: precio, fecha_fin: new Date(fechaFin).toISOString() }
+        : { precio_oferta: precio, horas: duracion };
+      const { data } = await productosService.crearOferta(producto.id, payload);
+      onCreada(producto.id, data);
+      addToast('Oferta creada ✓', 'success');
+      onClose();
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo crear la oferta', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelar = async () => {
+    setSaving(true);
+    try {
+      const { data } = await productosService.cancelarOferta(producto.id);
+      onCancelada(producto.id, data);
+      addToast('Oferta cancelada', 'info');
+      onClose();
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo cancelar la oferta', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="vp-modal-overlay" onClick={onClose}>
+      <div className="vp-modal" onClick={e => e.stopPropagation()}>
+        <div className="vp-modal-header">
+          <h3>🏷️ Oferta · {producto.nombre}</h3>
+          <button className="vp-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        {producto.enOferta ? (
+          <div className="vp-modal-body">
+            <p>Esta oferta está activa hasta <strong>{fmtFecha(producto.ofertaExpira)}</strong>.</p>
+            <p>Precio de oferta actual: <strong>{fmt(producto.precio)}</strong> (normal: {fmt(producto.precioOriginal)})</p>
+            <button className="vp-action-btn vp-action-btn--pause" disabled={saving} onClick={handleCancelar} style={{ width: '100%', marginTop: 12 }}>
+              {saving ? 'Cancelando...' : 'Cancelar oferta'}
+            </button>
+          </div>
+        ) : (
+          <div className="vp-modal-body">
+            <label className="vp-modal-label">Precio de oferta (actual: {fmt(producto.precio)})</label>
+            <input
+              type="number"
+              className="vp-modal-input"
+              placeholder="Ej: 15000"
+              value={precioOferta}
+              onChange={e => setPrecioOferta(e.target.value)}
+            />
+
+            <label className="vp-modal-label" style={{ marginTop: 14 }}>Duración</label>
+            <div className="vp-modal-duraciones">
+              {DURACIONES_RAPIDAS.map(d => (
+                <button
+                  key={d.horas}
+                  type="button"
+                  className={`vp-modal-dur-btn ${!personalizada && duracion === d.horas ? 'vp-modal-dur-btn--active' : ''}`}
+                  onClick={() => { setPersonalizada(false); setDuracion(d.horas); }}
+                >
+                  {d.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className={`vp-modal-dur-btn ${personalizada ? 'vp-modal-dur-btn--active' : ''}`}
+                onClick={() => setPersonalizada(true)}
+              >
+                Personalizada
+              </button>
+            </div>
+
+            {personalizada && (
+              <input
+                type="datetime-local"
+                className="vp-modal-input"
+                style={{ marginTop: 10 }}
+                value={fechaFin}
+                onChange={e => setFechaFin(e.target.value)}
+              />
+            )}
+
+            <button className="vp-new-btn" disabled={saving} onClick={handleCrear} style={{ width: '100%', marginTop: 16, justifyContent: 'center' }}>
+              {saving ? 'Creando...' : '✓ Activar oferta'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const VendorProductosPage = () => {
   const navigate  = useNavigate();
   const { addToast } = useToast();
@@ -57,6 +189,7 @@ const VendorProductosPage = () => {
   const [filtro, setFiltro]       = useState('todos');
   const [orden, setOrden]         = useState('default');
   const [vista, setVista]         = useState('grid');
+  const [ofertaModalProd, setOfertaModalProd] = useState(null);
 
   useEffect(() => {
     const cargar = async () => {
@@ -82,6 +215,16 @@ const VendorProductosPage = () => {
     } catch {
       addToast('No se pudo actualizar el producto', 'error');
     }
+  };
+
+  const actualizarProductoLocal = (id, dataApi) => {
+    setProductos(prev => prev.map(p => p.id === id ? {
+      ...p,
+      precio: Number(dataApi.precio),
+      precioOriginal: dataApi.precio_original ? Number(dataApi.precio_original) : null,
+      enOferta: !!dataApi.en_oferta,
+      ofertaExpira: dataApi.oferta_expira || null,
+    } : p));
   };
 
   const counts = {
@@ -199,7 +342,14 @@ const VendorProductosPage = () => {
                 </div>
                 <div className="vp-info">
                   <p className="vp-nombre">{p.nombre}</p>
-                  <p className="vp-precio">{fmt(p.precio)}</p>
+                  {p.enOferta ? (
+                    <p className="vp-precio">
+                      {fmt(p.precio)} <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: 13, fontWeight: 400 }}>{fmt(p.precioOriginal)}</span>
+                      <span className="vp-oferta-badge">🔥 En oferta</span>
+                    </p>
+                  ) : (
+                    <p className="vp-precio">{fmt(p.precio)}</p>
+                  )}
                   <div className="vp-bottom">
                     <span className="vp-stock">
                       <span className="vp-stock-dot" style={{ background: st.color }} />
@@ -222,6 +372,9 @@ const VendorProductosPage = () => {
                     >
                       {p.pausado ? '▶ Activar' : '⏸ Pausar'}
                     </button>
+                    <button className="vp-action-btn" onClick={() => setOfertaModalProd(p)}>
+                      🏷️ {p.enOferta ? 'Ver oferta' : 'Crear oferta'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -243,7 +396,13 @@ const VendorProductosPage = () => {
                   <span className="vp-list-cat">{p.categoria}</span>
                   {p.pausado && <span className="vp-paused-tag vp-paused-tag--inline">Pausado</span>}
                 </div>
-                <div className="vp-list-precio">{fmt(p.precio)}</div>
+                <div className="vp-list-precio">
+                  {p.enOferta ? (
+                    <>
+                      {fmt(p.precio)} <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: 12 }}>{fmt(p.precioOriginal)}</span>
+                    </>
+                  ) : fmt(p.precio)}
+                </div>
                 <div className="vp-list-stock">
                   <span className="vp-stock">
                     <span className="vp-stock-dot" style={{ background: st.color }} />
@@ -266,12 +425,22 @@ const VendorProductosPage = () => {
                   >
                     {p.pausado ? '▶ Activar' : '⏸ Pausar'}
                   </button>
+                  <button className="vp-action-btn" onClick={() => setOfertaModalProd(p)}>
+                    🏷️ {p.enOferta ? 'Ver oferta' : 'Crear oferta'}
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      <OfertaModal
+        producto={ofertaModalProd}
+        onClose={() => setOfertaModalProd(null)}
+        onCreada={actualizarProductoLocal}
+        onCancelada={actualizarProductoLocal}
+      />
     </VendorLayout>
   );
 };
