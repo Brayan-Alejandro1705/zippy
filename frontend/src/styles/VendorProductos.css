@@ -565,3 +565,56 @@
   .vp-list-actions { flex-basis: 100%; }
   .vp-list-actions .vp-action-btn { flex: 1; }
 }
+
+/* ── Badge de oferta activa ── */
+.vp-oferta-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff7a00, #ff4d4d);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* ── Modal de oferta ── */
+.vp-modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 15, 25, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.vp-modal {
+  background: white; border-radius: 16px; width: 100%; max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.vp-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; border-bottom: 1px solid #f0f0f0;
+}
+.vp-modal-header h3 { margin: 0; font-size: 16px; color: #1a1a1a; }
+.vp-modal-close {
+  border: none; background: #f5f5f5; width: 28px; height: 28px; border-radius: 50%;
+  cursor: pointer; font-size: 14px; color: #666;
+}
+.vp-modal-body { padding: 20px; }
+.vp-modal-body p { margin: 0 0 8px 0; font-size: 14px; color: #444; }
+.vp-modal-label {
+  display: block; font-size: 12px; font-weight: 700; color: #888;
+  text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;
+}
+.vp-modal-input {
+  width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+  font-size: 14px; box-sizing: border-box;
+}
+.vp-modal-input:focus { outline: none; border-color: #FF7A00; }
+.vp-modal-duraciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.vp-modal-dur-btn {
+  padding: 8px 14px; border-radius: 999px; border: 1.5px solid #e2e8f0;
+  background: white; font-size: 13px; color: #555; cursor: pointer; transition: all 0.15s;
+}
+.vp-modal-dur-btn:hover { border-color: #FF7A00; }
+.vp-modal-dur-btn--active { background: #FF7A00; border-color: #FF7A00; color: white; }

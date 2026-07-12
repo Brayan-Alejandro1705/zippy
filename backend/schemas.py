@@ -185,9 +185,16 @@ class ProductoResponse(ProductoBase):
     total_vendidos: int
     calificacion_promedio: Decimal
     fecha_creacion: datetime
+    oferta_expira: Optional[datetime] = None
+    en_oferta: bool = False
 
     class Config:
         from_attributes = True
+
+class OfertaCreate(BaseModel):
+    precio_oferta: Decimal = Field(..., gt=0)
+    horas: Optional[int] = Field(None, gt=0, description="Duración de la oferta en horas desde ahora")
+    fecha_fin: Optional[datetime] = Field(None, description="Fecha y hora exacta de fin (alternativa a 'horas')")
 
 # ============================================================================
 # SCHEMAS: ÓRDENES

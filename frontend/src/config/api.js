@@ -134,6 +134,8 @@ export const productosService = {
   crear:     (negocio_id, datos) => api.post('/productos/', datos, { params: { negocio_id } }),
   actualizar:(id, datos) => api.put(`/productos/${id}`, datos),
   eliminar:  (id) => api.delete(`/productos/${id}`),
+  crearOferta:   (id, datos) => api.post(`/productos/${id}/oferta`, datos),
+  cancelarOferta:(id) => api.delete(`/productos/${id}/oferta`),
   subirImagen:(file) => {
     const formData = new FormData();
     formData.append('file', file);

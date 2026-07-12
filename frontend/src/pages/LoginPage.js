@@ -25,31 +25,6 @@ const LoginPage = () => {
     return navigate('/tienda');
   };
 
-  const handleDemo = (tipo) => {
-    const usuarios = {
-      admin: {
-        id: 'DEMO-001', nombre: 'Admin Demo', email: 'admin@zippy.com',
-        tipo_usuario: 'admin', ciudad: 'Garzón',
-      },
-      vendedor: {
-        id: 'DEMO-002', nombre: 'Vendedor Demo', email: 'vendedor@zippy.com',
-        tipo_usuario: 'vendedor', ciudad: 'Garzón', negocio: 'Tienda Demo',
-      },
-      usuario: {
-        id: 'DEMO-003', nombre: 'Usuario Demo', email: 'usuario@zippy.com',
-        tipo_usuario: 'cliente', ciudad: 'Garzón',
-      },
-      repartidor: {
-        id: 'DEMO-004', nombre: 'Carlos Moto', email: 'repartidor@zippy.com',
-        tipo_usuario: 'domiciliario', ciudad: 'Garzón',
-      },
-    };
-    localStorage.setItem('access_token',  'demo-token-' + tipo);
-    localStorage.setItem('refresh_token', 'demo-refresh-' + tipo);
-    localStorage.setItem('usuario',       JSON.stringify(usuarios[tipo]));
-    redirectByTipo(usuarios[tipo].tipo_usuario);
-  };
-
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !password) { setError('Completa todos los campos'); triggerShake(); return; }
@@ -167,24 +142,6 @@ const LoginPage = () => {
         <p className="lp-footer">
           ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
         </p>
-
-        <div className="lp-demo">
-          <span className="lp-demo-label">Acceso rápido (demo)</span>
-          <div className="lp-demo-btns">
-            <button type="button" className="lp-demo-btn" onClick={() => handleDemo('admin')}>
-              <span>🛡</span> Admin
-            </button>
-            <button type="button" className="lp-demo-btn" onClick={() => handleDemo('vendedor')}>
-              <span>🏪</span> Vendedor
-            </button>
-            <button type="button" className="lp-demo-btn lp-demo-btn--user" onClick={() => handleDemo('usuario')}>
-              <span>🛒</span> Usuario
-            </button>
-            <button type="button" className="lp-demo-btn lp-demo-btn--rep" onClick={() => handleDemo('repartidor')}>
-              <span>🛵</span> Repartidor
-            </button>
-          </div>
-        </div>
 
         <div className="lp-divider">
           <span>Garzón, Huila — Colombia</span>

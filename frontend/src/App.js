@@ -42,14 +42,51 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// ── Persistencia de sesión ───────────────────────────────────────────────────
+// Si ya hay un token guardado (login previo), la persona no debe ver el login
+// otra vez al cerrar y volver a abrir la app: se manda directo a su pantalla.
+const homeRouteFor = (tipo) => {
+  if (tipo === 'admin')        return '/dashboard';
+  if (tipo === 'vendedor')     return '/vendor/productos';
+  if (tipo === 'domiciliario') return '/repartidor';
+  return '/tienda';
+};
+
+const isAuthenticated = () => !!localStorage.getItem('access_token');
+
+const getStoredTipoUsuario = () => {
+  try {
+    return JSON.parse(localStorage.getItem('usuario') || '{}').tipo_usuario;
+  } catch {
+    return undefined;
+  }
+};
+
+// Ruta raíz ("/"): si ya hay sesión, va directo a la pantalla correspondiente;
+// si no, al login.
+const RootRedirect = () => {
+  if (isAuthenticated()) {
+    return <Navigate to={homeRouteFor(getStoredTipoUsuario())} replace />;
+  }
+  return <Navigate to="/login" replace />;
+};
+
+// Evita que alguien ya logueado vuelva a ver la pantalla de login/registro.
+const PublicOnlyRoute = ({ children }) => {
+  if (isAuthenticated()) {
+    return <Navigate to={homeRouteFor(getStoredTipoUsuario())} replace />;
+  }
+  return children;
+};
+
 const App = () => (
   <ThemeProvider>
     <ToastProvider>
       <CartProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login"    element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login"    element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+          <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
           <Route path="/verificar" element={<VerificarCuentaPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/usuarios/:id" element={<ProtectedRoute><UsuarioDetallePage /></ProtectedRoute>} />
@@ -79,7 +116,7 @@ const App = () => (
           <Route path="/tienda/pedido-especial" element={<PedidoEspecialPage />} />
           <Route path="/tienda/servicios"       element={<ServiciosPage />} />
           <Route path="/repartidor"             element={<RepartidorPage />} />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<RootRedirect />} />
         </Routes>
       </BrowserRouter>
       </CartProvider>

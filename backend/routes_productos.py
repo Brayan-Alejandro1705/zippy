@@ -10,17 +10,34 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from config import get_db
 from models import Producto, Negocio, Usuario
-from schemas import ProductoCreate, ProductoUpdate, ProductoResponse
+from schemas import ProductoCreate, ProductoUpdate, ProductoResponse, OfertaCreate
 from routes_auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
 
 UPLOAD_DIR = "uploads/productos"
 EXTENSIONES_PERMITIDAS = {".jpg", ".jpeg", ".png", ".webp"}
+
+# ============================================================================
+# HELPER: REVERTIR OFERTAS VENCIDAS
+# ============================================================================
+
+def _revertir_oferta_si_vencio(producto: Producto, db: Session) -> None:
+    """Si la oferta de este producto ya expiró, restaura el precio normal.
+    Se llama antes de devolver productos, así no se necesita un job aparte:
+    la oferta se 'auto-limpia' la próxima vez que alguien consulta el producto."""
+    if producto.oferta_expira and producto.oferta_expira <= datetime.utcnow():
+        if producto.precio_original:
+            producto.precio = producto.precio_original
+        producto.precio_original = None
+        producto.descuento_porcentaje = 0
+        producto.oferta_expira = None
+        db.commit()
+        db.refresh(producto)
 
 # ============================================================================
 # ENDPOINT: SUBIR IMAGEN DE PRODUCTO
@@ -176,7 +193,10 @@ async def listar_productos(
         query = query.filter(Producto.precio <= precio_max)
     
     productos = query.offset(skip).limit(limit).all()
-    
+
+    for p in productos:
+        _revertir_oferta_si_vencio(p, db)
+
     return [ProductoResponse.from_orm(p) for p in productos]
 
 @router.get(
@@ -203,6 +223,8 @@ async def obtener_producto(
             detail="Producto no encontrado"
         )
     
+    _revertir_oferta_si_vencio(producto, db)
+
     return ProductoResponse.from_orm(producto)
 
 @router.put(
@@ -330,6 +352,9 @@ async def buscar_por_nombre(
         )
     ).limit(limit).all()
     
+    for p in productos:
+        _revertir_oferta_si_vencio(p, db)
+
     return [ProductoResponse.from_orm(p) for p in productos]
 
 @router.get(
@@ -355,6 +380,9 @@ async def productos_mas_vendidos(
         )
     ).order_by(Producto.total_vendidos.desc()).limit(limit).all()
     
+    for p in productos:
+        _revertir_oferta_si_vencio(p, db)
+
     return [ProductoResponse.from_orm(p) for p in productos]
 
 @router.get(
@@ -380,7 +408,127 @@ async def productos_mejor_calificados(
         )
     ).order_by(Producto.calificacion_promedio.desc()).limit(limit).all()
     
+    for p in productos:
+        _revertir_oferta_si_vencio(p, db)
+
     return [ProductoResponse.from_orm(p) for p in productos]
+
+# ============================================================================
+# ENDPOINTS: OFERTAS POR TIEMPO LIMITADO
+# ============================================================================
+
+@router.post(
+    "/{producto_id}/oferta",
+    response_model=ProductoResponse,
+    summary="Crear oferta por tiempo limitado",
+    description="Pone el producto en oferta con un precio especial durante el tiempo que el vendedor elija"
+)
+async def crear_oferta(
+    producto_id: UUID,
+    oferta: OfertaCreate,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea (o reemplaza) la oferta activa de un producto
+
+    - **precio_oferta**: precio especial mientras dure la oferta
+    - **horas**: duración en horas desde ahora (alternativa a 'fecha_fin')
+    - **fecha_fin**: fecha y hora exacta en que termina la oferta (alternativa a 'horas')
+    """
+    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+
+    if not producto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+
+    negocio = db.query(Negocio).filter(Negocio.id == producto.negocio_id).first()
+    if negocio.vendedor_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No puedes crear ofertas en productos que no te pertenecen"
+        )
+
+    if not oferta.horas and not oferta.fecha_fin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Indica la duración de la oferta: 'horas' o 'fecha_fin'"
+        )
+    if oferta.horas and oferta.fecha_fin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Indica solo una duración: 'horas' o 'fecha_fin', no ambas"
+        )
+
+    expira = datetime.utcnow() + timedelta(hours=oferta.horas) if oferta.horas else oferta.fecha_fin
+
+    if expira <= datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La fecha de fin de la oferta debe ser en el futuro"
+        )
+
+    # Si no hay una oferta activa en este momento, el precio actual pasa a ser el precio "normal"
+    # de referencia (para poder restaurarlo cuando la oferta termine).
+    if not producto.oferta_expira or producto.oferta_expira <= datetime.utcnow():
+        producto.precio_original = producto.precio
+
+    if oferta.precio_oferta >= producto.precio_original:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El precio de oferta debe ser menor al precio normal del producto"
+        )
+
+    producto.precio = oferta.precio_oferta
+    producto.descuento_porcentaje = round((1 - float(oferta.precio_oferta) / float(producto.precio_original)) * 100, 2)
+    producto.oferta_expira = expira
+    producto.fecha_ultima_actualizacion = datetime.utcnow()
+
+    db.commit()
+    db.refresh(producto)
+
+    return ProductoResponse.from_orm(producto)
+
+@router.delete(
+    "/{producto_id}/oferta",
+    response_model=ProductoResponse,
+    summary="Cancelar oferta",
+    description="Cancela la oferta activa de un producto y restaura su precio normal"
+)
+async def cancelar_oferta(
+    producto_id: UUID,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cancela la oferta activa antes de que se cumpla el tiempo, restaurando el precio normal"""
+    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+
+    if not producto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+
+    negocio = db.query(Negocio).filter(Negocio.id == producto.negocio_id).first()
+    if negocio.vendedor_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No puedes cancelar ofertas de productos que no te pertenecen"
+        )
+
+    if producto.precio_original:
+        producto.precio = producto.precio_original
+    producto.precio_original = None
+    producto.descuento_porcentaje = 0
+    producto.oferta_expira = None
+    producto.fecha_ultima_actualizacion = datetime.utcnow()
+
+    db.commit()
+    db.refresh(producto)
+
+    return ProductoResponse.from_orm(producto)
 
 # ============================================================================
 # ENDPOINT: ACTUALIZAR STOCK

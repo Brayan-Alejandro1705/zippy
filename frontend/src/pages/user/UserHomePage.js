@@ -114,6 +114,7 @@ const UserHomePage = () => {
           precio: Number(p.precio),
           precioOriginal: p.precio_original ? Number(p.precio_original) : null,
           descuento: Number(p.descuento_porcentaje) || 0,
+          enOferta: !!p.en_oferta,
           categoria: p.categoria || 'Otros',
           nuevo: esNuevo(p.fecha_creacion),
           rating: Number(p.calificacion_promedio) || 0,
@@ -441,7 +442,8 @@ const UserHomePage = () => {
                         ? <img src={p.foto} alt={p.nombre} />
                         : <span className="uh-photo-emoji">{getIcon(p.categoria)}</span>
                       }
-                      {p.nuevo && <span className="uh-badge-new">NUEVO</span>}
+                      {p.enOferta && <span className="uh-badge-oferta">🔥 Oferta</span>}
+                      {p.nuevo && !p.enOferta && <span className="uh-badge-new">NUEVO</span>}
                       {p.rating >= 4.7 && <span className="uh-badge-top">⭐ Top</span>}
                       {p.rating > 0 && <span className="uh-rating">⭐ {p.rating.toFixed(1)}</span>}
                       {inCart(p.id) && <span className="uh-cart-qty">{cartQty(p.id)}</span>}
@@ -450,7 +452,12 @@ const UserHomePage = () => {
                       <p className="uh-nombre">{p.nombre}</p>
                       <p className="uh-tienda">{p.tienda}</p>
                       <div className="uh-card-footer">
-                        <p className="uh-precio">{fmt(p.precio)}</p>
+                        <div>
+                          <p className="uh-precio">{fmt(p.precio)}</p>
+                          {p.enOferta && p.precioOriginal && (
+                            <p className="uh-precio-original">{fmt(p.precioOriginal)}</p>
+                          )}
+                        </div>
                         <div className="uh-card-actions" onClick={e => e.stopPropagation()}>
                           <button
                             className={`uh-btn-save ${saved.has(p.id) ? 'uh-btn-save--on' : ''}`}

@@ -182,6 +182,7 @@ class Producto(Base):
     precio = Column(DECIMAL(10, 2), nullable=False)
     precio_original = Column(DECIMAL(10, 2))
     descuento_porcentaje = Column(DECIMAL(5, 2), default=0)
+    oferta_expira = Column(DateTime, nullable=True)  # fecha/hora en que termina la oferta (si aplica)
     stock = Column(Integer, nullable=False, default=0)
     stock_minimo = Column(Integer, default=5)
     sku = Column(String(100), unique=True)
@@ -212,6 +213,11 @@ class Producto(Base):
 
     def __repr__(self):
         return f"<Producto {self.nombre}>"
+
+    @property
+    def en_oferta(self):
+        """True si el producto tiene una oferta activa (no expirada) en este momento."""
+        return bool(self.oferta_expira is not None and self.oferta_expira > datetime.utcnow())
 
 # ============================================================================
 # TABLA: ÓRDENES
