@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from config import get_db, settings
@@ -617,6 +617,58 @@ def _verificar_acceso_chat(orden: Orden, current_user: Usuario):
             detail="No tienes permiso para acceder a este chat"
         )
 
+# ============================================================================
+# CICLO DE VIDA DEL CHAT CLIENTE <-> REPARTIDOR
+# ============================================================================
+
+CHAT_HORAS_TRAS_ENTREGA = 1
+
+def _estado_chat(orden, db):
+    """
+    Estados posibles:
+      - "sin_domiciliario": todavía no hay repartidor asignado
+      - "activo": se puede leer y escribir
+      - "cerrado": el pedido finalizó, el chat queda bloqueado
+      - "expirado": pasó 1 hora desde la entrega, los mensajes se eliminan
+    """
+    if not orden.domiciliario_id:
+        return "sin_domiciliario"
+
+    estado = orden.estado.value if hasattr(orden.estado, "value") else str(orden.estado)
+
+    if estado not in ("entregada", "cancelada", "rechazada"):
+        return "activo"
+
+    referencia = orden.fecha_entrega or orden.fecha_creacion
+    if referencia and datetime.utcnow() - referencia >= timedelta(hours=CHAT_HORAS_TRAS_ENTREGA):
+        db.query(MensajeOrden).filter(MensajeOrden.orden_id == orden.id).delete()
+        db.commit()
+        return "expirado"
+
+    return "cerrado"
+
+
+@router.get(
+    "/{orden_id}/chat-estado",
+    response_model=dict,
+    summary="Estado del chat de la orden",
+    description="Indica si el chat está activo, cerrado o expirado"
+)
+async def estado_chat_orden(
+    orden_id: UUID,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+
+    _verificar_acceso_chat(orden, current_user)
+
+    estado = _estado_chat(orden, db)
+    return {"estado": estado, "activo": estado == "activo"}
+
+
 @router.get(
     "/{orden_id}/mensajes",
     response_model=List[dict],
@@ -633,6 +685,9 @@ async def listar_mensajes(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
 
     _verificar_acceso_chat(orden, current_user)
+
+    if _estado_chat(orden, db) != "activo":
+        return []
 
     mensajes = db.query(MensajeOrden).filter(
         MensajeOrden.orden_id == orden_id
@@ -680,10 +735,18 @@ async def enviar_mensaje(
     if not contenido:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje no puede estar vacío")
 
-    if not orden.domiciliario_id:
+    estado_chat = _estado_chat(orden, db)
+
+    if estado_chat == "sin_domiciliario":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Esta orden aún no tiene un domiciliario asignado"
+        )
+
+    if estado_chat != "activo":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El chat de este pedido ya fue cerrado"
         )
 
     mensaje = MensajeOrden(orden_id=orden_id, remitente_id=current_user.id, contenido=contenido[:1000])
