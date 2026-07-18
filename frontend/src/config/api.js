@@ -79,11 +79,11 @@ api.interceptors.response.use(
     if (!refreshToken) { redirectToLogin(); return Promise.reject(error); }
 
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh: refreshToken });
-      localStorage.setItem('access_token', data.access);
-      api.defaults.headers.Authorization = `Bearer ${data.access}`;
-      processQueue(null, data.access);
-      original.headers.Authorization = `Bearer ${data.access}`;
+      const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken });
+      localStorage.setItem('access_token', data.access_token);
+      api.defaults.headers.Authorization = `Bearer ${data.access_token}`;
+      processQueue(null, data.access_token);
+      original.headers.Authorization = `Bearer ${data.access_token}`;
       return api(original);
     } catch (refreshError) {
       processQueue(refreshError, null);

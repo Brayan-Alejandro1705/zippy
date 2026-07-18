@@ -11,7 +11,7 @@ from config import get_db, settings
 from models import Usuario, Negocio
 from schemas import (
     UsuarioCreate, UsuarioResponse, LoginRequest,
-    LoginResponse, MensajeResponse
+    LoginResponse, MensajeResponse,TokenRefresh
 )
 from notificaciones import generar_codigo, enviar_codigo
 
@@ -388,7 +388,8 @@ async def reenviar_codigo(datos: dict, db: Session = Depends(get_db)):
     summary="Refrescar token",
     description="Obtiene un nuevo access token usando el refresh token"
 )
-async def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+async def refresh_token(datos: TokenRefresh, db: Session = Depends(get_db)):
+    refresh_token = datos.refresh_token
     """
     Refrescar el access token usando el refresh token
     
