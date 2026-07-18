@@ -142,6 +142,7 @@ from routes_ordenes import router as ordenes_router
 from routes_carrito import router as carrito_router
 from routes_usuarios import router as usuarios_router
 from routes_resenas import router as resenas_router
+from routes_admin import router as admin_router
 
 app.include_router(auth_router)
 app.include_router(usuarios_router)
@@ -150,6 +151,7 @@ app.include_router(negocios_router)
 app.include_router(ordenes_router)
 app.include_router(carrito_router)
 app.include_router(resenas_router)
+app.include_router(admin_router)
 # ============================================================================
 # MAIN - Ejecutar servidor
 # ============================================================================
