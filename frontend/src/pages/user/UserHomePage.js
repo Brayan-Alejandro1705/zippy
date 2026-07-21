@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/UserHome.css';
+import Icon from '../../components/Icons';
 
 /* ── Countdown ──────────────────────────────────────────── */
 const useCountdown = () => {
@@ -28,8 +29,8 @@ const pad = n => String(n).padStart(2, '0');
 
 /* ── Helpers de presentación (no son datos, son solo decoración) ─────────── */
 const CAT_ICON = {
-  bebidas: '☕', panadería: '🥖', pastelería: '🎂',
-  'frutas y verduras': '🥦', lácteos: '🥛', carnes: '🥩', otros: '📦',
+  bebidas: 'taza', panadería: 'pan', pastelería: 'pastel',
+  'frutas y verduras': 'verduras', lácteos: 'lacteos', carnes: 'carnes', otros: 'paquete',
 };
 const CAT_GRADIENT_BASE = [
   'linear-gradient(135deg,#fff3e6,#fed7aa)',
@@ -46,7 +47,7 @@ const STORE_COLORS = [
   { bg: '#fdf2f8', text: '#db2777' },
 ];
 
-const getIcon = (categoria) => CAT_ICON[(categoria || '').toLowerCase()] || '📦';
+const getIcon = (categoria) => CAT_ICON[(categoria || '').toLowerCase()] || 'paquete';
 const getGradient = (categoria, idx) => CAT_GRADIENT_BASE[idx % CAT_GRADIENT_BASE.length];
 
 const fmt = n => `$${Math.round(n).toLocaleString('es-CO')}`;
@@ -183,9 +184,9 @@ const UserHomePage = () => {
       <div className="uh-hero">
         <div className="uh-hero-content">
           <div className="uh-hero-top">
-            <span className="uh-hero-loc">📍 Garzón, Huila</span>
+            <span className="uh-hero-loc"><Icon name="ubicacion" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />Garzón, Huila</span>
             {usuario.nombre && (
-              <span className="uh-hero-greeting">{saludo}, {usuario.nombre.split(' ')[0]} 👋</span>
+              <span className="uh-hero-greeting">{saludo}, {usuario.nombre.split(' ')[0]}</span>
             )}
           </div>
           <h1 className="uh-hero-title">¿Qué quieres<br/>pedir hoy?</h1>
@@ -195,7 +196,7 @@ const UserHomePage = () => {
               className={`uh-hero-cat ${tab === 'destacados' ? 'uh-hero-cat--active' : ''}`}
               onClick={() => { setTab('destacados'); document.getElementById('uh-productos')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
-              <span>🔥</span><span>Destacados</span>
+              <span><Icon name="destacado" size={16} /></span><span>Destacados</span>
             </button>
             {categorias.map(c => (
               <button
@@ -203,7 +204,7 @@ const UserHomePage = () => {
                 className={`uh-hero-cat ${tab === c.id ? 'uh-hero-cat--active' : ''}`}
                 onClick={() => { setTab(c.id); document.getElementById('uh-productos')?.scrollIntoView({ behavior: 'smooth' }); }}
               >
-                <span>{c.icon}</span>
+                <span><Icon name={c.icon} size={18} /></span>
                 <span>{c.label}</span>
               </button>
             ))}
@@ -211,7 +212,7 @@ const UserHomePage = () => {
         </div>
         <div className="uh-hero-deco">
           <div className="uh-hero-deco-circle">
-            <span className="uh-hero-deco-emoji">🛵</span>
+            <span className="uh-hero-deco-emoji"><Icon name="repartidores" size={54} strokeWidth={1.3} /></span>
           </div>
           <div className="uh-hero-stats">
             <div className="uh-hero-stat">
@@ -236,15 +237,15 @@ const UserHomePage = () => {
       {populares.length > 0 && (
         <div className="uh-section">
           <div className="uh-section-hdr">
-            <h2 className="uh-section-title">🔥 Más pedidos</h2>
+            <h2 className="uh-section-title"><Icon name="destacado" size={19} style={{ verticalAlign: '-3px', marginRight: 6 }} />Más pedidos</h2>
             <button className="uh-section-link" onClick={() => setTab('destacados')}>Ver todos →</button>
           </div>
           <div className="uh-pop-row">
             {populares.map(p => (
               <button key={p.id} className="uh-pop-card" onClick={() => setModalProd(p)}>
                 <div className="uh-pop-photo" style={{ background: getGradient(p.categoria, p.gradIdx) }}>
-                  {p.foto ? <img src={p.foto} alt={p.nombre} /> : <span className="uh-pop-emoji">{getIcon(p.categoria)}</span>}
-                  {p.rating > 0 && <span className="uh-pop-rating">⭐ {p.rating.toFixed(1)}</span>}
+                  {p.foto ? <img src={p.foto} alt={p.nombre} /> : <span className="uh-pop-emoji"><Icon name={getIcon(p.categoria)} size={30} strokeWidth={1.4} /></span>}
+                  {p.rating > 0 && <span className="uh-pop-rating"><Icon name="estrella" size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />{p.rating.toFixed(1)}</span>}
                 </div>
                 <div className="uh-pop-body">
                   <p className="uh-pop-name">{p.nombre}</p>
@@ -271,7 +272,7 @@ const UserHomePage = () => {
         {oferta && (
           <div className="uh-oferta">
             <div className="uh-oferta-left">
-              <span className="uh-oferta-tag">⚡ OFERTA DEL DÍA</span>
+              <span className="uh-oferta-tag"><Icon name="rayo" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />OFERTA DEL DÍA</span>
               <p className="uh-oferta-name">{oferta.nombre}</p>
               <p className="uh-oferta-tienda">{oferta.tienda}</p>
               <div className="uh-oferta-prices">
@@ -291,15 +292,15 @@ const UserHomePage = () => {
                 {inCart(oferta.id) ? `✓ En carrito (${cartQty(oferta.id)})` : 'Aprovechar oferta →'}
               </button>
             </div>
-            <div className="uh-oferta-deco">🎁</div>
+            <div className="uh-oferta-deco"><Icon name="regalo" size={46} strokeWidth={1.3} /></div>
           </div>
         )}
 
         {/* Servicios locales */}
         <div className="uh-servicios-banner" onClick={() => navigate('/tienda/servicios')}>
           <div className="uh-servicios-grid">
-            {['🚕', '🚛', '🔧', '⚡', '📦', '🚿'].map((ic, i) => (
-              <span key={i} className="uh-servicios-grid-item">{ic}</span>
+            {['taxi', 'camion', 'llave_inglesa', 'rayo', 'paquete', 'ducha'].map((ic, i) => (
+              <span key={i} className="uh-servicios-grid-item"><Icon name={ic} size={22} /></span>
             ))}
           </div>
           <div className="uh-servicios-body">
@@ -315,7 +316,7 @@ const UserHomePage = () => {
       {tiendas.length > 0 && (
         <div className="uh-section">
           <div className="uh-section-hdr">
-            <h2 className="uh-section-title">🏪 Tiendas</h2>
+            <h2 className="uh-section-title"><Icon name="vendedores" size={19} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tiendas</h2>
             {tiendaFiltro && (
               <button className="uh-clear-link" onClick={() => setTiendaFiltro('')}>Quitar filtro ✕</button>
             )}
@@ -327,7 +328,7 @@ const UserHomePage = () => {
                 className={`uh-store-card ${tiendaFiltro === t.nombre ? 'uh-store-card--active' : ''}`}
                 onClick={() => setTiendaFiltro(prev => prev === t.nombre ? '' : t.nombre)}
               >
-                <div className="uh-store-avatar" style={{ background: t.color, color: t.text }}>{t.icon}</div>
+                <div className="uh-store-avatar" style={{ background: t.color, color: t.text }}><Icon name={t.icon} size={22} /></div>
                 <div className="uh-store-info">
                   <p className="uh-store-name">{t.nombre}</p>
                   <p className="uh-store-count">{t.count} producto{t.count !== 1 ? 's' : ''}</p>
@@ -350,7 +351,7 @@ const UserHomePage = () => {
               className={`uh-sidebar-item ${tab === 'destacados' ? 'uh-sidebar-item--active' : ''}`}
               onClick={() => setTab('destacados')}
             >
-              <span className="uh-sidebar-icon">🔥</span>
+              <span className="uh-sidebar-icon"><Icon name="destacado" size={17} /></span>
               <span>Destacados</span>
             </button>
             {categorias.map(c => (
@@ -359,13 +360,13 @@ const UserHomePage = () => {
                 className={`uh-sidebar-item ${tab === c.id ? 'uh-sidebar-item--active' : ''}`}
                 onClick={() => setTab(c.id)}
               >
-                <span className="uh-sidebar-icon">{c.icon}</span>
+                <span className="uh-sidebar-icon"><Icon name={c.icon} size={17} /></span>
                 <span>{c.label}</span>
               </button>
             ))}
             <div className="uh-sidebar-divider" />
             <button className="uh-sidebar-item uh-sidebar-all" onClick={() => { setTab('destacados'); setTiendaFiltro(''); }}>
-              <span className="uh-sidebar-icon">✦</span>
+              <span className="uh-sidebar-icon"><Icon name="filtro" size={17} /></span>
               <span>Ver todo</span>
             </button>
 
@@ -379,7 +380,7 @@ const UserHomePage = () => {
                     className={`uh-sidebar-item ${tiendaFiltro === t.nombre ? 'uh-sidebar-item--active' : ''}`}
                     onClick={() => setTiendaFiltro(prev => prev === t.nombre ? '' : t.nombre)}
                   >
-                    <span className="uh-sidebar-icon">{t.icon}</span>
+                    <span className="uh-sidebar-icon"><Icon name={t.icon} size={17} /></span>
                     <span style={{ fontSize: 12 }}>{t.nombre}</span>
                   </button>
                 ))}
@@ -393,7 +394,9 @@ const UserHomePage = () => {
             <div className="uh-content-hdr">
               <div>
                 <h2 className="uh-content-title">
-                  {tab === 'destacados' ? '🔥 Destacados' : `${getIcon(tab)} ${tab}`}
+                  {tab === 'destacados'
+                ? <><Icon name="destacado" size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />Destacados</>
+                : <><Icon name={getIcon(tab)} size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />{tab}</>}
                   {tiendaFiltro && <span className="uh-filter-active"> · {tiendaFiltro}</span>}
                 </h2>
                 <p className="uh-content-count">{filtrados.length} producto{filtrados.length !== 1 ? 's' : ''}</p>
@@ -403,7 +406,7 @@ const UserHomePage = () => {
                   className={`uh-filter-btn ${showFilters ? 'uh-filter-btn--on' : ''}`}
                   onClick={() => setShowFilters(v => !v)}
                 >
-                  ⚙ Filtros
+                  <Icon name="config" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Filtros
                 </button>
                 <select className="uh-sort-sel" value={orden} onChange={e => setOrden(e.target.value)}>
                   <option value="relevancia">Relevancia</option>
@@ -430,7 +433,7 @@ const UserHomePage = () => {
 
             {filtrados.length === 0 ? (
               <div className="uh-empty">
-                <span>🔍</span>
+                <span><Icon name="buscar" size={38} strokeWidth={1.2} /></span>
                 <p>{productos.length === 0 ? 'Todavía no hay productos publicados.' : 'Sin resultados para esta combinación de filtros.'}</p>
               </div>
             ) : (
@@ -440,12 +443,12 @@ const UserHomePage = () => {
                     <div className="uh-photo" style={{ background: getGradient(p.categoria, p.gradIdx) }}>
                       {p.foto
                         ? <img src={p.foto} alt={p.nombre} />
-                        : <span className="uh-photo-emoji">{getIcon(p.categoria)}</span>
+                        : <span className="uh-photo-emoji"><Icon name={getIcon(p.categoria)} size={40} strokeWidth={1.3} /></span>
                       }
-                      {p.enOferta && <span className="uh-badge-oferta">🔥 Oferta</span>}
+                      {p.enOferta && <span className="uh-badge-oferta"><Icon name="destacado" size={12} style={{ verticalAlign: '-2px', marginRight: 3 }} />Oferta</span>}
                       {p.nuevo && !p.enOferta && <span className="uh-badge-new">NUEVO</span>}
-                      {p.rating >= 4.7 && <span className="uh-badge-top">⭐ Top</span>}
-                      {p.rating > 0 && <span className="uh-rating">⭐ {p.rating.toFixed(1)}</span>}
+                      {p.rating >= 4.7 && <span className="uh-badge-top"><Icon name="estrella" size={12} style={{ verticalAlign: '-2px', marginRight: 3 }} />Top</span>}
+                      {p.rating > 0 && <span className="uh-rating"><Icon name="estrella" size={12} style={{ verticalAlign: '-2px', marginRight: 3 }} />{p.rating.toFixed(1)}</span>}
                       {inCart(p.id) && <span className="uh-cart-qty">{cartQty(p.id)}</span>}
                     </div>
                     <div className="uh-info">
@@ -462,7 +465,7 @@ const UserHomePage = () => {
                           <button
                             className={`uh-btn-save ${saved.has(p.id) ? 'uh-btn-save--on' : ''}`}
                             onClick={() => toggleSave(p.id)}
-                          >♡</button>
+                          ><Icon name="corazon" size={18} /></button>
                           <button
                             className={`uh-btn-cart ${inCart(p.id) ? 'uh-btn-cart--added' : ''}`}
                             onClick={() => handleAdd(p)}

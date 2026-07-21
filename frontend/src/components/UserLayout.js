@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import '../styles/UserLayout.css';
+import Icon from './Icons';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
 const NAV_ITEMS = [
-  { path: '/tienda',               icon: '🏠', label: 'Inicio'    },
-  { path: '/tienda/servicios',     icon: '🛠️', label: 'Servicios' },
-  { path: '/tienda/pedido-especial', icon: '📋', label: 'Pedido'    },
-  { path: '/tienda/perfil',        icon: '👤', label: 'Perfil'    },
+  { path: '/tienda',                 icon: 'inicio',       label: 'Inicio'    },
+  { path: '/tienda/servicios',       icon: 'herramientas', label: 'Servicios' },
+  { path: '/tienda/pedido-especial', icon: 'solicitudes',  label: 'Pedido'    },
+  { path: '/tienda/perfil',          icon: 'perfil',       label: 'Perfil'    },
 ];
 
 const UserLayout = ({ children, onSearch }) => {
@@ -21,12 +22,6 @@ const UserLayout = ({ children, onSearch }) => {
   const isCart    = location.pathname === '/tienda/carrito' || location.pathname === '/tienda/checkout';
   const activeNav = NAV_ITEMS.find(n => location.pathname === n.path)?.path || '/tienda';
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('usuario');
-    navigate('/login');
-  };
 
   return (
     <div className="ulo-container">
@@ -49,18 +44,15 @@ const UserLayout = ({ children, onSearch }) => {
           />
         </div>
 
-        <button className="ulo-profile-btn" onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos">
-          👤
+        <button className="ulo-profile-btn" onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos" aria-label="Mi perfil">
+          <Icon name="perfil" size={20} />
         </button>
 
-        <button className="ulo-cart-btn" onClick={() => navigate('/tienda/carrito')}>
-          🛒
+        <button className="ulo-cart-btn" onClick={() => navigate('/tienda/carrito')} aria-label="Carrito">
+          <Icon name="carrito" size={20} />
           {totalItems > 0 && <span className="ulo-cart-badge">{totalItems}</span>}
         </button>
 
-        <button className="ulo-logout-btn" onClick={handleLogout} title="Cerrar sesión">
-          🚪
-        </button>
       </header>
 
       {/* ── Contenido ──────────────────────────────────── */}
@@ -90,7 +82,7 @@ const UserLayout = ({ children, onSearch }) => {
             className={`ulo-nav-item ${activeNav === item.path ? 'ulo-nav-item--active' : ''}`}
             onClick={() => navigate(item.path)}
           >
-            <span className="ulo-nav-icon">{item.icon}</span>
+            <span className="ulo-nav-icon"><Icon name={item.icon} size={22} /></span>
             <span className="ulo-nav-label">{item.label}</span>
           </button>
         ))}
