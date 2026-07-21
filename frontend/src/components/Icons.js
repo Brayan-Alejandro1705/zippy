@@ -199,6 +199,30 @@ const PATHS = {
     </>
   ),
 
+
+  carrito: (
+    <>
+      <path d="M2.5 3.5h2.2l2.3 11.2a1.6 1.6 0 001.6 1.3h8.6a1.6 1.6 0 001.6-1.2l1.7-6.8H6" />
+      <circle cx="9.5" cy="20" r="1.4" />
+      <circle cx="17" cy="20" r="1.4" />
+    </>
+  ),
+
+  herramientas: (
+    <>
+      <path d="M14.5 6.5a3.8 3.8 0 005 5l-9 9a2.1 2.1 0 01-3-3l9-9-2-2z" />
+      <path d="M5.5 5.5l3 3" />
+    </>
+  ),
+
+  telefono: (
+    <>
+      <rect x="6.5" y="2.5" width="11" height="19" rx="2.4" />
+      <path d="M10.5 5.5h3" />
+      <circle cx="12" cy="18" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
+
   candado: (
     <>
       <rect x="4.5" y="10.5" width="15" height="10" rx="2" />

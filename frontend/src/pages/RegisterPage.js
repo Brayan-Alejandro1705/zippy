@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../config/api';
 import ZLoader from '../components/ZLoader';
 import '../styles/RegisterPage.css';
+import Icon from '../components/Icons';
 
 const ROLES = [
-  { value: 'cliente',      icon: '🛒', label: 'Cliente',      desc: 'Compra en la plataforma' },
-  { value: 'vendedor',     icon: '🏪', label: 'Vendedor',     desc: 'Vende tus productos'      },
-  { value: 'domiciliario', icon: '🛵', label: 'Domiciliario', desc: 'Entrega pedidos'          },
+  { value: 'cliente',      icon: 'carrito',      label: 'Cliente',      desc: 'Compra en la plataforma' },
+  { value: 'vendedor',     icon: 'vendedores',   label: 'Vendedor',     desc: 'Vende tus productos'      },
+  { value: 'domiciliario', icon: 'repartidores', label: 'Domiciliario', desc: 'Entrega pedidos'          },
 ];
 
 const CATEGORIAS_NEGOCIO = [
@@ -150,7 +151,7 @@ const RegisterPage = () => {
 
         <div className="reg-header">
           <div className="reg-logo">
-            <span className="reg-logo-icon">🛒</span>
+            <span className="reg-logo-icon"><Icon name="carrito" size={30} /></span>
             <span className="reg-logo-text">ZIPPY</span>
           </div>
           <h2 className="reg-title">Crear cuenta</h2>
@@ -169,7 +170,7 @@ const RegisterPage = () => {
                 className={`reg-role-card ${form.tipo_usuario === value ? 'reg-role-card--active' : ''}`}
                 onClick={() => setForm(prev => ({ ...prev, tipo_usuario: value }))}
               >
-                <span className="reg-role-icon">{icon}</span>
+                <span className="reg-role-icon"><Icon name={icon} size={30} /></span>
                 <span className="reg-role-label">{label}</span>
                 <span className="reg-role-desc">{desc}</span>
               </button>
@@ -186,7 +187,7 @@ const RegisterPage = () => {
                   className={`reg-modalidad-btn ${!form.es_servicio ? 'reg-modalidad-btn--active' : ''}`}
                   onClick={() => setForm(prev => ({ ...prev, es_servicio: false, categoria_negocio: CATEGORIAS_NEGOCIO[0] }))}
                 >
-                  <span className="reg-modalidad-icon">🏪</span>
+                  <span className="reg-modalidad-icon"><Icon name="vendedores" size={22} /></span>
                   <span>
                     <span className="reg-modalidad-title">Negocio</span>
                     <span className="reg-modalidad-desc">Tengo un local o tienda</span>
@@ -197,7 +198,7 @@ const RegisterPage = () => {
                   className={`reg-modalidad-btn ${form.es_servicio ? 'reg-modalidad-btn--active' : ''}`}
                   onClick={() => setForm(prev => ({ ...prev, es_servicio: true, categoria_negocio: CATEGORIAS_SERVICIO[0] }))}
                 >
-                  <span className="reg-modalidad-icon">🧰</span>
+                  <span className="reg-modalidad-icon"><Icon name="herramientas" size={22} /></span>
                   <span>
                     <span className="reg-modalidad-title">Servicio</span>
                     <span className="reg-modalidad-desc">Sin local fijo</span>
@@ -211,7 +212,7 @@ const RegisterPage = () => {
               <div className="reg-field">
                 <label>{form.es_servicio ? 'Nombre del servicio' : 'Nombre del negocio'} <span className="reg-req">*</span></label>
                 <div className="reg-input-wrap">
-                  <span className="reg-input-icon">{form.es_servicio ? '🧰' : '🏪'}</span>
+                  <span className="reg-input-icon"><Icon name={form.es_servicio ? 'herramientas' : 'vendedores'} size={18} /></span>
                   <input
                     name="nombre_negocio" value={form.nombre_negocio}
                     onChange={handleChange} onBlur={handleBlur}
@@ -238,7 +239,7 @@ const RegisterPage = () => {
                 <div className="reg-field">
                   <label>Ciudad <span className="reg-req">*</span></label>
                   <div className="reg-input-wrap">
-                    <span className="reg-input-icon">📍</span>
+                    <span className="reg-input-icon"><Icon name="ubicacion" size={18} /></span>
                     <input
                       name="ciudad" value={form.ciudad}
                       onChange={handleChange} onBlur={handleBlur}
@@ -252,7 +253,7 @@ const RegisterPage = () => {
             </>
           )}
 
-          {error && <div className="reg-error"><span>⚠</span> {error}</div>}
+          {error && <div className="reg-error"><span><Icon name="alerta" size={17} /></span> {error}</div>}
 
           {/* Información personal */}
           <div className="reg-section-label">Información personal</div>
@@ -296,7 +297,7 @@ const RegisterPage = () => {
           <div className="reg-field">
             <label>Teléfono <span className="reg-req">*</span></label>
             <div className="reg-input-wrap">
-              <span className="reg-input-icon">📱</span>
+              <span className="reg-input-icon"><Icon name="telefono" size={18} /></span>
               <input
                 name="telefono" type="tel" value={form.telefono}
                 onChange={handleChange} onBlur={handleBlur}
@@ -313,7 +314,7 @@ const RegisterPage = () => {
             <div className="reg-field">
               <label>Contraseña <span className="reg-req">*</span></label>
               <div className="reg-input-wrap">
-                <span className="reg-input-icon">🔒</span>
+                <span className="reg-input-icon"><Icon name="candado" size={18} /></span>
                 <input
                   name="password" type={showPass ? 'text' : 'password'} value={form.password}
                   onChange={handleChange} onBlur={handleBlur}
@@ -349,7 +350,7 @@ const RegisterPage = () => {
             <div className="reg-field">
               <label>Confirmar contraseña <span className="reg-req">*</span></label>
               <div className="reg-input-wrap">
-                <span className="reg-input-icon">🔒</span>
+                <span className="reg-input-icon"><Icon name="candado" size={18} /></span>
                 <input
                   name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
                   onChange={handleChange} onBlur={handleBlur}
