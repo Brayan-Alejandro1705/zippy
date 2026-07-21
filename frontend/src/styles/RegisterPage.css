@@ -84,7 +84,10 @@
 }
 
 .reg-logo-icon {
-  font-size: 22px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -1px;
   background: linear-gradient(135deg, #FF7A00, #ff9d3a);
   width: 38px; height: 38px;
   border-radius: 10px;

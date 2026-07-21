@@ -151,7 +151,7 @@ const RegisterPage = () => {
 
         <div className="reg-header">
           <div className="reg-logo">
-            <span className="reg-logo-icon"><Icon name="carrito" size={30} /></span>
+            <span className="reg-logo-icon">Z</span>
             <span className="reg-logo-text">ZIPPY</span>
           </div>
           <h2 className="reg-title">Crear cuenta</h2>
