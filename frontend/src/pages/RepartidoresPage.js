@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../context/ToastContext';
 import { usuariosService } from '../config/api';
 import Layout from '../components/Layout';
+import Icon from '../components/Icons';
 import ConfirmModal from '../components/ConfirmModal';
 import { mapUsuario, ESTADO_LABEL_TO_RAW } from '../utils/usuarios';
 import ZLoader from '../components/ZLoader';
@@ -44,7 +45,7 @@ const RepartidoresPage = () => {
     <Layout>
       <div className="us-page-header">
         <div>
-          <h1 className="us-title">🛵 Repartidores</h1>
+          <h1 className="us-title"><Icon name="repartidores" size={26} style={{ verticalAlign: '-5px', marginRight: 8 }} />Repartidores</h1>
           <p className="us-subtitle">Gestiona los repartidores de la plataforma</p>
         </div>
       </div>
@@ -98,7 +99,7 @@ const RepartidoresPage = () => {
                 <td><span className="vd-productos-badge">{r.entregas}</span></td>
                 <td>
                   <span className={`badge ${r.estado === 'Activo' ? 'badge-active' : 'badge-suspended'}`}>
-                    {r.estado === 'Activo' ? '🟢 Activo' : '🔴 Suspendido'}
+                    {r.estado === 'Activo' ? 'Activo' : 'Suspendido'}
                   </span>
                 </td>
                 <td className="us-email">{r.fechaRegistro}</td>

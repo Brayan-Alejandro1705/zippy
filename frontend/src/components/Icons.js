@@ -119,6 +119,86 @@ const PATHS = {
     </>
   ),
 
+
+  bloqueado: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M6 6l12 12" />
+    </>
+  ),
+
+  buscar: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5L21 21" />
+    </>
+  ),
+
+  ubicacion: (
+    <>
+      <path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </>
+  ),
+
+  calendario: (
+    <>
+      <rect x="3.5" y="5" width="17" height="16" rx="2" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </>
+  ),
+
+  paquete: (
+    <>
+      <path d="M20.5 7.5L12 3 3.5 7.5v9L12 21l8.5-4.5v-9z" />
+      <path d="M3.5 7.5L12 12l8.5-4.5M12 12v9" />
+    </>
+  ),
+
+  identificacion: (
+    <>
+      <rect x="2.5" y="5" width="19" height="14" rx="2" />
+      <circle cx="8.5" cy="11" r="2.2" />
+      <path d="M5 16a3.6 3.6 0 017 0M14 10h4M14 13.5h4" />
+    </>
+  ),
+
+  ver: (
+    <>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+
+  check: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.5 12.2l2.4 2.4 4.6-5" />
+    </>
+  ),
+
+  categorias: (
+    <>
+      <path d="M12 3v9l7.8 4.5A9 9 0 1012 3z" />
+      <path d="M12 3a9 9 0 017.8 13.5" />
+    </>
+  ),
+
+  reloj: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+
+  alerta: (
+    <>
+      <path d="M12 4l9 15.5H3L12 4z" />
+      <path d="M12 10v4" />
+      <circle cx="12" cy="16.8" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
+
   candado: (
     <>
       <rect x="4.5" y="10.5" width="15" height="10" rx="2" />

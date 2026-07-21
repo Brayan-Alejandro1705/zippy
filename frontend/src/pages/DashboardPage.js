@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { adminService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
+import Icon from '../components/Icons';
 import ConfirmModal from '../components/ConfirmModal';
 import '../styles/Usuarios.css';
 
@@ -54,21 +55,21 @@ const DashboardPage = () => {
       {/* Stats */}
       <div className="us-stats">
         <div className="us-stat-card">
-          <div className="us-stat-icon" style={{ background: '#fff3e8', color: '#FF7A00' }}>👥</div>
+          <div className="us-stat-icon" style={{ background: '#fff3e8', color: '#FF7A00' }}><Icon name="usuarios" size={22} /></div>
           <div>
             <p className="us-stat-num">{loadingStats ? '...' : s.total_usuarios.toLocaleString()}</p>
             <p className="us-stat-label">Total Usuarios</p>
           </div>
         </div>
         <div className="us-stat-card">
-          <div className="us-stat-icon" style={{ background: '#dcfce7', color: '#15803d' }}>🏪</div>
+          <div className="us-stat-icon" style={{ background: '#dcfce7', color: '#15803d' }}><Icon name="vendedores" size={22} /></div>
           <div>
             <p className="us-stat-num">{loadingStats ? '...' : s.vendedores_activos.toLocaleString()}</p>
             <p className="us-stat-label">Vendedores Activos</p>
           </div>
         </div>
         <div className="us-stat-card" onClick={() => navigate('/vendedores')} style={{ cursor: 'pointer' }}>
-          <div className="us-stat-icon" style={{ background: '#fee2e2', color: '#b91c1c' }}>🚫</div>
+          <div className="us-stat-icon" style={{ background: '#fee2e2', color: '#b91c1c' }}><Icon name="bloqueado" size={22} /></div>
           <div>
             <p className="us-stat-num">{loadingStats ? '...' : s.vendedores_suspendidos.toLocaleString()}</p>
             <p className="us-stat-label">Vendedores Suspendidos</p>
@@ -79,7 +80,7 @@ const DashboardPage = () => {
       {/* Users Table */}
       <div className="tables-container">
         <section className="table-section">
-          <div className="table-header"><span>👥</span><h2>Usuarios recientes</h2></div>
+          <div className="table-header"><span><Icon name="usuarios" size={20} /></span><h2>Usuarios recientes</h2></div>
           <table className="data-table dash-recent-table">
             <thead>
               <tr>
@@ -104,7 +105,7 @@ const DashboardPage = () => {
                   <td className="us-email">{user.ultimoAcceso}</td>
                   <td>
                     <span className={`badge ${user.estado === 'Activo' ? 'badge-active' : 'badge-suspended'}`}>
-                      {user.estado === 'Activo' ? '🟢 Activo' : '🔴 Suspendido'}
+                      {user.estado === 'Activo' ? 'Activo' : 'Suspendido'}
                     </span>
                   </td>
                   <td className="us-actions">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { vendedoresService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
+import Icon from '../components/Icons';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import '../styles/Usuarios.css';
@@ -81,7 +82,7 @@ const VendedoresPage = () => {
       {/* Header */}
       <div className="us-page-header">
         <div>
-          <h1 className="us-title">🏪 Vendedores</h1>
+          <h1 className="us-title"><Icon name="vendedores" size={26} style={{ verticalAlign: '-5px', marginRight: 8 }} />Vendedores</h1>
           <p className="us-subtitle">Gestiona los vendedores activos en la plataforma</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -116,7 +117,7 @@ const VendedoresPage = () => {
         <input
           type="text"
           className="us-search"
-          placeholder="🔍  Buscar por nombre, negocio o email..."
+          placeholder="Buscar por nombre, negocio o email..."
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
         />
@@ -167,7 +168,7 @@ const VendedoresPage = () => {
                   </td>
                   <td>
                     <span className={`badge ${v.estado === 'Activo' ? 'badge-active' : 'badge-suspended'}`}>
-                      {v.estado === 'Activo' ? '🟢 Activo' : '🔴 Suspendido'}
+                      {v.estado === 'Activo' ? 'Activo' : 'Suspendido'}
                     </span>
                   </td>
                   <td className="us-email">{v.fechaRegistro}</td>

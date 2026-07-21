@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { negociosService } from '../config/api';
 import Layout from '../components/Layout';
+import Icon from '../components/Icons';
 import '../styles/Negocios.css';
 
 const COLORS = ['#FF7A00', '#3b82f6', '#22c55e', '#9b59b6', '#ef4444', '#f59e0b', '#14b8a6'];
@@ -68,7 +69,7 @@ const NegociosPage = () => {
     <Layout>
       <div className="ng-page-header">
         <div>
-          <h1 className="ng-title">🏬 Negocios</h1>
+          <h1 className="ng-title"><Icon name="negocios" size={26} style={{ verticalAlign: '-5px', marginRight: 8 }} />Negocios</h1>
           <p className="ng-subtitle">Todos los negocios registrados en la plataforma</p>
         </div>
       </div>
@@ -87,7 +88,7 @@ const NegociosPage = () => {
         <div className="ng-charts-row">
           {/* Barras — ventas por negocio */}
           <div className="ng-chart-card">
-            <h3 className="ng-chart-title">📊 Ventas por negocio (top 8)</h3>
+            <h3 className="ng-chart-title"><Icon name="dashboard" size={18} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ventas por negocio (top 8)</h3>
             {dataBarras.length === 0 ? (
               <div className="ng-chart-empty">Sin datos de ventas aún</div>
             ) : (
@@ -105,7 +106,7 @@ const NegociosPage = () => {
 
           {/* Torta — por categoría */}
           <div className="ng-chart-card">
-            <h3 className="ng-chart-title">🍕 Negocios por categoría</h3>
+            <h3 className="ng-chart-title"><Icon name="categorias" size={18} style={{ verticalAlign: '-3px', marginRight: 6 }} />Negocios por categoría</h3>
             {dataTorta.length === 0 ? (
               <div className="ng-chart-empty">Sin datos aún</div>
             ) : (
@@ -127,7 +128,7 @@ const NegociosPage = () => {
       <div className="ng-filters">
         <input
           className="ng-search"
-          placeholder="🔍  Buscar negocio, categoría o ciudad..."
+          placeholder="Buscar negocio, categoría o ciudad..."
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
         />
@@ -145,7 +146,7 @@ const NegociosPage = () => {
         </div>
       ) : filtrados.length === 0 ? (
         <div className="ng-empty">
-          <div className="ng-empty-icon">🏬</div>
+          <div className="ng-empty-icon"><Icon name="negocios" size={56} strokeWidth={1.2} /></div>
           <p>No hay negocios registrados aún.</p>
         </div>
       ) : (
@@ -163,11 +164,11 @@ const NegociosPage = () => {
               <div className="ng-card-info">
                 <div className="ng-card-nombre">{n.nombre_negocio}</div>
                 <div className="ng-card-categoria">{n.categoria}</div>
-                {n.ciudad && <div className="ng-card-ciudad">📍 {n.ciudad}</div>}
+                {n.ciudad && <div className="ng-card-ciudad"><Icon name="ubicacion" size={15} style={{ verticalAlign: '-2px', marginRight: 4 }} />{n.ciudad}</div>}
               </div>
 
               <span className={`ng-badge ${n.estado === 'activo' ? 'ng-badge--activo' : 'ng-badge--suspendido'}`}>
-                {n.estado === 'activo' ? '🟢 Activo' : '🔴 Suspendido'}
+                {n.estado === 'activo' ? 'Activo' : 'Suspendido'}
               </span>
 
               <div className="ng-card-stats">

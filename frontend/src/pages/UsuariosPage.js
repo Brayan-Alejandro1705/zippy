@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { usuariosService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
+import Icon from '../components/Icons';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { mapUsuario, ESTADO_LABEL_TO_RAW } from '../utils/usuarios';
@@ -13,17 +14,17 @@ const PAGE_SIZE = 8;
 const MOCK_USERS = [];
 
 const ROL_CFG = {
-  Vendedor:   { bg: '#fff3e0', color: '#e65100', icon: '🏪' },
-  Cliente:    { bg: '#e3f2fd', color: '#0d47a1', icon: '👤' },
-  Repartidor: { bg: '#f3e5f5', color: '#6a1b9a', icon: '🛵' },
+  Vendedor:   { bg: '#fff3e0', color: '#e65100', icon: 'vendedores'   },
+  Cliente:    { bg: '#e3f2fd', color: '#0d47a1', icon: 'perfil'        },
+  Repartidor: { bg: '#f3e5f5', color: '#6a1b9a', icon: 'repartidores'  },
 };
 
 const TABS = [
   { id: 'Todos',      icon: '✦', label: 'Todos'       },
-  { id: 'Vendedor',   icon: '🏪', label: 'Vendedores'  },
-  { id: 'Cliente',    icon: '👤', label: 'Clientes'    },
-  { id: 'Repartidor', icon: '🛵', label: 'Repartidores'},
-  { id: 'Suspendido', icon: '🚫', label: 'Suspendidos' },
+  { id: 'Vendedor',   icon: 'vendedores',   label: 'Vendedores'  },
+  { id: 'Cliente',    icon: 'perfil',       label: 'Clientes'    },
+  { id: 'Repartidor', icon: 'repartidores', label: 'Repartidores'},
+  { id: 'Suspendido', icon: 'bloqueado',    label: 'Suspendidos' },
 ];
 
 const initials = nombre =>
@@ -67,13 +68,13 @@ const RowMenu = ({ usuario, onToggle, onView }) => {
       {open && (
         <div className="us-dropdown">
           <button className="us-dd-item" onClick={() => { onView(usuario.id); setOpen(false); }}>
-            <span>👁️</span> Ver perfil
+            <span><Icon name="ver" size={17} /></span> Ver perfil
           </button>
           <button
             className={`us-dd-item ${usuario.estado === 'Activo' ? 'us-dd-item--danger' : 'us-dd-item--success'}`}
             onClick={() => { onToggle(usuario); setOpen(false); }}
           >
-            <span>{usuario.estado === 'Activo' ? '🚫' : '✅'}</span>
+            <span><Icon name={usuario.estado === 'Activo' ? 'bloqueado' : 'check'} size={17} /></span>
             {usuario.estado === 'Activo' ? 'Suspender' : 'Activar'}
           </button>
         </div>
@@ -144,7 +145,7 @@ const UsuariosPage = () => {
       {/* ── Header ─────────────────────────────────────── */}
       <div className="us-header">
         <div className="us-header-left">
-          <div className="us-header-icon">👥</div>
+          <div className="us-header-icon"><Icon name="usuarios" size={24} /></div>
           <div>
             <h1 className="us-title">Usuarios</h1>
             <p className="us-subtitle">{usuarios.length} usuarios registrados en la plataforma</p>
@@ -161,7 +162,7 @@ const UsuariosPage = () => {
       {/* ── Stats ──────────────────────────────────────── */}
       <div className="us-stats">
         <div className="us-stat-card">
-          <div className="us-stat-icon" style={{ background: '#fff3e8', color: '#FF7A00' }}>👥</div>
+          <div className="us-stat-icon" style={{ background: '#fff3e8', color: '#FF7A00' }}><Icon name="usuarios" size={22} /></div>
           <div>
             <p className="us-stat-num">{usuarios.length}</p>
             <p className="us-stat-label">Total usuarios</p>
@@ -175,21 +176,21 @@ const UsuariosPage = () => {
           </div>
         </div>
         <div className="us-stat-card">
-          <div className="us-stat-icon" style={{ background: '#fee2e2', color: '#b91c1c' }}>🚫</div>
+          <div className="us-stat-icon" style={{ background: '#fee2e2', color: '#b91c1c' }}><Icon name="bloqueado" size={22} /></div>
           <div>
             <p className="us-stat-num">{totalSuspendidos}</p>
             <p className="us-stat-label">Suspendidos</p>
           </div>
         </div>
         <div className="us-stat-card">
-          <div className="us-stat-icon" style={{ background: '#fff3e0', color: '#e65100' }}>🏪</div>
+          <div className="us-stat-icon" style={{ background: '#fff3e0', color: '#e65100' }}><Icon name="vendedores" size={22} /></div>
           <div>
             <p className="us-stat-num">{totalVendedores}</p>
             <p className="us-stat-label">Vendedores</p>
           </div>
         </div>
         <div className="us-stat-card">
-          <div className="us-stat-icon" style={{ background: '#f3e5f5', color: '#6a1b9a' }}>🛵</div>
+          <div className="us-stat-icon" style={{ background: '#f3e5f5', color: '#6a1b9a' }}><Icon name="repartidores" size={22} /></div>
           <div>
             <p className="us-stat-num">{totalRepartidores}</p>
             <p className="us-stat-label">Repartidores</p>
@@ -205,7 +206,7 @@ const UsuariosPage = () => {
             className={`us-tab ${tab === t.id ? 'us-tab--active' : ''}`}
             onClick={() => setTab(t.id)}
           >
-            <span className="us-tab-icon">{t.icon}</span>
+            <span className="us-tab-icon"><Icon name={t.icon} size={17} /></span>
             <span className="us-tab-label">{t.label}</span>
             <span className={`us-tab-badge ${tab === t.id ? 'us-tab-badge--active' : ''}`}>
               {conteo(t.id)}
@@ -217,7 +218,7 @@ const UsuariosPage = () => {
       {/* ── Barra de búsqueda ──────────────────────────── */}
       <div className="us-search-bar">
         <div className="us-search-wrap">
-          <span className="us-search-icon">🔍</span>
+          <span className="us-search-icon"><Icon name="buscar" size={18} /></span>
           <input
             className="us-search"
             placeholder="Buscar por nombre, email o ID..."
@@ -239,7 +240,7 @@ const UsuariosPage = () => {
           </div>
         ) : paginados.length === 0 ? (
           <div className="us-empty">
-            <span>🔍</span>
+            <span><Icon name="buscar" size={40} strokeWidth={1.2} /></span>
             <p>No se encontraron usuarios</p>
             <button onClick={() => { setBusqueda(''); setTab('Todos'); }}>Limpiar filtros</button>
           </div>
@@ -262,15 +263,15 @@ const UsuariosPage = () => {
                         className="us-rol-pill"
                         style={{ background: rol.bg, color: rol.color }}
                       >
-                        {rol.icon} {u.rol}
+                        <Icon name={rol.icon} size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{u.rol}
                       </span>
                     </div>
                     <span className="us-user-email">{u.email}</span>
                     <div className="us-user-meta">
-                      <span className="us-meta-item">🪪 {u.id}</span>
-                      {u.ciudad && <span className="us-meta-item">📍 {u.ciudad}</span>}
-                      {u.fecha && <span className="us-meta-item">📅 {u.fecha}</span>}
-                      {u.productos > 0 && <span className="us-meta-item">📦 {u.productos} productos</span>}
+                      <span className="us-meta-item"><Icon name="identificacion" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{u.id}</span>
+                      {u.ciudad && <span className="us-meta-item"><Icon name="ubicacion" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{u.ciudad}</span>}
+                      {u.fecha && <span className="us-meta-item"><Icon name="calendario" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{u.fecha}</span>}
+                      {u.productos > 0 && <span className="us-meta-item"><Icon name="paquete" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{u.productos} productos</span>}
                     </div>
                   </div>
 
