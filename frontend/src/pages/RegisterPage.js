@@ -321,7 +321,16 @@ const RegisterPage = () => {
                   className={fieldError('password') ? 'reg-input--err' : ''}
                 />
                 <button type="button" className="reg-toggle-pass" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
-                  {showPass ? '🙈' : '👁'}
+                  {showPass ? (
+                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+                    <path d="M3 3l14 14M8.5 8.6A3 3 0 0013.4 13M6.5 5.6C4.6 6.9 3 9 3 10s3 5 7 5c1.4 0 2.7-.4 3.8-1M10 5c4 0 7 3 7 5a8.5 8.5 0 01-1.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  ) : (
+                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+                    <path d="M10 4C6 4 3 7 3 10s3 6 7 6 7-3 7-6-3-6-7-6z" stroke="currentColor" strokeWidth="1.5"/>
+                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                  </svg>
+                  )}
                 </button>
               </div>
               {fieldError('password') && <span className="reg-field-err">{fieldError('password')}</span>}
@@ -348,7 +357,16 @@ const RegisterPage = () => {
                   className={fieldError('confirmPassword') ? 'reg-input--err' : ''}
                 />
                 <button type="button" className="reg-toggle-pass" onClick={() => setShowConfirm(p => !p)} tabIndex={-1}>
-                  {showConfirm ? '🙈' : '👁'}
+                  {showConfirm ? (
+                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+                    <path d="M3 3l14 14M8.5 8.6A3 3 0 0013.4 13M6.5 5.6C4.6 6.9 3 9 3 10s3 5 7 5c1.4 0 2.7-.4 3.8-1M10 5c4 0 7 3 7 5a8.5 8.5 0 01-1.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  ) : (
+                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
+                    <path d="M10 4C6 4 3 7 3 10s3 6 7 6 7-3 7-6-3-6-7-6z" stroke="currentColor" strokeWidth="1.5"/>
+                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
+                  </svg>
+                  )}
                 </button>
               </div>
               {fieldError('confirmPassword') && <span className="reg-field-err">{fieldError('confirmPassword')}</span>}

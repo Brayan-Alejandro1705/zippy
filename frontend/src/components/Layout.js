@@ -1,27 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import GlobalSearch from './GlobalSearch';
+import Icon from './Icons';
 import { getMatrix } from '../utils/permissions';
 import '../styles/Dashboard.css';
 import '../styles/dark-theme.css';
 
 // permId: null = siempre visible, string = requiere ese permiso
 const NAV = [
-  { path: '/dashboard',    icon: '📊', label: 'Dashboard',    permId: null          },
-  { path: '/negocios',     icon: '🏬', label: 'Negocios',     permId: null          },
-  { path: '/vendedores',   icon: '🏪', label: 'Vendedores',   permId: 'vendedores'  },
-  { path: '/repartidores', icon: '🛵', label: 'Repartidores', permId: 'repartidores'},
-  { path: '/usuarios',     icon: '👥', label: 'Usuarios',     permId: 'usuarios'    },
-  { path: '/roles',        icon: '🔐', label: 'Roles',        permId: 'roles'       },
-  { path: '/logs',         icon: '📜', label: 'Logs',         permId: 'logs'        },
-  { path: '/config',       icon: '⚙️', label: 'Config',       permId: 'config'      },
+  { path: '/dashboard',    icon: 'dashboard',    label: 'Dashboard',    permId: null          },
+  { path: '/negocios',     icon: 'negocios',     label: 'Negocios',     permId: null          },
+  { path: '/vendedores',   icon: 'vendedores',   label: 'Vendedores',   permId: 'vendedores'  },
+  { path: '/repartidores', icon: 'repartidores', label: 'Repartidores', permId: 'repartidores'},
+  { path: '/usuarios',     icon: 'usuarios',     label: 'Usuarios',     permId: 'usuarios'    },
+  { path: '/roles',        icon: 'roles',        label: 'Roles',        permId: 'roles'       },
+  { path: '/logs',         icon: 'logs',         label: 'Logs',         permId: 'logs'        },
+  { path: '/config',       icon: 'config',       label: 'Config',       permId: 'config'      },
 ];
 
 const BOTTOM_NAV = [
-  { path: '/dashboard',  icon: '📊', label: 'Inicio'    , permId: null         },
-  { path: '/vendedores', icon: '🏪', label: 'Vendedores', permId: 'vendedores' },
-  { path: '/negocios',   icon: '🏬', label: 'Negocios'  , permId: null         },
-  { path: '/usuarios',   icon: '👥', label: 'Usuarios'  , permId: 'usuarios'   },
+  { path: '/dashboard',  icon: 'dashboard',  label: 'Inicio'    , permId: null         },
+  { path: '/vendedores', icon: 'vendedores', label: 'Vendedores', permId: 'vendedores' },
+  { path: '/negocios',   icon: 'negocios',   label: 'Negocios'  , permId: null         },
+  { path: '/usuarios',   icon: 'usuarios',   label: 'Usuarios'  , permId: 'usuarios'   },
 ];
 
 const canSee = (permId, rolKey, matrix) => {
@@ -33,7 +34,7 @@ const canSee = (permId, rolKey, matrix) => {
 const getRolKey = (usuario) => {
   if (usuario.es_super_admin) return 'super_admin';
   if (usuario.tipo_usuario === 'admin') return 'admin';
-  return 'soporte';
+  return 'sin_rol';
 };
 
 const Layout = ({ children }) => {
@@ -85,8 +86,12 @@ const Layout = ({ children }) => {
             <GlobalSearch />
           </div>
           <div className="header-right">
-            <span className="admin-label">👤 {displayName}</span>
-            <button className="menu-hamburger" onClick={() => setMenuOpen(!menuOpen)}>☰</button>
+            <span className="admin-label"><Icon name="perfil" size={18} style={{ verticalAlign: '-4px', marginRight: 6 }} />{displayName}</span>
+            <button className="menu-hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
@@ -97,7 +102,7 @@ const Layout = ({ children }) => {
           <div className="mobile-drawer" onClick={e => e.stopPropagation()}>
             <div className="drawer-header">
               <img src="/logo-zippy.jpeg" alt="Zippy Go" style={{ height: 32, width: 'auto', borderRadius: 6, objectFit: 'contain' }} />
-              <button onClick={() => setMenuOpen(false)}>✕</button>
+              <button onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><Icon name="cerrar" size={20} /></button>
             </div>
             {visibleNav.map(({ path, icon, label }) => (
               <a
@@ -106,10 +111,12 @@ const Layout = ({ children }) => {
                 className={`drawer-item ${isActive(path) ? 'active' : ''}`}
                 onClick={() => setMenuOpen(false)}
               >
-                <span>{icon}</span> {label}
+                <span className="nav-ico"><Icon name={icon} size={20} /></span> {label}
               </a>
             ))}
-            <button className="drawer-logout" onClick={handleLogout}>🚪 Cerrar sesión</button>
+            <button className="drawer-logout" onClick={handleLogout}>
+              <span className="nav-ico"><Icon name="salir" size={20} /></span> Cerrar sesión
+            </button>
           </div>
         </div>
       )}
@@ -121,19 +128,19 @@ const Layout = ({ children }) => {
             <div className="menu-title">MENÚ</div>
             {visibleNav.map(({ path, icon, label }) => (
               <a key={path} href={path} className={`menu-item ${isActive(path) ? 'active' : ''}`}>
-                <span>{icon}</span> {label}
+                <span className="nav-ico"><Icon name={icon} size={20} /></span> {label}
               </a>
             ))}
           </div>
           <button className="logout-menu-btn" onClick={handleLogout}>
-            🚪 Cerrar sesión
+            <span className="nav-ico"><Icon name="salir" size={20} /></span> Cerrar sesión
           </button>
         </aside>
 
         <main className="dashboard-content">
           {showPwBanner && (
             <div className="pw-banner">
-              <span>🔒 Por seguridad, te recomendamos cambiar tu contraseña.</span>
+              <span><Icon name="candado" size={18} style={{ verticalAlign: '-3px', marginRight: 6 }} /> Por seguridad, te recomendamos cambiar tu contraseña.</span>
               <div className="pw-banner-actions">
                 <button className="pw-banner-btn pw-banner-btn--primary" onClick={irACambiarPassword}>Cambiar ahora</button>
                 <button className="pw-banner-btn" onClick={dismissPwBanner}>Ahora no</button>
@@ -148,7 +155,7 @@ const Layout = ({ children }) => {
       <nav className="bottom-nav">
         {visibleBottom.map(({ path, icon, label }) => (
           <a key={path} href={path} className={`bottom-nav-item ${isActive(path) ? 'active' : ''}`}>
-            <span className="bottom-nav-icon">{icon}</span>
+            <span className="bottom-nav-icon"><Icon name={icon} size={22} /></span>
             <span className="bottom-nav-label">{label}</span>
           </a>
         ))}

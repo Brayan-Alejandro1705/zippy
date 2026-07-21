@@ -1,7 +1,6 @@
 const DEFAULT_MATRIX = {
   super_admin: { vendedores: true, repartidores: true, usuarios: true, solicitudes: true, reportes: true, roles: true, config: true, logs: true },
   admin:       { vendedores: true, repartidores: true, usuarios: true, solicitudes: true, reportes: true, roles: false, config: false, logs: true },
-  soporte:     { vendedores: false, repartidores: false, usuarios: true, solicitudes: false, reportes: false, roles: false, config: false, logs: true },
 };
 
 export const getMatrix = () => {

@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
-import { authService, usuariosService } from '../config/api';
+import { authService, usuariosService, adminService } from '../config/api';
 import Layout from '../components/Layout';
+import Icon from '../components/Icons';
 import { getPrefs, savePrefs, requestPermission, checkPermission, sendNotification, scheduleReporteSemanal } from '../utils/notifications';
 import '../styles/Config.css';
 
 const TABS = [
-  { id: 'perfil',          icon: '👤', label: 'Perfil' },
-  { id: 'plataforma',      icon: '🏪', label: 'Plataforma' },
-  { id: 'notificaciones',  icon: '🔔', label: 'Notificaciones' },
-  { id: 'apariencia',      icon: '🎨', label: 'Apariencia' },
+  { id: 'perfil',          icon: 'perfil',          label: 'Perfil' },
+  { id: 'plataforma',      icon: 'vendedores',      label: 'Plataforma' },
+  { id: 'notificaciones',  icon: 'notificaciones',  label: 'Notificaciones' },
+  { id: 'apariencia',      icon: 'apariencia',      label: 'Apariencia' },
+  { id: 'soporte',         icon: 'soporte',         label: 'Soporte', soloSuperAdmin: true },
 ];
+
+// Solo los super admin pueden configurar el WhatsApp de soporte
+const esSuperAdmin = () => {
+  try {
+    return JSON.parse(localStorage.getItem('usuario') || '{}').es_super_admin === true;
+  } catch {
+    return false;
+  }
+};
 
 const CIUDADES_DISPONIBLES = ['Garzón', 'Neiva', 'Pitalito', 'La Plata', 'Campoalegre', 'Algeciras'];
 
@@ -324,7 +335,6 @@ const SeccionNotificaciones = () => {
 const SeccionApariencia = () => {
   const { isDark, toggle } = useTheme();
   const { addToast } = useToast();
-  const [idioma, setIdioma] = useState('es');
 
   return (
     <div className="cfg-sections">
@@ -353,17 +363,99 @@ const SeccionApariencia = () => {
           <p className="cfg-preview-label">{isDark ? '🌙 Modo oscuro activo' : '☀️ Modo claro activo'}</p>
         </div>
       </div>
+    </div>
+  );
+};
 
-      <div className="cfg-card">
-        <div className="cfg-card-title">Idioma</div>
-        <div className="cfg-field" style={{ maxWidth: 280 }}>
-          <label>Idioma de la interfaz</label>
-          <select value={idioma} onChange={e => { setIdioma(e.target.value); addToast('Idioma actualizado', 'success'); }}>
-            <option value="es">🇨🇴 Español</option>
-            <option value="en">🇺🇸 English</option>
-          </select>
+
+// ── Soporte (solo super admin) ────────────────────────────────────────────────
+const SeccionSoporte = () => {
+  const { addToast } = useToast();
+  const [whatsapp, setWhatsapp]   = useState('');
+  const [original, setOriginal]   = useState('');
+  const [cargando, setCargando]   = useState(true);
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    adminService.obtenerSoporte()
+      .then(({ data }) => {
+        setWhatsapp(data.whatsapp || '');
+        setOriginal(data.whatsapp || '');
+      })
+      .catch(() => addToast('No se pudo cargar el número de soporte', 'error'))
+      .finally(() => setCargando(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const guardar = async (e) => {
+    e.preventDefault();
+    if (!whatsapp.trim()) {
+      addToast('Escribe un número de WhatsApp', 'error');
+      return;
+    }
+    setGuardando(true);
+    try {
+      const { data } = await adminService.actualizarSoporte(whatsapp.trim());
+      setWhatsapp(data.whatsapp);
+      setOriginal(data.whatsapp);
+      addToast('Número de soporte actualizado', 'success');
+    } catch (err) {
+      const detalle = err?.response?.data?.detail;
+      addToast(typeof detalle === 'string' ? detalle : 'No se pudo guardar el número', 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const probar = () => {
+    if (!original) return;
+    window.open(`https://wa.me/${original}`, '_blank');
+  };
+
+  return (
+    <div className="cfg-sections">
+      <form className="cfg-card" onSubmit={guardar}>
+        <div className="cfg-card-title">WhatsApp de soporte</div>
+        <p className="cfg-notif-desc" style={{ marginBottom: 16 }}>
+          Este es el número al que se comunican los usuarios desde el botón de soporte
+          de la aplicación. Aplica para clientes, vendedores y repartidores.
+        </p>
+
+        <div className="cfg-field" style={{ maxWidth: 320 }}>
+          <label>Número de WhatsApp</label>
+          <input
+            type="tel"
+            value={whatsapp}
+            onChange={e => setWhatsapp(e.target.value)}
+            placeholder="300 123 4567"
+            disabled={cargando || guardando}
+            inputMode="numeric"
+          />
+          <span className="cfg-notif-desc">
+            Si escribes 10 dígitos se le agrega el indicativo de Colombia (57) automáticamente.
+          </span>
         </div>
-      </div>
+
+        <div className="cfg-actions" style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+          <button type="submit" className="cfg-btn-save" disabled={cargando || guardando || whatsapp === original}>
+            {guardando ? 'Guardando…' : 'Guardar número'}
+          </button>
+
+          {original && (
+            <button type="button" className="cfg-btn-secondary" onClick={probar}>
+              <Icon name="whatsapp" size={18} style={{ verticalAlign: '-4px', marginRight: 6 }} />
+              Probar chat
+            </button>
+          )}
+        </div>
+
+        {!cargando && !original && (
+          <p className="cfg-notif-desc" style={{ marginTop: 14 }}>
+            Aún no hay un número configurado. Mientras no lo definas, el botón de soporte
+            no estará disponible para los usuarios.
+          </p>
+        )}
+      </form>
     </div>
   );
 };
@@ -374,27 +466,33 @@ const SECTION_MAP = {
   plataforma:     <SeccionPlataforma />,
   notificaciones: <SeccionNotificaciones />,
   apariencia:     <SeccionApariencia />,
+  soporte:        <SeccionSoporte />,
 };
 
 const ConfigPage = () => {
   const [activeTab, setActiveTab] = useState('perfil');
+  const superAdmin = esSuperAdmin();
+  const tabsVisibles = TABS.filter(t => !t.soloSuperAdmin || superAdmin);
 
   return (
     <Layout>
       <div className="cfg-page-header">
-        <h1 className="cfg-title">⚙️ Configuración</h1>
+        <h1 className="cfg-title">
+          <Icon name="config" size={26} style={{ verticalAlign: '-5px', marginRight: 8 }} />
+          Configuración
+        </h1>
         <p className="cfg-subtitle">Administra la plataforma y tu cuenta</p>
       </div>
 
       <div className="cfg-layout">
         <nav className="cfg-nav">
-          {TABS.map(({ id, icon, label }) => (
+          {tabsVisibles.map(({ id, icon, label }) => (
             <button
               key={id}
               className={`cfg-nav-item ${activeTab === id ? 'cfg-nav-item--active' : ''}`}
               onClick={() => setActiveTab(id)}
             >
-              <span className="cfg-nav-icon">{icon}</span>
+              <span className="cfg-nav-icon"><Icon name={icon} size={20} /></span>
               <span>{label}</span>
             </button>
           ))}

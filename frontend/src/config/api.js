@@ -110,6 +110,8 @@ export const authService = {
 
 export const adminService = {
   estadisticas: () => api.get('/admin/estadisticas/'),
+  obtenerSoporte:    () => api.get('/admin/configuracion/soporte'),
+  actualizarSoporte: (whatsapp) => api.put('/admin/configuracion/soporte', { whatsapp }),
 };
 
 export const usuariosService = {

@@ -8,7 +8,6 @@ import '../styles/Roles.css';
 const ROLES_INFO = [
   { id: 'super_admin', nombre: 'Super Admin', desc: 'Acceso total a la plataforma',  color: '#9b59b6' },
   { id: 'admin',       nombre: 'Admin',       desc: 'Gestión operativa diaria',       color: '#FF7A00' },
-  { id: 'soporte',     nombre: 'Soporte',     desc: 'Atención y soporte a usuarios',  color: '#3498db' },
 ];
 
 const PERMISOS = [
