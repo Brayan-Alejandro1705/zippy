@@ -88,7 +88,7 @@ const SeccionPerfil = () => {
         </div>
         <div className="cfg-profile-hero-info">
           <h2 className="cfg-profile-name">{form.nombre || 'Administrador'}</h2>
-          <span className="cfg-profile-badge">⚡ Super Admin</span>
+          <span className="cfg-profile-badge"><Icon name="rayo" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />Super Admin</span>
           <p className="cfg-profile-email">{form.email}</p>
         </div>
       </div>
@@ -100,14 +100,14 @@ const SeccionPerfil = () => {
           <div className="cfg-field">
             <label>Nombre completo</label>
             <div className="cfg-input-wrap">
-              <span className="cfg-input-icon">👤</span>
+              <span className="cfg-input-icon"><Icon name="perfil" size={18} /></span>
               <input name="nombre" value={form.nombre} onChange={handleChange} placeholder="Tu nombre completo" />
             </div>
           </div>
           <div className="cfg-field">
             <label>Correo electrónico</label>
             <div className="cfg-input-wrap">
-              <span className="cfg-input-icon">✉️</span>
+              <span className="cfg-input-icon"><Icon name="correo" size={18} /></span>
               <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="admin@zippy.com" />
             </div>
           </div>
@@ -115,7 +115,7 @@ const SeccionPerfil = () => {
         <div className="cfg-field" style={{ marginBottom: 0 }}>
           <label>Teléfono <span style={{ fontWeight: 400, color: '#aaa', fontSize: 12 }}>(opcional)</span></label>
           <div className="cfg-input-wrap">
-            <span className="cfg-input-icon">📱</span>
+            <span className="cfg-input-icon"><Icon name="telefono" size={18} /></span>
             <input name="telefono" type="tel" value={form.telefono} onChange={handleChange} placeholder="320-000-0000" />
           </div>
         </div>
@@ -128,11 +128,11 @@ const SeccionPerfil = () => {
 
       {/* Contraseña */}
       <form className="cfg-card" onSubmit={handleChangePassword}>
-        <div className="cfg-card-title">🔒 Cambiar contraseña</div>
+        <div className="cfg-card-title"><Icon name="candado" size={18} style={{ verticalAlign: '-3px', marginRight: 6 }} />Cambiar contraseña</div>
         <div className="cfg-field" style={{ marginBottom: 16 }}>
           <label>Contraseña actual</label>
           <div className="cfg-input-wrap">
-            <span className="cfg-input-icon">🔑</span>
+            <span className="cfg-input-icon"><Icon name="llave" size={18} /></span>
             <input name="passwordActual" type="password" value={form.passwordActual} onChange={handleChange} placeholder="Tu contraseña actual" />
           </div>
         </div>
@@ -140,14 +140,14 @@ const SeccionPerfil = () => {
           <div className="cfg-field">
             <label>Nueva contraseña</label>
             <div className="cfg-input-wrap">
-              <span className="cfg-input-icon">🔒</span>
+              <span className="cfg-input-icon"><Icon name="candado" size={18} /></span>
               <input name="passwordNueva" type="password" value={form.passwordNueva} onChange={handleChange} placeholder="Mín. 8 caracteres" />
             </div>
           </div>
           <div className="cfg-field">
             <label>Confirmar contraseña</label>
             <div className="cfg-input-wrap">
-              <span className="cfg-input-icon">🔒</span>
+              <span className="cfg-input-icon"><Icon name="candado" size={18} /></span>
               <input name="passwordConfirm" type="password" value={form.passwordConfirm} onChange={handleChange} placeholder="Repetir nueva contraseña" />
             </div>
           </div>
@@ -157,7 +157,7 @@ const SeccionPerfil = () => {
         )}
         <div className="cfg-card-footer">
           <button type="submit" className="btn-create" disabled={savingPw}>
-            {savingPw ? 'Actualizando...' : '🔒 Actualizar contraseña'}
+            {savingPw ? 'Actualizando...' : 'Actualizar contraseña'}
           </button>
         </div>
       </form>
@@ -269,8 +269,8 @@ const SeccionNotificaciones = () => {
   const handleRequestPermiso = async () => {
     const ok = await requestPermission();
     setPermiso(ok ? 'granted' : 'denied');
-    if (ok) addToast('✅ Permiso de notificaciones concedido', 'success');
-    else    addToast('❌ Permiso denegado. Actívalo en Ajustes del teléfono', 'error');
+    if (ok) addToast('Permiso de notificaciones concedido', 'success');
+    else    addToast('Permiso denegado. Actívalo en Ajustes del teléfono', 'error');
   };
 
   const handleSave = async () => {
@@ -278,7 +278,7 @@ const SeccionNotificaciones = () => {
     savePrefs(prefs);
     await scheduleReporteSemanal();
     // Notificación de prueba para confirmar que funciona
-    await sendNotification('✅ Zippy Admin', 'Preferencias de notificaciones guardadas');
+    await sendNotification('Zippy Admin', 'Preferencias de notificaciones guardadas');
     addToast('Preferencias guardadas. Recibirás una notificación de prueba.', 'success');
     setSaving(false);
   };
@@ -289,12 +289,12 @@ const SeccionNotificaciones = () => {
       <div className="cfg-card">
         <div className="cfg-card-title">Permiso de notificaciones</div>
         {permiso === 'granted' ? (
-          <div className="cfg-perm-ok">✅ Las notificaciones están habilitadas en este dispositivo</div>
+          <div className="cfg-perm-ok"><Icon name="check" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Las notificaciones están habilitadas en este dispositivo</div>
         ) : (
           <div className="cfg-perm-warn">
-            <p>⚠️ Las notificaciones no están habilitadas. Actívalas para recibir alertas en el teléfono.</p>
+            <p><Icon name="alerta" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Las notificaciones no están habilitadas. Actívalas para recibir alertas en el teléfono.</p>
             <button className="btn-create" style={{ marginTop: 12 }} onClick={handleRequestPermiso}>
-              🔔 Habilitar notificaciones
+              <Icon name="notificaciones" size={17} style={{ verticalAlign: '-3px', marginRight: 6 }} />Habilitar notificaciones
             </button>
           </div>
         )}
@@ -360,7 +360,10 @@ const SeccionApariencia = () => {
             <div className="cfg-preview-line" />
             <div className="cfg-preview-line cfg-preview-line--short" />
           </div>
-          <p className="cfg-preview-label">{isDark ? '🌙 Modo oscuro activo' : '☀️ Modo claro activo'}</p>
+          <p className="cfg-preview-label">
+            <Icon name={isDark ? 'luna' : 'sol'} size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />
+            {isDark ? 'Modo oscuro activo' : 'Modo claro activo'}
+          </p>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
+import Icon from '../components/Icons';
 import { getMatrix, saveMatrix } from '../utils/permissions';
 import '../styles/Usuarios.css';
 import '../styles/Roles.css';
@@ -11,14 +12,14 @@ const ROLES_INFO = [
 ];
 
 const PERMISOS = [
-  { id: 'vendedores',   label: 'Gestionar vendedores',     icon: '🏪' },
-  { id: 'repartidores', label: 'Gestionar repartidores',   icon: '🛵' },
-  { id: 'usuarios',     label: 'Gestionar usuarios',       icon: '👥' },
-  { id: 'solicitudes',  label: 'Aprobar solicitudes',      icon: '📋' },
-  { id: 'reportes',     label: 'Ver reportes financieros', icon: '📈' },
-  { id: 'roles',        label: 'Gestionar roles y permisos', icon: '🔐' },
-  { id: 'config',       label: 'Configuración del sistema', icon: '⚙️' },
-  { id: 'logs',         label: 'Ver logs de actividad',    icon: '📜' },
+  { id: 'vendedores',   label: 'Gestionar vendedores',       icon: 'vendedores'   },
+  { id: 'repartidores', label: 'Gestionar repartidores',     icon: 'repartidores' },
+  { id: 'usuarios',     label: 'Gestionar usuarios',         icon: 'usuarios'     },
+  { id: 'solicitudes',  label: 'Aprobar solicitudes',        icon: 'solicitudes'  },
+  { id: 'reportes',     label: 'Ver reportes financieros',   icon: 'reportes'     },
+  { id: 'roles',        label: 'Gestionar roles y permisos', icon: 'roles'        },
+  { id: 'config',       label: 'Configuración del sistema',  icon: 'config'       },
+  { id: 'logs',         label: 'Ver logs de actividad',      icon: 'logs'         },
 ];
 
 const RolesPermisosPage = () => {
@@ -52,13 +53,13 @@ const RolesPermisosPage = () => {
     <Layout>
       <div className="us-page-header">
         <div>
-          <h1 className="us-title">🔐 Roles y permisos</h1>
+          <h1 className="us-title"><Icon name="roles" size={26} style={{ verticalAlign: '-5px', marginRight: 8 }} />Roles y permisos</h1>
           <p className="us-subtitle">Define qué puede hacer cada nivel de administrador</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="us-export-btn" onClick={resetear}>↺ Restablecer</button>
           <button className="btn-create" onClick={guardar} disabled={!dirty}>
-            💾 {dirty ? 'Guardar cambios*' : 'Sin cambios'}
+            <Icon name="guardar" size={17} style={{ verticalAlign: '-3px', marginRight: 6 }} />{dirty ? 'Guardar cambios*' : 'Sin cambios'}
           </button>
         </div>
       </div>
@@ -95,7 +96,7 @@ const RolesPermisosPage = () => {
             {PERMISOS.map(p => (
               <tr key={p.id}>
                 <td className="us-nombre">
-                  <span style={{ marginRight: 8 }}>{p.icon}</span>{p.label}
+                  <span style={{ marginRight: 8, verticalAlign: '-3px', display: 'inline-block' }}><Icon name={p.icon} size={17} /></span>{p.label}
                 </td>
                 {ROLES_INFO.map(r => (
                   <td key={r.id} style={{ textAlign: 'center' }}>
@@ -117,7 +118,7 @@ const RolesPermisosPage = () => {
 
       {dirty && (
         <div className="rpm-warning">
-          ⚠️ Hay cambios sin guardar. Haz clic en <strong>Guardar cambios</strong> para aplicarlos.
+          <Icon name="alerta" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Hay cambios sin guardar. Haz clic en <strong>Guardar cambios</strong> para aplicarlos.
         </div>
       )}
     </Layout>

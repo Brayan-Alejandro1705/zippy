@@ -285,7 +285,7 @@ const RegisterPage = () => {
           <div className="reg-field">
             <label>Correo electrónico <span className="reg-req">*</span></label>
             <div className="reg-input-wrap">
-              <span className="reg-input-icon">✉</span>
+              <span className="reg-input-icon"><Icon name="correo" size={18} /></span>
               <input
                 name="email" type="email" value={form.email}
                 onChange={handleChange} onBlur={handleBlur}

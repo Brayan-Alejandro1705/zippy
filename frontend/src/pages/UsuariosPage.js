@@ -20,7 +20,7 @@ const ROL_CFG = {
 };
 
 const TABS = [
-  { id: 'Todos',      icon: '✦', label: 'Todos'       },
+  { id: 'Todos',      icon: 'filtro',       label: 'Todos'       },
   { id: 'Vendedor',   icon: 'vendedores',   label: 'Vendedores'  },
   { id: 'Cliente',    icon: 'perfil',       label: 'Clientes'    },
   { id: 'Repartidor', icon: 'repartidores', label: 'Repartidores'},
@@ -153,7 +153,7 @@ const UsuariosPage = () => {
         </div>
         <div className="us-header-actions">
           <button className="us-btn-secondary" onClick={() => { exportCSV(filtrados); addToast('CSV exportado', 'info'); }}>
-            ⬇ Exportar
+            <Icon name="descargar" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Exportar
           </button>
           <a href="/vendedores/nuevo" className="us-btn-primary">+ Nuevo vendedor</a>
         </div>
@@ -169,7 +169,7 @@ const UsuariosPage = () => {
           </div>
         </div>
         <div className="us-stat-card">
-          <div className="us-stat-icon" style={{ background: '#dcfce7', color: '#15803d' }}>✅</div>
+          <div className="us-stat-icon" style={{ background: '#dcfce7', color: '#15803d' }}><Icon name="check" size={22} /></div>
           <div>
             <p className="us-stat-num">{totalActivos}</p>
             <p className="us-stat-label">Activos</p>

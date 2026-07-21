@@ -182,7 +182,7 @@ const NegociosPage = () => {
                 </div>
                 <div className="ng-mini-stat">
                   <span className="ng-mini-val">{n.calificacion_promedio || '–'}</span>
-                  <span className="ng-mini-label">⭐ Rating</span>
+                  <span className="ng-mini-label"><Icon name="estrella" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />Rating</span>
                 </div>
               </div>
 

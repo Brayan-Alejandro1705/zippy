@@ -87,7 +87,7 @@ const VendedoresPage = () => {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="us-export-btn" onClick={() => { exportCSV(filtrados); addToast('CSV exportado', 'info'); }}>
-            ⬇Exportar CSV
+            <Icon name="descargar" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Exportar CSV
           </button>
         </div>
       </div>
