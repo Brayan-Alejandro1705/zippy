@@ -10,6 +10,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, negociosService, productosService, resenasService, usuariosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import '../../styles/UserPanel.css';
+import Icon from '../../components/Icons';
+import { clienteService } from '../../config/api';
 
 const MAP_STYLE = { width: '100%', height: '220px', borderRadius: '12px' };
 
@@ -25,42 +27,49 @@ const PASO_LABEL = {
 
 const ESTADO_UI = {
   pendiente:          'Pendiente',
-  confirmada:          'Pendiente',
-  en_preparacion:      'Pendiente',
-  lista_para_retirar:  'Pendiente',
-  en_domicilio:        'En camino',
-  entregada:           'Entregado',
-  cancelada:           'Cancelado',
+  confirmada:         'Confirmado',
+  en_preparacion:     'En preparación',
+  lista_para_retirar: 'Listo para recoger',
+  en_domicilio:       'En camino',
+  entregada:          'Entregado',
+  cancelada:          'Cancelado',
+  rechazada:          'Rechazado',
 };
+
+// Pasos que ve el cliente, en orden
+const PASOS_PEDIDO = [
+  { estado: 'Pendiente',          icon: 'reloj',        titulo: 'Pedido recibido',    detalle: 'Esperando que el negocio lo confirme' },
+  { estado: 'Confirmado',         icon: 'check',        titulo: 'Confirmado',         detalle: 'El negocio aceptó tu pedido' },
+  { estado: 'En preparación',     icon: 'vendedores',   titulo: 'En preparación',     detalle: 'Están alistando tu pedido' },
+  { estado: 'Listo para recoger', icon: 'paquete',      titulo: 'Listo',              detalle: 'Esperando al repartidor' },
+  { estado: 'En camino',          icon: 'repartidores', titulo: 'En camino',          detalle: 'Tu pedido va hacia ti' },
+  { estado: 'Entregado',          icon: 'check',        titulo: 'Entregado',          detalle: 'Pedido completado' },
+];
+
+const indicePaso = (estado) => PASOS_PEDIDO.findIndex(p => p.estado === estado);
 const fmtFecha = iso => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 /* ── Mock data (todavía no hay backend para esto) ─────────── */
-const GUARDADOS = [
-  { id: 1, nombre: 'Café Premium 500g', tienda: 'Café La Montaña',   precio: 18000, emoji: '☕', grad: 'linear-gradient(135deg,#fff3e6,#fed7aa)' },
-  { id: 3, nombre: 'Torta Chocolate',   tienda: 'Pastelería Dulce',  precio: 35000, emoji: '🎂', grad: 'linear-gradient(135deg,#f5f3ff,#ddd6fe)' },
-  { id: 6, nombre: 'Brownie',           tienda: 'Pastelería Dulce',  precio: 6000,  emoji: '🍫', grad: 'linear-gradient(135deg,#fff3e6,#fed7aa)' },
-];
-
-const DIRECCIONES_INIT = [
-  { id: 1, label: 'Casa', dir: 'Cra 5 #23-45, Apto 402', ciudad: 'Garzón', principal: true  },
-  { id: 2, label: 'Trabajo', dir: 'Calle 10 #7-80, Of. 201', ciudad: 'Garzón', principal: false },
-];
 
 const ESTADO_STYLE = {
-  Entregado: { bg: '#dcfce7', color: '#15803d' },
-  'En camino': { bg: '#fef3c7', color: '#b45309' },
-  Cancelado:  { bg: '#fee2e2', color: '#b91c1c' },
-  Pendiente:  { bg: '#e0e7ff', color: '#3730a3' },
+  Entregado:            { bg: '#dcfce7', color: '#15803d' },
+  'En camino':          { bg: '#fef3c7', color: '#b45309' },
+  'Listo para recoger': { bg: '#ffedd5', color: '#c2410c' },
+  'En preparación':     { bg: '#e0f2fe', color: '#0369a1' },
+  Confirmado:           { bg: '#ede9fe', color: '#6d28d9' },
+  Cancelado:            { bg: '#fee2e2', color: '#b91c1c' },
+  Rechazado:            { bg: '#fee2e2', color: '#b91c1c' },
+  Pendiente:            { bg: '#e0e7ff', color: '#3730a3' },
 };
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
 /* ── Tabs ────────────────────────────────────────────────── */
 const TABS = [
-  { id: 'pedidos',     icon: '📦', label: 'Pedidos'    },
-  { id: 'guardados',   icon: '♥',  label: 'Guardados'  },
-  { id: 'direcciones', icon: '📍', label: 'Direcciones'},
-  { id: 'cuenta',      icon: '⚙️', label: 'Cuenta'     },
+  { id: 'pedidos',     icon: 'paquete',   label: 'Pedidos'    },
+  { id: 'guardados',   icon: 'corazon',   label: 'Guardados'  },
+  { id: 'direcciones', icon: 'ubicacion', label: 'Direcciones'},
+  { id: 'cuenta',      icon: 'config',    label: 'Cuenta'     },
 ];
 
 /* ── Pedidos ─────────────────────────────────────────────── */
@@ -68,7 +77,7 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
   if (loading) return <ZLoader size="sm" label="Cargando pedidos..." />;
   if (pedidos.length === 0) return (
     <div className="up-empty">
-      <span>📦</span>
+      <span><Icon name="paquete" size={40} strokeWidth={1.2} /></span>
       <p>Todavía no has hecho ningún pedido</p>
     </div>
   );
@@ -85,20 +94,20 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
                 {p.estado}
               </span>
             </div>
-            <p className="up-order-tienda">🏪 {p.tienda}</p>
+            <p className="up-order-tienda"><Icon name="vendedores" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{p.tienda}</p>
             <p className="up-order-items">{p.items}</p>
             <div className="up-order-bottom">
               <span className="up-order-fecha">{p.fecha}</span>
               <span className="up-order-total">{fmt(p.total)}</span>
             </div>
-            {(p.estado === 'En camino' || p.estado === 'Pendiente') && (
+            {!['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
               <button className="up-track-btn" onClick={() => onTrack(p)}>
-                🛵 Ver seguimiento
+                <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
               </button>
             )}
             {p.estado === 'Entregado' && (
               <button className="up-track-btn" onClick={() => onCalificar(p)}>
-                ⭐ Calificar pedido
+                <Icon name="estrella" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Calificar pedido
               </button>
             )}
           </div>
@@ -117,7 +126,7 @@ const StarPicker = ({ value, onChange }) => (
         type="button"
         className={`up-star ${n <= value ? 'up-star--on' : ''}`}
         onClick={() => onChange(n)}
-      >★</button>
+      ><Icon name="estrella" size={20} /></button>
     ))}
   </div>
 );
@@ -176,7 +185,7 @@ const CalificarModal = ({ pedido, onClose }) => {
           <div style={{ padding: 20 }}><ZLoader size="sm" /></div>
         ) : existente ? (
           <div className="up-track-status" style={{ margin: 16 }}>
-            <p>✓ Ya calificaste este pedido con {existente.calificacion_general} ⭐</p>
+            <p>Ya calificaste este pedido con {existente.calificacion_general} <Icon name="estrella" size={14} style={{ verticalAlign: '-2px' }} /></p>
             {existente.comentario && <p style={{ marginTop: 8 }}>"{existente.comentario}"</p>}
           </div>
         ) : (
@@ -207,6 +216,60 @@ const CalificarModal = ({ pedido, onClose }) => {
             </button>
           </form>
         )}
+      </div>
+    </div>
+  );
+};
+
+
+/* ── Línea de estado del pedido ──────────────────────────── */
+const LineaEstado = ({ estado, tieneRepartidor, nombreRepartidor }) => {
+  const actual = indicePaso(estado);
+  const cancelado = estado === 'Cancelado' || estado === 'Rechazado';
+
+  if (cancelado) {
+    return (
+      <div className="up-linea up-linea--cancelado">
+        <Icon name="bloqueado" size={20} />
+        <div>
+          <p className="up-linea-titulo">Pedido {estado.toLowerCase()}</p>
+          <p className="up-linea-detalle">Este pedido ya no está en curso</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="up-linea">
+      <p className="up-linea-encabezado">Estado de mi pedido</p>
+
+      <ol className="up-linea-pasos">
+        {PASOS_PEDIDO.map((paso, i) => {
+          const hecho   = i < actual;
+          const activo  = i === actual;
+          const clase   = hecho ? 'up-paso--hecho' : activo ? 'up-paso--activo' : 'up-paso--pendiente';
+
+          return (
+            <li key={paso.estado} className={`up-paso ${clase}`}>
+              <span className="up-paso-marca">
+                <Icon name={hecho ? 'check' : paso.icon} size={16} />
+              </span>
+              <div className="up-paso-texto">
+                <p className="up-paso-titulo">{paso.titulo}</p>
+                {activo && <p className="up-paso-detalle">{paso.detalle}</p>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className={`up-linea-repartidor ${tieneRepartidor ? 'up-linea-repartidor--si' : ''}`}>
+        <Icon name={tieneRepartidor ? 'repartidores' : 'reloj'} size={16} />
+        <span>
+          {tieneRepartidor
+            ? <><strong>{nombreRepartidor || 'Un repartidor'}</strong> ya tiene tu pedido</>
+            : 'Todavía ningún repartidor ha tomado tu pedido'}
+        </span>
       </div>
     </div>
   );
@@ -271,28 +334,34 @@ const SeguimientoModal = ({ pedido, onClose }) => {
             <div className="up-track-map-msg">Mapa no disponible</div>
           ) : isLoaded ? (
             <GoogleMap mapContainerStyle={MAP_STYLE} center={driverPos || destino || GARZON} zoom={14}>
-              {destino   && <Marker position={destino}   label="🏠" />}
-              {driverPos && <Marker position={driverPos} label="🛵" />}
+              {destino   && <Marker position={destino}   label="Destino" />}
+              {driverPos && <Marker position={driverPos} label="Repartidor" />}
             </GoogleMap>
           ) : (
             <div className="up-track-map-msg"><ZLoader size="sm" label="Cargando mapa..." /></div>
           )}
         </div>
 
+        <LineaEstado
+          estado={pedido.estado}
+          tieneRepartidor={!!ubicacion?.asignado}
+          nombreRepartidor={ubicacion?.domiciliario_nombre}
+        />
+
         <div className="up-track-status">
           {ubicacion?.asignado ? (
             <>
-              <p>🛵 <strong>{ubicacion.domiciliario_nombre || 'Un repartidor'}</strong> va en camino con tu pedido.</p>
+              <p><Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} /><strong>{ubicacion.domiciliario_nombre || 'Un repartidor'}</strong> va en camino con tu pedido.</p>
               {ubicacion.domiciliario_telefono && (
                 <a className="up-track-call-btn" href={`tel:${ubicacion.domiciliario_telefono}`}>
-                  📞 Llamar al repartidor
+                  <Icon name="telefono" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Llamar al repartidor
                 </a>
               )}
             </>
           ) : pedido.estado === 'En camino' ? (
-            <p>🛵 Tu pedido va en camino.</p>
+            <p><Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tu pedido va en camino.</p>
           ) : (
-            <p>📦 Tu pedido está siendo preparado. Aún no hay un repartidor asignado.</p>
+            <p><Icon name="paquete" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tu pedido está siendo preparado. Aún no hay un repartidor asignado.</p>
           )}
         </div>
 
@@ -318,22 +387,44 @@ const SeguimientoModal = ({ pedido, onClose }) => {
 
 /* ── Guardados ───────────────────────────────────────────── */
 const SeccionGuardados = ({ addItem, addToast }) => {
-  const [guardados, setGuardados] = useState(GUARDADOS);
+  const [guardados, setGuardados] = useState([]);
+  const [cargando, setCargando]   = useState(true);
 
-  const quitar = id => setGuardados(prev => prev.filter(g => g.id !== id));
+  useEffect(() => {
+    clienteService.favoritos()
+      .then(({ data }) => setGuardados(data || []))
+      .catch(() => setGuardados([]))
+      .finally(() => setCargando(false));
+  }, []);
+
+  const quitar = async (item) => {
+    try {
+      await clienteService.quitarFavorito(item.producto_id);
+      setGuardados(prev => prev.filter(g => g.id !== item.id));
+      addToast('Producto quitado de guardados', 'success');
+    } catch {
+      addToast('No se pudo quitar el producto', 'error');
+    }
+  };
+
+  if (cargando) {
+    return <div className="up-empty"><p>Cargando tus productos guardados…</p></div>;
+  }
 
   return guardados.length === 0 ? (
     <div className="up-empty">
-      <span>♡</span>
+      <span><Icon name="corazon" size={40} strokeWidth={1.2} /></span>
       <p>No tienes productos guardados</p>
     </div>
   ) : (
     <div className="up-saved-grid">
       {guardados.map(p => (
         <div key={p.id} className="up-saved-card">
-          <div className="up-saved-photo" style={{ background: p.grad }}>
-            <span>{p.emoji}</span>
-            <button className="up-saved-remove" onClick={() => quitar(p.id)}>✕</button>
+          <div className="up-saved-photo">
+            {p.foto
+              ? <img src={p.foto} alt={p.nombre} />
+              : <span><Icon name="paquete" size={26} strokeWidth={1.4} /></span>}
+            <button className="up-saved-remove" onClick={() => quitar(p)}>✕</button>
           </div>
           <div className="up-saved-info">
             <p className="up-saved-name">{p.nombre}</p>
@@ -354,29 +445,71 @@ const SeccionGuardados = ({ addItem, addToast }) => {
 
 /* ── Direcciones ─────────────────────────────────────────── */
 const SeccionDirecciones = ({ addToast }) => {
-  const [dirs, setDirs]         = useState(DIRECCIONES_INIT);
+  const [dirs, setDirs]         = useState([]);
+  const [cargando, setCargando] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm]         = useState({ label: '', dir: '', ciudad: 'Garzón' });
 
-  const agregar = (e) => {
+  useEffect(() => {
+    clienteService.direcciones()
+      .then(({ data }) => setDirs(data || []))
+      .catch(() => setDirs([]))
+      .finally(() => setCargando(false));
+  }, []);
+
+  const agregar = async (e) => {
     e.preventDefault();
     if (!form.label || !form.dir) return;
-    setDirs(prev => [...prev, { id: Date.now(), ...form, principal: false }]);
-    setForm({ label: '', dir: '', ciudad: 'Garzón' });
-    setShowForm(false);
-    addToast('Dirección agregada', 'success');
+    try {
+      const { data } = await clienteService.agregarDireccion({
+        etiqueta: form.label,
+        direccion: form.dir,
+      });
+      setDirs(prev => [...prev.map(d => ({ ...d, principal: data.principal ? false : d.principal })), data]);
+      setForm({ label: '', dir: '', ciudad: 'Garzón' });
+      setShowForm(false);
+      addToast('Dirección agregada', 'success');
+    } catch {
+      addToast('No se pudo guardar la dirección', 'error');
+    }
   };
 
-  const setPrincipal = id => setDirs(prev => prev.map(d => ({ ...d, principal: d.id === id })));
-  const eliminar     = id => setDirs(prev => prev.filter(d => d.id !== id));
+  const setPrincipal = async (id) => {
+    try {
+      await clienteService.marcarPrincipal(id);
+      setDirs(prev => prev.map(d => ({ ...d, principal: d.id === id })));
+    } catch {
+      addToast('No se pudo cambiar la dirección principal', 'error');
+    }
+  };
+
+  const eliminar = async (id) => {
+    try {
+      await clienteService.eliminarDireccion(id);
+      setDirs(prev => prev.filter(d => d.id !== id));
+      addToast('Dirección eliminada', 'success');
+    } catch {
+      addToast('No se pudo eliminar la dirección', 'error');
+    }
+  };
+
+  if (cargando) {
+    return <div className="up-empty"><p>Cargando tus direcciones…</p></div>;
+  }
 
   return (
     <div className="up-list">
+      {dirs.length === 0 && !showForm && (
+        <div className="up-empty">
+          <span><Icon name="ubicacion" size={40} strokeWidth={1.2} /></span>
+          <p>Aún no tienes direcciones guardadas</p>
+        </div>
+      )}
       {dirs.map(d => (
         <div key={d.id} className={`up-addr-card ${d.principal ? 'up-addr-card--main' : ''}`}>
           <div className="up-addr-top">
             <div>
-              <span className="up-addr-label">{d.label}</span>
+              <span className="up-addr-label">{d.etiqueta || d.label}</span>
               {d.principal && <span className="up-addr-chip">Principal</span>}
             </div>
             <div className="up-addr-actions">
@@ -386,7 +519,7 @@ const SeccionDirecciones = ({ addToast }) => {
               <button className="up-addr-btn up-addr-btn--del" onClick={() => eliminar(d.id)}>✕</button>
             </div>
           </div>
-          <p className="up-addr-dir">📍 {d.dir}</p>
+          <p className="up-addr-dir"><Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.dir}</p>
           <p className="up-addr-ciudad">{d.ciudad}</p>
         </div>
       ))}
@@ -509,7 +642,7 @@ const SeccionCuenta = ({ addToast }) => {
       </div>
 
       <button className="up-logout-btn" onClick={handleLogout}>
-        🚪 Cerrar sesión
+        <Icon name="salir" size={17} style={{ verticalAlign: '-3px', marginRight: 7 }} />Cerrar sesión
       </button>
     </div>
   );
@@ -592,8 +725,8 @@ const UserPanelPage = () => {
           <p className="up-profile-email">{usuario.email || 'usuario@zippy.com'}</p>
         </div>
         <div className="up-profile-actions">
-          <button className="up-profile-edit" onClick={() => setTab('cuenta')}>✏️</button>
-          <button className="up-profile-logout" onClick={handleLogout} title="Cerrar sesión">🚪</button>
+          <button className="up-profile-edit" onClick={() => setTab('cuenta')} aria-label="Editar perfil"><Icon name="editar" size={17} /></button>
+          <button className="up-profile-logout" onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={17} /></button>
         </div>
 
         <div className="up-stats">
@@ -622,7 +755,7 @@ const UserPanelPage = () => {
             className={`up-tab ${tab === t.id ? 'up-tab--active' : ''}`}
             onClick={() => setTab(t.id)}
           >
-            <span>{t.icon}</span>
+            <span><Icon name={t.icon} size={18} /></span>
             <span>{t.label}</span>
           </button>
         ))}

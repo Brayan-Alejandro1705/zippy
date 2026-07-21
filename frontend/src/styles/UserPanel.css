@@ -395,3 +395,137 @@
 }
 .up-track-step-label { font-size: 13px; font-weight: 600; color: #1e293b; }
 .up-track-step-fecha { font-size: 11px; color: #94a3b8; }
+
+
+/* ════════════════════════════════════════════════════════════
+   LÍNEA DE ESTADO DEL PEDIDO
+═══════════════════════════════════════════════════════════ */
+.up-linea {
+  background: #fff;
+  border: 1.5px solid #f0f0f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.up-linea-encabezado {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin: 0 0 14px;
+}
+
+.up-linea-pasos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.up-paso {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.up-paso:last-child { padding-bottom: 0; }
+
+/* línea vertical que une los pasos */
+.up-paso:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 30px;
+  bottom: 2px;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.up-paso--hecho:not(:last-child)::before { background: #22c55e; }
+
+.up-paso-marca {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 2px solid #e2e8f0;
+  z-index: 1;
+}
+
+.up-paso--hecho .up-paso-marca {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #15803d;
+}
+
+.up-paso--activo .up-paso-marca {
+  background: #fff3e6;
+  border-color: #FF7A00;
+  color: #FF7A00;
+  animation: up-pulso 1.8s ease-in-out infinite;
+}
+
+@keyframes up-pulso {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 122, 0, .35); }
+  50%      { box-shadow: 0 0 0 7px rgba(255, 122, 0, 0); }
+}
+
+.up-paso-texto { padding-top: 5px; }
+
+.up-paso-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.up-paso--hecho  .up-paso-titulo { color: #15803d; }
+.up-paso--activo .up-paso-titulo { color: #0f172a; font-weight: 800; }
+
+.up-paso-detalle {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: #FF7A00;
+  font-weight: 600;
+}
+
+/* Aviso del repartidor */
+.up-linea-repartidor {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.up-linea-repartidor--si {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+/* Pedido cancelado */
+.up-linea--cancelado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.up-linea-titulo   { margin: 0; font-size: 14px; font-weight: 700; }
+.up-linea-detalle  { margin: 2px 0 0; font-size: 12.5px; opacity: .85; }
