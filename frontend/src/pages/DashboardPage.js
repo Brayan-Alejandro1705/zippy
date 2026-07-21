@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminService } from '../config/api';
+import { adminService, usuariosService } from '../config/api';
+import { mapUsuario, ESTADO_LABEL_TO_RAW } from '../utils/usuarios';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
@@ -23,6 +24,7 @@ const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [usuarios, setUsuarios] = useState(MOCK_USERS);
+  const [loadingUsuarios, setLoadingUsuarios] = useState(true);
   const [confirm, setConfirm] = useState(null); // { usuario, accion: 'suspender' | 'eliminar' }
 
   useEffect(() => {
@@ -32,16 +34,35 @@ const DashboardPage = () => {
       .finally(() => setLoadingStats(false));
   }, []);
 
+  // Todos los usuarios registrados en la plataforma
+  useEffect(() => {
+    usuariosService.listar({ limit: 100 })
+      .then(res => setUsuarios((res.data.usuarios ?? []).map(mapUsuario)))
+      .catch(() => setUsuarios([]))
+      .finally(() => setLoadingUsuarios(false));
+  }, []);
+
   const s = stats || MOCK_STATS;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const { usuario, accion } = confirm;
     setConfirm(null);
+
+    const nuevoEstado = accion === 'eliminar'
+      ? 'Eliminado'
+      : (usuario.estado === 'Activo' ? 'Suspendido' : 'Activo');
+
+    try {
+      await usuariosService.cambiarEstado(usuario.id, ESTADO_LABEL_TO_RAW[nuevoEstado]);
+    } catch {
+      addToast('No se pudo guardar el cambio en el servidor', 'error');
+      return;
+    }
+
     if (accion === 'eliminar') {
       setUsuarios(prev => prev.filter(u => u.id !== usuario.id));
       addToast(`${usuario.nombre} eliminado`, 'success');
     } else {
-      const nuevoEstado = usuario.estado === 'Activo' ? 'Suspendido' : 'Activo';
       setUsuarios(prev => prev.map(u => u.id === usuario.id ? { ...u, estado: nuevoEstado } : u));
       addToast(
         `${usuario.nombre} ${nuevoEstado === 'Activo' ? 'activado' : 'suspendido'}`,
@@ -80,7 +101,10 @@ const DashboardPage = () => {
       {/* Users Table */}
       <div className="tables-container">
         <section className="table-section">
-          <div className="table-header"><span><Icon name="usuarios" size={20} /></span><h2>Usuarios recientes</h2></div>
+          <div className="table-header">
+            <span><Icon name="usuarios" size={20} /></span>
+            <h2>Usuarios registrados{!loadingUsuarios && usuarios.length > 0 ? ` (${usuarios.length})` : ''}</h2>
+          </div>
           <table className="data-table dash-recent-table">
             <thead>
               <tr>
@@ -95,14 +119,20 @@ const DashboardPage = () => {
               </tr>
             </thead>
             <tbody>
+              {loadingUsuarios && (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '22px', opacity: .6 }}>Cargando usuarios…</td></tr>
+              )}
+              {!loadingUsuarios && usuarios.length === 0 && (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: '22px', opacity: .6 }}>Todavía no hay usuarios registrados.</td></tr>
+              )}
               {usuarios.map((user) => (
                 <tr key={user.id}>
                   <td className="us-id">{user.id}</td>
                   <td className="us-nombre">{user.nombre}</td>
                   <td className="us-email">{user.email}</td>
-                  <td><span className={`us-rol-badge us-rol-${user.rol.toLowerCase()}`}>{user.rol}</span></td>
-                  <td className="us-email">{user.fechaRegistro}</td>
-                  <td className="us-email">{user.ultimoAcceso}</td>
+                  <td><span className={`us-rol-badge us-rol-${(user.rol || '').toLowerCase()}`}>{user.rol}</span></td>
+                  <td className="us-email">{user.fechaRegistro || '—'}</td>
+                  <td className="us-email">{user.ultimoAcceso || '—'}</td>
                   <td>
                     <span className={`badge ${user.estado === 'Activo' ? 'badge-active' : 'badge-suspended'}`}>
                       {user.estado === 'Activo' ? 'Activo' : 'Suspendido'}
