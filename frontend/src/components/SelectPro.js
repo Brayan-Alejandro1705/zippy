@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import '../styles/SelectPro.css';
+import '../styles/selectpro.css';
 
 // ============================================================================
 // SelectPro.js - Desplegable propio (reemplaza al <select> nativo del sistema)

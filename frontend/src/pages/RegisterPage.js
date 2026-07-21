@@ -4,12 +4,17 @@ import { authService } from '../config/api';
 import ZLoader from '../components/ZLoader';
 import '../styles/RegisterPage.css';
 import Icon from '../components/Icons';
+import SelectPro from '../components/SelectPro';
 
 const ROLES = [
   { value: 'cliente',      icon: 'carrito',      label: 'Cliente',      desc: 'Compra en la plataforma' },
   { value: 'vendedor',     icon: 'vendedores',   label: 'Vendedor',     desc: 'Vende tus productos'      },
   { value: 'domiciliario', icon: 'repartidores', label: 'Domiciliario', desc: 'Entrega pedidos'          },
 ];
+
+// Zippy opera únicamente en Garzón por ahora.
+// Para habilitar más municipios, basta con agregarlos a esta lista.
+const CIUDADES = ['Garzón'];
 
 const CATEGORIAS_NEGOCIO = [
   'Restaurante', 'Comida rápida', 'Panadería', 'Cafetería', 'Frutas y verduras',
@@ -55,7 +60,7 @@ const RegisterPage = () => {
     password: '', confirmPassword: '',
     metodo_verificacion: 'email',
     // Campos vendedor
-    nombre_negocio: '', categoria_negocio: 'General', ciudad: '', es_servicio: false,
+    nombre_negocio: '', categoria_negocio: 'General', ciudad: CIUDADES[0], es_servicio: false,
   });
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -226,27 +231,24 @@ const RegisterPage = () => {
               <div className="reg-grid-2">
                 <div className="reg-field">
                   <label>Categoría <span className="reg-req">*</span></label>
-                  <select
-                    name="categoria_negocio" value={form.categoria_negocio}
-                    onChange={handleChange}
-                    className="reg-select"
-                  >
-                    {(form.es_servicio ? CATEGORIAS_SERVICIO : CATEGORIAS_NEGOCIO).map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                  <SelectPro
+                    name="categoria_negocio"
+                    value={form.categoria_negocio}
+                    onChange={(val) => setForm(prev => ({ ...prev, categoria_negocio: val }))}
+                    options={form.es_servicio ? CATEGORIAS_SERVICIO : CATEGORIAS_NEGOCIO}
+                    placeholder="Selecciona una categoría"
+                  />
                 </div>
                 <div className="reg-field">
                   <label>Ciudad <span className="reg-req">*</span></label>
-                  <div className="reg-input-wrap">
-                    <span className="reg-input-icon"><Icon name="ubicacion" size={18} /></span>
-                    <input
-                      name="ciudad" value={form.ciudad}
-                      onChange={handleChange} onBlur={handleBlur}
-                      placeholder="Garzón, Huila"
-                      className={fieldError('ciudad') ? 'reg-input--err' : ''}
-                    />
-                  </div>
+                  <SelectPro
+                    name="ciudad"
+                    value={form.ciudad}
+                    onChange={(val) => setForm(prev => ({ ...prev, ciudad: val }))}
+                    options={CIUDADES}
+                    placeholder="Selecciona la ciudad"
+                    error={!!fieldError('ciudad')}
+                  />
                   {fieldError('ciudad') && <span className="reg-field-err">{fieldError('ciudad')}</span>}
                 </div>
               </div>
