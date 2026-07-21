@@ -89,6 +89,7 @@ async def crear_negocio(
 )
 async def listar_negocios(
     categoria: str = Query(None, description="Filtrar por categoría"),
+    es_servicio: bool = Query(None, description="true = solo servicios, false = solo tiendas"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
@@ -106,7 +107,10 @@ async def listar_negocios(
     
     if categoria:
         query = query.filter(Negocio.categoria.ilike(f"%{categoria}%"))
-    
+
+    if es_servicio is not None:
+        query = query.filter(Negocio.es_servicio == es_servicio)
+
     negocios = query.offset(skip).limit(limit).all()
     
     return [NegocioResponse.from_orm(n) for n in negocios]

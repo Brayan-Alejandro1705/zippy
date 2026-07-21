@@ -515,7 +515,7 @@
 @keyframes uh-panel-in { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
 .uh-filter-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px; }
 .uh-price-row    { display: flex; align-items: center; gap: 10px; }
-.uh-price-inp    { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; }
+.uh-price-inp    { flex: 1; min-width: 0; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; }
 .uh-price-inp:focus { border-color: #FF7A00; }
 .uh-clear-btn    { padding: 8px 16px; background: none; border: 1.5px solid #fecaca; border-radius: 10px; color: #ef4444; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
 
@@ -707,4 +707,30 @@
   .uh-hero-top { flex-direction: column; align-items: flex-start; gap: 8px; }
   .uh-hero-title { font-size: 24px; }
   .uh-hero-cats { padding-bottom: 2px; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Arreglo de desborde horizontal en móvil
+   El bloque de Filtros + orden tenía flex-shrink:0 y empujaba
+   el contenido fuera de la pantalla en pantallas angostas.
+═══════════════════════════════════════════════════════════ */
+.uh-content-hdr { max-width: 100%; }
+
+.uh-sort-right {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.uh-sort-sel { max-width: 100%; }
+
+.uh-filter-panel { max-width: 100%; box-sizing: border-box; }
+.uh-price-row    { flex-wrap: nowrap; min-width: 0; }
+
+@media (max-width: 560px) {
+  .uh-sort-right {
+    flex-shrink: 1;
+    width: 100%;
+  }
+  .uh-filter-btn { flex: 0 0 auto; }
+  .uh-sort-sel   { flex: 1 1 auto; min-width: 0; }
 }

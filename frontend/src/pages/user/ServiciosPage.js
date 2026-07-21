@@ -1,167 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserLayout from '../../components/UserLayout';
 import '../../styles/Servicios.css';
+import Icon from '../../components/Icons';
+import { negociosService } from '../../config/api';
 
 /* ── Categorías ─────────────────────────────────────────── */
 const CATS = [
-  { id: 'todos',       icon: '✦',  label: 'Todos'            },
-  { id: 'taxi',        icon: '🚕', label: 'Taxi / Transporte' },
-  { id: 'acarreos',    icon: '🚛', label: 'Acarreos / Fletes' },
-  { id: 'mensajeria',  icon: '📦', label: 'Mensajería'        },
-  { id: 'mecanico',    icon: '🔧', label: 'Mecánico'          },
-  { id: 'plomeria',    icon: '🚿', label: 'Plomería'          },
-  { id: 'electricista',icon: '⚡', label: 'Electricista'      },
-  { id: 'otro',        icon: '🛠️', label: 'Otros'             },
+  { id: 'todos',       icon: 'filtro',        label: 'Todos'             },
+  { id: 'taxi',        icon: 'taxi',          label: 'Taxi / Transporte' },
+  { id: 'acarreos',    icon: 'camion',        label: 'Acarreos / Fletes' },
+  { id: 'mensajeria',  icon: 'paquete',       label: 'Mensajería'        },
+  { id: 'mecanico',    icon: 'llave_inglesa', label: 'Mecánico'          },
+  { id: 'plomeria',    icon: 'ducha',         label: 'Plomería'          },
+  { id: 'electricista',icon: 'rayo',          label: 'Electricista'      },
+  { id: 'otro',        icon: 'herramientas',  label: 'Otros'             },
 ];
 
 /* ── Datos mock ─────────────────────────────────────────── */
-const SERVICIOS = [
-  {
-    id: 1,
-    nombre: 'Taxis Los Andes',
-    categoria: 'taxi',
-    descripcion: 'Servicio de taxi seguro y confiable. Llevamos a cualquier punto de Garzón y municipios vecinos.',
-    cobertura: 'Todo Garzón y veredas cercanas',
-    horario: 'Lun – Dom, 5:00 am – 11:00 pm',
-    telefono: '310-123-4567',
-    whatsapp: '3101234567',
-    desde: 4000,
-    logo: '🚕',
-    bg: '#fefce8',
-    text: '#854d0e',
-    calificacion: 4.8,
-    resenas: 47,
-    disponible: true,
-    destacado: true,
-  },
-  {
-    id: 2,
-    nombre: 'Fletes Rápidos Garzón',
-    categoria: 'acarreos',
-    descripcion: 'Acarreos, mudanzas y transporte de carga pesada. Camión propio, personal capacitado.',
-    cobertura: 'Garzón, Altamira, La Jagua, Gigante',
-    horario: 'Lun – Sáb, 7:00 am – 6:00 pm',
-    telefono: '315-987-6543',
-    whatsapp: '3159876543',
-    desde: 50000,
-    logo: '🚛',
-    bg: '#fff7ed',
-    text: '#9a3412',
-    calificacion: 4.6,
-    resenas: 29,
-    disponible: true,
-    destacado: false,
-  },
-  {
-    id: 3,
-    nombre: 'Mensajería Veloz',
-    categoria: 'mensajeria',
-    descripcion: 'Mandamos documentos, paquetes y encargos dentro de Garzón el mismo día.',
-    cobertura: 'Zona urbana de Garzón',
-    horario: 'Lun – Sáb, 8:00 am – 7:00 pm',
-    telefono: '320-456-7890',
-    whatsapp: '3204567890',
-    desde: 5000,
-    logo: '📦',
-    bg: '#eff6ff',
-    text: '#1d4ed8',
-    calificacion: 4.5,
-    resenas: 62,
-    disponible: true,
-    destacado: false,
-  },
-  {
-    id: 4,
-    nombre: 'Mecánico a Domicilio - Carlos',
-    categoria: 'mecanico',
-    descripcion: 'Diagnóstico y reparación de motos y carros en el lugar donde estés. Repuestos garantizados.',
-    cobertura: 'Garzón y alrededores',
-    horario: 'Lun – Sáb, 8:00 am – 5:00 pm',
-    telefono: '318-321-0987',
-    whatsapp: '3183210987',
-    desde: 20000,
-    logo: '🔧',
-    bg: '#f0fdf4',
-    text: '#15803d',
-    calificacion: 4.9,
-    resenas: 38,
-    disponible: true,
-    destacado: true,
-  },
-  {
-    id: 5,
-    nombre: 'Plomería y Construcción Rodríguez',
-    categoria: 'plomeria',
-    descripcion: 'Reparación de tuberías, instalación de baños, destapes y construcción en general.',
-    cobertura: 'Todo Garzón',
-    horario: 'Lun – Vie, 7:00 am – 5:00 pm',
-    telefono: '311-654-3210',
-    whatsapp: '3116543210',
-    desde: 30000,
-    logo: '🚿',
-    bg: '#f0f9ff',
-    text: '#0369a1',
-    calificacion: 4.4,
-    resenas: 21,
-    disponible: false,
-    destacado: false,
-  },
-  {
-    id: 6,
-    nombre: 'Electricista Profesional - Jhon',
-    categoria: 'electricista',
-    descripcion: 'Instalaciones eléctricas residenciales y comerciales, certificado RETIE.',
-    cobertura: 'Garzón y municipios cercanos',
-    horario: 'Lun – Sáb, 8:00 am – 6:00 pm',
-    telefono: '322-789-0123',
-    whatsapp: '3227890123',
-    desde: 40000,
-    logo: '⚡',
-    bg: '#faf5ff',
-    text: '#6d28d9',
-    calificacion: 4.7,
-    resenas: 33,
-    disponible: true,
-    destacado: false,
-  },
-  {
-    id: 7,
-    nombre: 'TransVereda – Transporte Rural',
-    categoria: 'taxi',
-    descripcion: 'Viajes a veredas y zonas rurales del Huila. Camioneta 4x4 disponible.',
-    cobertura: 'Veredas y municipios del Huila',
-    horario: 'Todos los días, 5:00 am – 8:00 pm',
-    telefono: '317-000-1111',
-    whatsapp: '3170001111',
-    desde: 15000,
-    logo: '🚙',
-    bg: '#fef2f2',
-    text: '#b91c1c',
-    calificacion: 4.3,
-    resenas: 18,
-    disponible: true,
-    destacado: false,
-  },
-  {
-    id: 8,
-    nombre: 'Servicios del Hogar – Doña Rosa',
-    categoria: 'otro',
-    descripcion: 'Aseo de casas, lavado de ropa y servicios del hogar en general. Seria y de confianza.',
-    cobertura: 'Zona urbana de Garzón',
-    horario: 'Lun – Sáb, 7:00 am – 4:00 pm',
-    telefono: '316-222-3333',
-    whatsapp: '3162223333',
-    desde: 25000,
-    logo: '🧹',
-    bg: '#fdf4ff',
-    text: '#86198f',
-    calificacion: 4.6,
-    resenas: 55,
-    disponible: true,
-    destacado: false,
-  },
-];
 
 /* ── Modal de detalle ───────────────────────────────────── */
 const ServicioModal = ({ servicio, onClose }) => {
@@ -175,19 +31,21 @@ const ServicioModal = ({ servicio, onClose }) => {
         <button className="sv-modal-close" onClick={onClose}>✕</button>
 
         <div className="sv-modal-hero" style={{ background: servicio.bg }}>
-          <span className="sv-modal-logo">{servicio.logo}</span>
-          {servicio.destacado && <span className="sv-modal-featured">⭐ Destacado</span>}
+          <span className="sv-modal-logo"><Icon name={servicio.logo} size={34} strokeWidth={1.4} /></span>
+          {servicio.destacado && <span className="sv-modal-featured"><Icon name="estrella" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Destacado</span>}
           {!servicio.disponible && <span className="sv-modal-closed">Cerrado ahora</span>}
         </div>
 
         <div className="sv-modal-body">
           <div className="sv-modal-cat" style={{ color: servicio.text, background: servicio.bg }}>
-            {cat?.icon} {cat?.label}
+            {cat && <Icon name={cat.icon} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />}{cat?.label}
           </div>
           <h2 className="sv-modal-name">{servicio.nombre}</h2>
 
           <div className="sv-modal-rating">
-            <span className="sv-stars">{'⭐'.repeat(Math.round(servicio.calificacion))}</span>
+            <span className="sv-stars">{Array.from({ length: Math.round(servicio.calificacion) }).map((_, i) => (
+              <Icon key={i} name="estrella" size={14} />
+            ))}</span>
             <span className="sv-rating-val">{servicio.calificacion}</span>
             <span className="sv-rating-count">({servicio.resenas} reseñas)</span>
           </div>
@@ -196,14 +54,14 @@ const ServicioModal = ({ servicio, onClose }) => {
 
           <div className="sv-modal-details">
             <div className="sv-detail-row">
-              <span className="sv-detail-icon">📍</span>
+              <span className="sv-detail-icon"><Icon name="ubicacion" size={17} /></span>
               <div>
                 <p className="sv-detail-label">Cobertura</p>
                 <p className="sv-detail-val">{servicio.cobertura}</p>
               </div>
             </div>
             <div className="sv-detail-row">
-              <span className="sv-detail-icon">🕐</span>
+              <span className="sv-detail-icon"><Icon name="reloj" size={17} /></span>
               <div>
                 <p className="sv-detail-label">Horario</p>
                 <p className="sv-detail-val">{servicio.horario}</p>
@@ -211,7 +69,7 @@ const ServicioModal = ({ servicio, onClose }) => {
             </div>
             {servicio.desde > 0 && (
               <div className="sv-detail-row">
-                <span className="sv-detail-icon">💰</span>
+                <span className="sv-detail-icon"><Icon name="dinero" size={17} /></span>
                 <div>
                   <p className="sv-detail-label">Tarifa</p>
                   <p className="sv-detail-val">Desde ${servicio.desde.toLocaleString('es-CO')}</p>
@@ -225,7 +83,7 @@ const ServicioModal = ({ servicio, onClose }) => {
               className="sv-btn sv-btn--call"
               href={`tel:${servicio.telefono.replace(/-/g, '')}`}
             >
-              📞 Llamar
+              <Icon name="telefono" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Llamar
             </a>
             <a
               className="sv-btn sv-btn--wa"
@@ -233,7 +91,7 @@ const ServicioModal = ({ servicio, onClose }) => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              💬 WhatsApp
+              <Icon name="whatsapp" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />WhatsApp
             </a>
           </div>
         </div>
@@ -250,14 +108,14 @@ const ServicioCard = ({ servicio, onClick }) => {
   return (
     <div className={`sv-card ${!servicio.disponible ? 'sv-card--closed' : ''}`} onClick={onClick}>
       <div className="sv-card-header" style={{ background: servicio.bg }}>
-        <span className="sv-card-logo">{servicio.logo}</span>
+        <span className="sv-card-logo"><Icon name={servicio.logo} size={26} strokeWidth={1.4} /></span>
         <div className="sv-card-badges">
-          {servicio.destacado && <span className="sv-badge-featured">⭐</span>}
+          {servicio.destacado && <span className="sv-badge-featured"><Icon name="estrella" size={13} /></span>}
           <span
             className="sv-badge-cat"
             style={{ background: servicio.text + '22', color: servicio.text }}
           >
-            {cat?.icon} {cat?.label}
+            {cat && <Icon name={cat.icon} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />}{cat?.label}
           </span>
           <span className={`sv-badge-status ${servicio.disponible ? 'sv-badge-status--open' : 'sv-badge-status--closed'}`}>
             {servicio.disponible ? 'Abierto' : 'Cerrado'}
@@ -270,13 +128,13 @@ const ServicioCard = ({ servicio, onClick }) => {
         <p className="sv-card-desc">{servicio.descripcion}</p>
 
         <div className="sv-card-meta">
-          <span className="sv-card-rating">⭐ {servicio.calificacion} <span className="sv-card-resenas">({servicio.resenas})</span></span>
+          <span className="sv-card-rating"><Icon name="estrella" size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />{servicio.calificacion} <span className="sv-card-resenas">({servicio.resenas})</span></span>
           {servicio.desde > 0 && (
             <span className="sv-card-desde">Desde ${servicio.desde.toLocaleString('es-CO')}</span>
           )}
         </div>
 
-        <p className="sv-card-horario">🕐 {servicio.horario}</p>
+        <p className="sv-card-horario"><Icon name="reloj" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{servicio.horario}</p>
       </div>
 
       <div className="sv-card-actions" onClick={e => e.stopPropagation()}>
@@ -284,7 +142,7 @@ const ServicioCard = ({ servicio, onClick }) => {
           className="sv-card-btn sv-card-btn--call"
           href={`tel:${servicio.telefono.replace(/-/g, '')}`}
         >
-          📞 Llamar
+          <Icon name="telefono" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Llamar
         </a>
         <a
           className="sv-card-btn sv-card-btn--wa"
@@ -292,7 +150,7 @@ const ServicioCard = ({ servicio, onClick }) => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          💬 WhatsApp
+          <Icon name="whatsapp" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />WhatsApp
         </a>
         <button className="sv-card-btn sv-card-btn--info">Ver más</button>
       </div>
@@ -307,7 +165,37 @@ const ServiciosPage = () => {
   const [query, setQuery] = useState('');
   const [detalle, setDetalle] = useState(null);
 
-  const filtrados = SERVICIOS.filter(s => {
+  const [servicios, setServicios] = useState([]);
+  const [cargando, setCargando]   = useState(true);
+
+  useEffect(() => {
+    negociosService.listarServicios()
+      .then(({ data }) => {
+        const lista = Array.isArray(data) ? data : (data.negocios ?? []);
+        setServicios(lista.map(n => ({
+          id: n.id,
+          nombre: n.nombre_negocio,
+          categoria: (n.categoria || 'otro').toLowerCase(),
+          descripcion: n.descripcion || '',
+          cobertura: n.ciudad || 'Garzón',
+          horario: n.horario || 'Horario no especificado',
+          telefono: n.telefono || '',
+          whatsapp: (n.whatsapp || n.telefono || '').replace(/\D/g, ''),
+          desde: n.precio_desde || 0,
+          logo: 'maletin',
+          bg: '#f8fafc',
+          text: '#334155',
+          calificacion: n.calificacion_promedio || 0,
+          resenas: n.total_resenas || 0,
+          destacado: false,
+          abierto: n.estado === 'activo',
+        })));
+      })
+      .catch(() => setServicios([]))
+      .finally(() => setCargando(false));
+  }, []);
+
+  const filtrados = servicios.filter(s => {
     const matchCat = catActiva === 'todos' || s.categoria === catActiva;
     const matchQ   = !query ||
       s.nombre.toLowerCase().includes(query.toLowerCase()) ||
@@ -325,7 +213,7 @@ const ServiciosPage = () => {
         {/* Header */}
         <div className="sv-page-header">
 <div className="sv-title-wrap">
-            <span className="sv-page-icon">🛠️</span>
+            <span className="sv-page-icon"><Icon name="herramientas" size={24} /></span>
             <div>
               <h1 className="sv-page-title">Servicios locales</h1>
               <p className="sv-page-sub">Negocios y profesionales de Garzón a tu servicio</p>
@@ -335,7 +223,7 @@ const ServiciosPage = () => {
 
         {/* Búsqueda */}
         <div className="sv-search-wrap">
-          <span className="sv-search-icon">🔍</span>
+          <span className="sv-search-icon"><Icon name="buscar" size={18} /></span>
           <input
             className="sv-search"
             placeholder="Buscar servicio..."
@@ -355,7 +243,7 @@ const ServiciosPage = () => {
               className={`sv-cat-btn ${catActiva === c.id ? 'sv-cat-btn--active' : ''}`}
               onClick={() => setCatActiva(c.id)}
             >
-              <span>{c.icon}</span>
+              <span><Icon name={c.icon} size={17} /></span>
               <span>{c.label}</span>
             </button>
           ))}
@@ -364,7 +252,7 @@ const ServiciosPage = () => {
         {/* Destacados */}
         {destacados.length > 0 && (
           <div className="sv-group">
-            <p className="sv-group-title">⭐ Destacados</p>
+            <p className="sv-group-title"><Icon name="estrella" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Destacados</p>
             <div className="sv-grid">
               {destacados.map(s => (
                 <ServicioCard key={s.id} servicio={s} onClick={() => setDetalle(s)} />
@@ -385,10 +273,16 @@ const ServiciosPage = () => {
           </div>
         )}
 
-        {filtrados.length === 0 && (
+        {cargando && (
+          <div className="sv-empty"><p>Cargando servicios…</p></div>
+        )}
+
+        {!cargando && filtrados.length === 0 && (
           <div className="sv-empty">
-            <span>🔍</span>
-            <p>No se encontraron servicios.</p>
+            <span><Icon name="buscar" size={38} strokeWidth={1.2} /></span>
+            <p>{servicios.length === 0
+              ? 'Todavía no hay servicios registrados en Garzón.'
+              : 'No se encontraron servicios con esos filtros.'}</p>
             <button className="sv-empty-btn" onClick={() => { setCatActiva('todos'); setQuery(''); }}>
               Ver todos
             </button>
@@ -397,7 +291,7 @@ const ServiciosPage = () => {
 
         {/* Aviso para proveedores */}
         <div className="sv-proveedor-cta">
-          <span className="sv-proveedor-icon">💼</span>
+          <span className="sv-proveedor-icon"><Icon name="maletin" size={18} /></span>
           <div>
             <p className="sv-proveedor-title">¿Ofreces un servicio?</p>
             <p className="sv-proveedor-sub">Anúnciate gratis en Zippy y llega a más clientes en Garzón</p>

@@ -421,6 +421,149 @@ const PATHS = {
     </>
   ),
 
+  maletin: (
+    <>
+      <rect x="2.5" y="7" width="19" height="13" rx="2" />
+      <path d="M8.5 7V5.2A1.7 1.7 0 0110.2 3.5h3.6A1.7 1.7 0 0115.5 5.2V7" />
+      <path d="M2.5 12.5h19" />
+    </>
+  ),
+
+  escoba: (
+    <>
+      <path d="M14 3.5l-7 7M8 9.5l6.5 6.5" />
+      <path d="M13.5 15L9 20.5H19c0-2.5-2-5-5.5-5.5z" />
+    </>
+  ),
+
+  camioneta: (
+    <>
+      <path d="M2.5 16.5v-7a2 2 0 012-2h8l3 3.5h4a2 2 0 012 2v3.5" />
+      <circle cx="7" cy="17.5" r="1.8" />
+      <circle cx="17" cy="17.5" r="1.8" />
+      <path d="M8.8 17.5h6.4M2.5 13h19" />
+    </>
+  ),
+
+  editar: (
+    <>
+      <path d="M4 20l4.5-1 10-10a2.1 2.1 0 00-3-3l-10 10L4 20z" />
+      <path d="M14.5 6.5l3 3" />
+    </>
+  ),
+
+  chocolate: (
+    <>
+      <rect x="4.5" y="4.5" width="15" height="15" rx="2" />
+      <path d="M4.5 9.5h15M4.5 14.5h15M9.5 4.5v15M14.5 4.5v15" />
+    </>
+  ),
+
+
+  billete: (
+    <>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.6" />
+      <path d="M6 12h.01M18 12h.01" />
+    </>
+  ),
+
+  tarjeta: (
+    <>
+      <rect x="2.5" y="5.5" width="19" height="13" rx="2.2" />
+      <path d="M2.5 10h19M6 14.5h3" />
+    </>
+  ),
+
+  banco: (
+    <>
+      <path d="M3 9.5L12 4l9 5.5" />
+      <path d="M5.5 9.5v8M10 9.5v8M14 9.5v8M18.5 9.5v8" />
+      <path d="M3 20.5h18" />
+    </>
+  ),
+
+  moto: (
+    <>
+      <circle cx="5.5" cy="17" r="3" />
+      <circle cx="18.5" cy="17" r="3" />
+      <path d="M8.5 17h6.5l-3-8h-2M12 9h4l2.5 8" />
+    </>
+  ),
+
+  bicicleta: (
+    <>
+      <circle cx="5.5" cy="17" r="3.5" />
+      <circle cx="18.5" cy="17" r="3.5" />
+      <path d="M5.5 17l4-8h5l4 8M9.5 9h5l-2 8" />
+      <path d="M13 6.5h2.5" />
+    </>
+  ),
+
+  carro: (
+    <>
+      <path d="M3 16.5v-3l2-4.5h14l2 4.5v3" />
+      <path d="M3 13.5h18" />
+      <circle cx="7" cy="17" r="1.7" />
+      <circle cx="17" cy="17" r="1.7" />
+    </>
+  ),
+
+  mapa: (
+    <>
+      <path d="M9 4.5L3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5l-6-2z" />
+      <path d="M9 4.5v13M15 6.5v13" />
+    </>
+  ),
+
+  campana_aviso: (
+    <>
+      <path d="M18 8.5a6 6 0 10-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5z" />
+      <path d="M13.7 19.5a2 2 0 01-3.4 0" />
+    </>
+  ),
+
+  bandera: (
+    <>
+      <path d="M5.5 21V4M5.5 5h11l-2 3.5 2 3.5h-11" />
+    </>
+  ),
+
+  chat: (
+    <>
+      <path d="M21 12a8 8 0 01-11.6 7.1L4 20.5l1.4-5.4A8 8 0 1121 12z" />
+      <path d="M9 11h.01M12 11h.01M15 11h.01" />
+    </>
+  ),
+
+  dormir: (
+    <>
+      <path d="M20 14.5A8.5 8.5 0 019.5 4 8.5 8.5 0 1020 14.5z" />
+      <path d="M14.5 3.5h4l-4 4h4" />
+    </>
+  ),
+
+  interrogacion: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.7 9.5a2.4 2.4 0 114.3 1.5c-.8.9-2 1.3-2 2.6" />
+      <circle cx="12" cy="16.6" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
+
+  sin_senal: (
+    <>
+      <rect x="6.5" y="2.5" width="11" height="19" rx="2.4" />
+      <path d="M4 4l16 16" />
+    </>
+  ),
+
+  rombo: (
+    <>
+      <path d="M12 3.5L20.5 12 12 20.5 3.5 12 12 3.5z" />
+    </>
+  ),
+
   candado: (
     <>
       <rect x="4.5" y="10.5" width="15" height="10" rx="2" />

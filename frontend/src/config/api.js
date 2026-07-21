@@ -108,6 +108,19 @@ export const authService = {
   reenviarCodigo:  (email, metodo_verificacion) => api.post('/auth/reenviar-codigo', { email, metodo_verificacion }),
 };
 
+export const clienteService = {
+  // Productos guardados
+  favoritos:        () => api.get('/cliente/favoritos/'),
+  agregarFavorito:  (producto_id) => api.post('/cliente/favoritos/', { producto_id }),
+  quitarFavorito:   (producto_id) => api.delete(`/cliente/favoritos/${producto_id}/`),
+
+  // Direcciones
+  direcciones:       () => api.get('/cliente/direcciones/'),
+  agregarDireccion:  (datos) => api.post('/cliente/direcciones/', datos),
+  marcarPrincipal:   (id) => api.patch(`/cliente/direcciones/${id}/principal/`),
+  eliminarDireccion: (id) => api.delete(`/cliente/direcciones/${id}/`),
+};
+
 export const adminService = {
   estadisticas: () => api.get('/admin/estadisticas/'),
   obtenerSoporte:    () => api.get('/admin/configuracion/soporte'),
@@ -148,6 +161,7 @@ export const productosService = {
 };
 
 export const negociosService = {
+  listarServicios: () => api.get('/negocios/', { params: { es_servicio: true, limit: 100 } }),
   listar:      (params) => api.get('/negocios/', { params }),
   miNegocio:   () => api.get('/negocios/mi-negocio'),
   obtener:     (id) => api.get(`/negocios/${id}`),

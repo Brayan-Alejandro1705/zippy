@@ -7,6 +7,7 @@ import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
+import Icon from '../../components/Icons';
 
 const MAP_OPTIONS = {
   disableDefaultUI: false,
@@ -29,24 +30,24 @@ const ESTADO_CFG = {
 const ESTADO_COLOR = { disponible: '#f59e0b', en_domicilio: '#10b981', entregada: '#94a3b8' };
 
 const PAGO_CFG = {
-  efectivo:      { label: 'Efectivo',      icon: '💵', bg: '#fee2e2', color: '#b91c1c' },
-  tarjeta:       { label: 'Tarjeta',       icon: '💳', bg: '#dbeafe', color: '#1d4ed8' },
-  transferencia: { label: 'Transferencia', icon: '🏦', bg: '#ede9fe', color: '#6d28d9' },
-  billetera:     { label: 'Billetera',     icon: '📱', bg: '#dcfce7', color: '#15803d' },
+  efectivo:      { label: 'Efectivo',      icon: 'billete',  bg: '#fee2e2', color: '#b91c1c' },
+  tarjeta:       { label: 'Tarjeta',       icon: 'tarjeta',  bg: '#dbeafe', color: '#1d4ed8' },
+  transferencia: { label: 'Transferencia', icon: 'banco',    bg: '#ede9fe', color: '#6d28d9' },
+  billetera:     { label: 'Billetera',     icon: 'telefono', bg: '#dcfce7', color: '#15803d' },
 };
 
 const REPORT_REASONS = [
-  '📵 Cliente no contesta',
-  '📍 Dirección incorrecta',
-  '🚪 Cliente no está en el lugar',
-  '📦 Pedido incompleto o dañado',
-  '❓ Otro problema',
+  'Cliente no contesta',
+  'Dirección incorrecta',
+  'Cliente no está en el lugar',
+  'Pedido incompleto o dañado',
+  'Otro problema',
 ];
 
 const VEHICULOS = [
-  { value: 'moto',      label: '🛵 Moto' },
-  { value: 'bicicleta', label: '🚲 Bicicleta' },
-  { value: 'carro',     label: '🚗 Carro' },
+  { value: 'moto',      label: 'Moto',      icon: 'moto'      },
+  { value: 'bicicleta', label: 'Bicicleta', icon: 'bicicleta' },
+  { value: 'carro',     label: 'Carro',     icon: 'carro'     },
 ];
 
 const NOTIF_OPTIONS = [
@@ -64,10 +65,10 @@ const SHEET_SNAP = { full: 0.04, half: 0.45, collapsed: 0.78 };
 const COMISION_PCT = 0.15;
 
 const CAT_ICON = {
-  bebidas: '☕', panadería: '🥖', pastelería: '🎂',
-  'frutas y verduras': '🥦', lácteos: '🥛', carnes: '🥩', otros: '📦',
+  bebidas: 'taza', panadería: 'pan', pastelería: 'pastel',
+  'frutas y verduras': 'verduras', lácteos: 'lacteos', carnes: 'carnes', otros: 'paquete',
 };
-const getIcon = (categoria) => CAT_ICON[(categoria || '').toLowerCase()] || '📦';
+const getIcon = (categoria) => CAT_ICON[(categoria || '').toLowerCase()] || 'paquete';
 
 const fmt = n => `$${Math.round(n).toLocaleString('es-CO')}`;
 const esHoy = iso => new Date(iso).toDateString() === new Date().toDateString();
@@ -127,7 +128,7 @@ const makeIcon = (color, label, isDone = false, isActive = false) => {
 const DRIVER_ICON_FN = () => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
     <circle cx="16" cy="16" r="12" fill="#3b82f6" stroke="white" stroke-width="3"/>
-    <text x="16" y="21" text-anchor="middle" fill="white" font-size="14">🛵</text>
+    <text x="16" y="21" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Z</text>
   </svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
@@ -216,7 +217,7 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
               <InfoWindow onCloseClick={() => setInfoOpen(null)}>
                 <div className="rp-infowindow">
                   <strong>{o.id}</strong> — {o.cliente}<br/>
-                  📍 {o.direccion}<br/>
+                  <Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{o.direccion}<br/>
                   <span style={{ color: ESTADO_COLOR[o.estado], fontWeight: 700 }}>
                     {ESTADO_CFG[o.estado].label}
                   </span>
@@ -278,14 +279,14 @@ const CierreModal = ({ open, onClose, entregadas, ganado }) => {
   return (
     <div className="rp-modal-overlay" onClick={onClose}>
       <div className="rp-modal" onClick={e => e.stopPropagation()}>
-        <h3 className="rp-modal-title">📋 Cierre de turno</h3>
+        <h3 className="rp-modal-title"><Icon name="solicitudes" size={19} style={{ verticalAlign: '-4px', marginRight: 7 }} />Cierre de turno</h3>
         <p className="rp-modal-sub">{entregadas.length} pedido{entregadas.length === 1 ? '' : 's'} entregado{entregadas.length === 1 ? '' : 's'} hoy</p>
 
         {porPago.length > 0 && (
           <div className="rp-cierre-rows">
             {porPago.map(p => (
               <div className="rp-cierre-row" key={p.key}>
-                <span>{PAGO_CFG[p.key].icon} {PAGO_CFG[p.key].label}</span>
+                <span><Icon name={PAGO_CFG[p.key].icon} size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />{PAGO_CFG[p.key].label}</span>
                 <span>{p.count} · {fmt(p.total)}</span>
               </div>
             ))}
@@ -305,7 +306,7 @@ const CierreModal = ({ open, onClose, entregadas, ganado }) => {
 
         {efectivo > 0 && (
           <div className="rp-cierre-highlight">
-            <span>💵 Debes entregar en efectivo</span>
+            <span><Icon name="billete" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Debes entregar en efectivo</span>
             <strong>{fmt(Math.round(aEntregar))}</strong>
           </div>
         )}
@@ -338,7 +339,7 @@ const VehiculoSelect = ({ value, onChange }) => {
         className={`rp-select-trigger ${open ? 'rp-select-trigger--open' : ''}`}
         onClick={() => setOpen(o => !o)}
       >
-        <span>{current.label}</span>
+        <span><Icon name={current.icon} size={16} style={{ verticalAlign: '-3px', marginRight: 7 }} />{current.label}</span>
         <span className={`rp-select-arrow ${open ? 'rp-select-arrow--open' : ''}`}>▾</span>
       </button>
       {open && (
@@ -350,7 +351,7 @@ const VehiculoSelect = ({ value, onChange }) => {
               className={`rp-select-option ${v.value === value ? 'rp-select-option--active' : ''}`}
               onClick={() => { onChange(v.value); setOpen(false); }}
             >
-              {v.label}
+              <Icon name={v.icon} size={16} style={{ verticalAlign: '-3px', marginRight: 7 }} />{v.label}
             </button>
           ))}
         </div>
@@ -449,7 +450,7 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
         </div>
 
         <button type="submit" className="rp-cuenta-save">✓ Guardar cambios</button>
-        <button type="button" className="rp-cuenta-logout" onClick={onLogout}>🚪 Cerrar sesión</button>
+        <button type="button" className="rp-cuenta-logout" onClick={onLogout}><Icon name="salir" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Cerrar sesión</button>
       </form>
     </div>
   );
@@ -473,19 +474,19 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
           <span className="rp-order-badge" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
           {pago && (
             <span className="rp-pago-badge" style={{ background: pago.bg, color: pago.color }}>
-              {pago.icon} {pago.label}
+              <Icon name={pago.icon} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pago.label}
             </span>
           )}
         </div>
         <div className="rp-order-meta">
-          {orden.distancia != null && <span className="rp-order-dist">⬥ {orden.distancia.toFixed(1)} km</span>}
+          {orden.distancia != null && <span className="rp-order-dist"><Icon name="rombo" size={11} style={{ verticalAlign: '-1px', marginRight: 3 }} />{orden.distancia.toFixed(1)} km</span>}
           {orden.eta != null && <span className="rp-order-eta">⏱ {orden.eta} min</span>}
         </div>
       </div>
 
       <div className="rp-order-addr-row">
         <div>
-          <p className="rp-order-addr">📍 {orden.direccion}</p>
+          <p className="rp-order-addr"><Icon name="ubicacion" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{orden.direccion}</p>
         </div>
         {nav && (
           <div className="rp-nav-btns">
@@ -493,25 +494,25 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
               className="rp-nav-btn rp-nav-btn--maps"
               href={nav.maps} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()} title="Abrir en Google Maps"
-            >🗺️</a>
+            ><Icon name="mapa" size={17} /></a>
             <a
               className="rp-nav-btn rp-nav-btn--waze"
               href={nav.waze} target="_blank" rel="noopener noreferrer"
               onClick={e => e.stopPropagation()} title="Abrir en Waze"
-            >🚗</a>
+            ><Icon name="carro" size={17} /></a>
           </div>
         )}
       </div>
 
       {orden.instrucciones && (
-        <p className="rp-order-instructions">🔔 {orden.instrucciones}</p>
+        <p className="rp-order-instructions"><Icon name="campana_aviso" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{orden.instrucciones}</p>
       )}
 
       <div className="rp-order-client">
-        <span className="rp-order-name">👤 {orden.cliente || 'Cliente'}</span>
+        <span className="rp-order-name"><Icon name="perfil" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{orden.cliente || 'Cliente'}</span>
         {orden.telefono && (
           <a className="rp-order-tel" href={`tel:${orden.telefono}`} onClick={e => e.stopPropagation()}>
-            📞 {orden.telefono}
+            <Icon name="telefono" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{orden.telefono}
           </a>
         )}
       </div>
@@ -522,7 +523,7 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
       </div>
 
       {reported && (
-        <div className="rp-reported-tag">🚩 Reportado: {reported}</div>
+        <div className="rp-reported-tag"><Icon name="bandera" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Reportado: {reported}</div>
       )}
 
       <div className="rp-order-footer">
@@ -532,13 +533,13 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
             className="rp-report-btn"
             onClick={e => { e.stopPropagation(); onReport(orden); }}
             title="Reportar problema"
-          >⚠️</button>
+          ><Icon name="alerta" size={17} /></button>
           {orden.estado === 'en_domicilio' && (
             <button
               className="rp-report-btn"
               onClick={e => { e.stopPropagation(); onChat(orden); }}
               title="Chat con el cliente"
-            >💬</button>
+            ><Icon name="chat" size={17} /></button>
           )}
           {cfg.btnLabel && (
             <button
@@ -562,7 +563,7 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
       <div className="rp-order-top">
         <div className="rp-order-left">
           <span className="rp-order-id">{pedido.id}</span>
-          <span className="rp-pago-badge" style={{ background: '#ede9fe', color: '#6d28d9' }}>📋 Pedido especial</span>
+          <span className="rp-pago-badge" style={{ background: '#ede9fe', color: '#6d28d9' }}><Icon name="solicitudes" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Pedido especial</span>
           <span className="rp-order-badge" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
         </div>
         <div className="rp-order-meta">
@@ -572,15 +573,15 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
 
       <div className="rp-order-addr-row">
         <div>
-          <p className="rp-order-addr">📍 {pedido.direccion}</p>
+          <p className="rp-order-addr"><Icon name="ubicacion" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pedido.direccion}</p>
           <p className="rp-order-barrio">{pedido.barrio}</p>
         </div>
       </div>
 
       <div className="rp-order-client">
-        <span className="rp-order-name">👤 {pedido.cliente}</span>
+        <span className="rp-order-name"><Icon name="perfil" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pedido.cliente}</span>
         <a className="rp-order-tel" href={`tel:${pedido.telefono}`} onClick={e => e.stopPropagation()}>
-          📞 {pedido.telefono}
+          <Icon name="telefono" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pedido.telefono}
         </a>
       </div>
 
@@ -598,7 +599,7 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
       </div>
 
       {pedido.notas && (
-        <p className="rp-order-instructions">🔔 {pedido.notas}</p>
+        <p className="rp-order-instructions"><Icon name="campana_aviso" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pedido.notas}</p>
       )}
 
       <div className="rp-order-footer">
@@ -624,7 +625,7 @@ const ChatModal = ({ orden, onClose }) => {
   return (
     <div className="rp-modal-overlay" onClick={onClose}>
       <div className="rp-modal" onClick={e => e.stopPropagation()}>
-        <h3 className="rp-modal-title">💬 Chat con {orden.cliente || 'el cliente'}</h3>
+        <h3 className="rp-modal-title"><Icon name="chat" size={19} style={{ verticalAlign: '-4px', marginRight: 7 }} />Chat con {orden.cliente || 'el cliente'}</h3>
         <p className="rp-modal-sub">{orden.id} · {orden.direccion}</p>
         <OrdenChat ordenId={orden.idCompleto} />
         <button className="rp-modal-cancel" onClick={onClose}>Cerrar</button>
@@ -886,13 +887,13 @@ const RepartidorPage = () => {
             {online ? 'En línea' : 'Desconectado'}
           </button>
           <button className="rp-cierre-btn" onClick={() => setShowCierre(true)} title="Cierre de turno">
-            📋 <span className="rp-cierre-label">Cierre</span>
+            <Icon name="solicitudes" size={17} /> <span className="rp-cierre-label">Cierre</span>
           </button>
           <div className="rp-user-info" onClick={() => setShowCuenta(true)} title="Mi cuenta">
             <span className="rp-user-avatar">{(usuario.nombre || 'R').charAt(0).toUpperCase()}</span>
             <span className="rp-user-name">{usuario.nombre || 'Repartidor'}</span>
           </div>
-          <button className="rp-logout" onClick={handleLogout} title="Cerrar sesión">🚪</button>
+          <button className="rp-logout" onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={18} /></button>
         </div>
       </header>
 
@@ -919,7 +920,7 @@ const RepartidorPage = () => {
         {/* Mapa */}
         <div className="rp-map-section">
           {loadError && (
-            <div className="rp-map-error">⚠️ Error cargando el mapa</div>
+            <div className="rp-map-error"><Icon name="alerta" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Error cargando el mapa</div>
           )}
           {!isLoaded && !loadError && (
             <div className="rp-map-loading">
@@ -938,7 +939,7 @@ const RepartidorPage = () => {
           {/* Barra de orden activa */}
           {activeOrden && (
             <div className="rp-active-bar">
-              <span>🛵 En camino a {activeOrden.direccion}</span>
+              <span><Icon name="moto" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />En camino a {activeOrden.direccion}</span>
               {activeOrden.eta != null && <span className="rp-active-eta">⏱ {activeOrden.eta} min</span>}
             </div>
           )}
@@ -961,7 +962,7 @@ const RepartidorPage = () => {
 
           {activeOrden && (
             <div className="rp-sheet-peek">
-              <span>🛵 {activeOrden.id} · {activeOrden.direccion}</span>
+              <span><Icon name="moto" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />{activeOrden.id} · {activeOrden.direccion}</span>
               {activeOrden.eta != null && <span className="rp-active-eta">⏱ {activeOrden.eta} min</span>}
             </div>
           )}
@@ -975,7 +976,7 @@ const RepartidorPage = () => {
 
           {!online ? (
             <div className="rp-offline-msg">
-              <span>😴</span>
+              <span><Icon name="dormir" size={40} strokeWidth={1.2} /></span>
               <p>Estás desconectado</p>
               <p className="rp-offline-sub">Activa "En línea" para recibir pedidos</p>
             </div>
@@ -983,7 +984,7 @@ const RepartidorPage = () => {
             <div style={{ padding: 16 }}><ZLoader size="sm" label="Cargando pedidos..." /></div>
           ) : activasCount === 0 ? (
             <div className="rp-offline-msg">
-              <span>✅</span>
+              <span><Icon name="check" size={40} strokeWidth={1.3} /></span>
               <p>¡Todo entregado!</p>
               <p className="rp-offline-sub">Esperando nuevos pedidos...</p>
             </div>
@@ -1012,7 +1013,7 @@ const RepartidorPage = () => {
           {pedidosEspeciales.length > 0 && (
             <>
               <div className="rp-especial-header">
-                <span className="rp-especial-header-icon">📋</span>
+                <span className="rp-especial-header-icon"><Icon name="solicitudes" size={18} /></span>
                 <p className="rp-done-title" style={{ margin: 0 }}>Pedidos especiales</p>
                 <span className="rp-orders-count" style={{ background: '#8b5cf6' }}>{pedidosEspeciales.filter(p => p.estado !== 'entregada').length}</span>
               </div>
