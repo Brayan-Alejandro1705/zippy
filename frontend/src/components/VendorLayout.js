@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/VendorLayout.css';
+import Icon from './Icons';
 
 const NAV = [
-  { path: '/vendor/productos', icon: '📦', label: 'Productos'      },
-  { path: '/vendor/ordenes',   icon: '📋', label: 'Órdenes'        },
-  { path: '/vendor/ventas',    icon: '📊', label: 'Ventas'         },
-  { path: '/vendor/reportes',  icon: '📈', label: 'Reportes'       },
-  { path: '/vendor/perfil',    icon: '🏪', label: 'Perfil de tienda' },
-  { path: '/vendor/pagos',     icon: '💰', label: 'Pagos'          },
-  { path: '/vendor/config',    icon: '⚙️', label: 'Config'         },
+  { path: '/vendor/productos', icon: 'paquete',     label: 'Productos'       },
+  { path: '/vendor/ordenes',   icon: 'solicitudes', label: 'Órdenes'         },
+  { path: '/vendor/ventas',    icon: 'dashboard',   label: 'Ventas'          },
+  { path: '/vendor/reportes',  icon: 'reportes',    label: 'Reportes'        },
+  { path: '/vendor/perfil',    icon: 'vendedores',  label: 'Perfil de tienda'},
+  { path: '/vendor/pagos',     icon: 'dinero',      label: 'Pagos'           },
+  { path: '/vendor/config',    icon: 'config',      label: 'Config'          },
 ];
 
 const VendorLayout = ({ children, searchPlaceholder = 'Buscar...', onSearch }) => {
@@ -21,12 +22,6 @@ const VendorLayout = ({ children, searchPlaceholder = 'Buscar...', onSearch }) =
   const negocio   = usuario.negocio || 'Tu negocio';
   const nombre    = usuario.nombre  || 'NOMBRE';
 
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('usuario');
-    navigate('/login');
-  };
 
   const isActive = (path) => location.pathname === path;
 
@@ -54,13 +49,6 @@ const VendorLayout = ({ children, searchPlaceholder = 'Buscar...', onSearch }) =
               onChange={e => { setQuery(e.target.value); onSearch?.(e.target.value); }}
             />
           </div>
-          <div className="vl-user">
-            <span className="vl-user-icon">👤</span>
-            <span className="vl-user-name">{nombre.toUpperCase()}</span>
-          </div>
-          <button className="vl-logout-btn" onClick={handleLogout} title="Cerrar sesión">
-            🚪
-          </button>
         </div>
       </header>
 
@@ -69,13 +57,10 @@ const VendorLayout = ({ children, searchPlaceholder = 'Buscar...', onSearch }) =
         <aside className="vl-sidebar">
           {NAV.map(({ path, icon, label }) => (
             <a key={path} href={path} className={`vl-nav-item ${isActive(path) ? 'vl-nav-item--active' : ''}`}>
-              <span className="vl-nav-icon">{icon}</span>
+              <span className="vl-nav-icon"><Icon name={icon} size={20} /></span>
               <span>{label}</span>
             </a>
           ))}
-          <button className="vl-logout" onClick={handleLogout}>
-            🚪 Cerrar sesión
-          </button>
         </aside>
 
         {/* Content */}

@@ -4,12 +4,14 @@ import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { negociosService, usuariosService, authService } from '../../config/api';
 import '../../styles/VendorConfig.css';
+import Icon from '../../components/Icons';
+import { useNavigate } from 'react-router-dom';
 
 const TABS = [
-  { id: 'tienda',         icon: '🏪', label: 'Mi Tienda'      },
-  { id: 'cuenta',         icon: '👤', label: 'Cuenta'         },
-  { id: 'notificaciones', icon: '🔔', label: 'Notificaciones' },
-  { id: 'apariencia',     icon: '🎨', label: 'Apariencia'     },
+  { id: 'tienda',         icon: 'vendedores',     label: 'Mi Tienda'      },
+  { id: 'cuenta',         icon: 'perfil',         label: 'Cuenta'         },
+  { id: 'notificaciones', icon: 'notificaciones', label: 'Notificaciones' },
+  { id: 'apariencia',     icon: 'apariencia',     label: 'Apariencia'     },
 ];
 
 // ── Field helper ──────────────────────────────────────────────────────────────
@@ -115,14 +117,14 @@ const SeccionTienda = () => {
         <div className="vc-store-hero-info">
           <h2 className="vc-store-name">{form.nombre}</h2>
           <span className="vc-store-cat-badge">{form.categoria}</span>
-          <p className="vc-store-city">📍 {form.ciudad}</p>
+          <p className="vc-store-city"><Icon name="ubicacion" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{form.ciudad}</p>
         </div>
       </div>
 
       {/* Datos generales */}
       <div className="vc-card">
         <div className="vc-card-header">
-          <div className="vc-card-header-icon" style={{ background: 'linear-gradient(135deg,#fff3e6,#fde8cc)' }}>🏪</div>
+          <div className="vc-card-header-icon" style={{ background: 'linear-gradient(135deg,#fff3e6,#fde8cc)' }}><Icon name="vendedores" size={20} /></div>
           <div className="vc-card-header-text">
             <p className="vc-card-title">Datos del negocio</p>
             <p className="vc-card-desc">Información visible para tus clientes</p>
@@ -131,7 +133,7 @@ const SeccionTienda = () => {
 
         <Field label="Nombre del negocio">
           <div className="vc-input-wrap">
-            <span className="vc-input-icon">🏪</span>
+            <span className="vc-input-icon"><Icon name="vendedores" size={17} /></span>
             <input name="nombre" value={form.nombre} onChange={set} placeholder="Nombre de tu tienda" />
           </div>
         </Field>
@@ -149,7 +151,7 @@ const SeccionTienda = () => {
           </Field>
           <Field label="Ciudad">
             <div className="vc-input-wrap">
-              <span className="vc-input-icon">📍</span>
+              <span className="vc-input-icon"><Icon name="ubicacion" size={17} /></span>
               <select name="ciudad" value={form.ciudad} onChange={set} style={{ paddingLeft: 36 }}>
                 {['Garzón','Neiva','Pitalito','La Plata','Campoalegre'].map(c =>
                   <option key={c}>{c}</option>
@@ -174,7 +176,7 @@ const SeccionTienda = () => {
       {/* Contacto y ubicación */}
       <div className="vc-card">
         <div className="vc-card-header">
-          <div className="vc-card-header-icon" style={{ background: 'linear-gradient(135deg,#e0f2fe,#bae6fd)' }}>📞</div>
+          <div className="vc-card-header-icon" style={{ background: 'linear-gradient(135deg,#e0f2fe,#bae6fd)' }}><Icon name="telefono" size={20} /></div>
           <div className="vc-card-header-text">
             <p className="vc-card-title">Contacto y ubicación</p>
             <p className="vc-card-desc">Cómo encontrarte</p>
@@ -184,13 +186,13 @@ const SeccionTienda = () => {
         <div className="vc-field-row">
           <Field label="Teléfono">
             <div className="vc-input-wrap">
-              <span className="vc-input-icon">📱</span>
+              <span className="vc-input-icon"><Icon name="telefono" size={17} /></span>
               <input name="telefono" value={form.telefono} onChange={set} placeholder="310-000-0000" />
             </div>
           </Field>
           <Field label="WhatsApp">
             <div className="vc-input-wrap">
-              <span className="vc-input-icon">💬</span>
+              <span className="vc-input-icon"><Icon name="whatsapp" size={17} /></span>
               <input name="whatsapp" value={form.whatsapp} onChange={set} placeholder="310-000-0000" />
             </div>
           </Field>
@@ -198,7 +200,7 @@ const SeccionTienda = () => {
 
         <Field label="Dirección">
           <div className="vc-input-wrap">
-            <span className="vc-input-icon">📍</span>
+            <span className="vc-input-icon"><Icon name="ubicacion" size={17} /></span>
             <input name="direccion" value={form.direccion} onChange={set} placeholder="Dirección completa" />
           </div>
         </Field>
@@ -206,13 +208,13 @@ const SeccionTienda = () => {
         <div className="vc-field-row">
           <Field label="Hora de apertura">
             <div className="vc-input-wrap">
-              <span className="vc-input-icon">🕐</span>
+              <span className="vc-input-icon"><Icon name="reloj" size={17} /></span>
               <input name="horaApertura" value={form.horaApertura} onChange={set} placeholder="Ej: 8:00 AM" />
             </div>
           </Field>
           <Field label="Hora de cierre">
             <div className="vc-input-wrap">
-              <span className="vc-input-icon">🕐</span>
+              <span className="vc-input-icon"><Icon name="reloj" size={17} /></span>
               <input name="horaCierre" value={form.horaCierre} onChange={set} placeholder="Ej: 6:00 PM" />
             </div>
           </Field>
@@ -231,6 +233,15 @@ const SeccionTienda = () => {
 
 // ── Cuenta ────────────────────────────────────────────────────────────────────
 const SeccionCuenta = () => {
+  const navigate = useNavigate();
+
+  const cerrarSesion = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('usuario');
+    navigate('/login');
+  };
+
   const { addToast } = useToast();
   const usuarioGuardado = JSON.parse(localStorage.getItem('usuario') || '{}');
   const [form, setForm] = useState({
@@ -292,12 +303,12 @@ const SeccionCuenta = () => {
     <div className="vc-sections">
       <form onSubmit={handleSavePerfil}>
         <CardBlock
-          icon="👤" iconBg="linear-gradient(135deg,#e0f2fe,#bae6fd)"
+          icon={<Icon name="perfil" size={20} />} iconBg="linear-gradient(135deg,#e0f2fe,#bae6fd)"
           title="Información personal"
           desc="Tu nombre y correo electrónico"
           footer={
             <button type="submit" className="vc-btn-save" disabled={savingPerfil}>
-              {savingPerfil ? '⏳ Guardando...' : '✓ Guardar perfil'}
+              {savingPerfil ? 'Guardando...' : 'Guardar perfil'}
             </button>
           }
         >
@@ -321,12 +332,12 @@ const SeccionCuenta = () => {
 
       <form onSubmit={handleChangePassword}>
         <CardBlock
-          icon="🔒" iconBg="linear-gradient(135deg,#f0fdf4,#bbf7d0)"
+          icon={<Icon name="candado" size={20} />} iconBg="linear-gradient(135deg,#f0fdf4,#bbf7d0)"
           title="Cambiar contraseña"
           desc="Actualiza tu clave de acceso"
           footer={
             <button type="submit" className="vc-btn-save" disabled={savingPassword}>
-              {savingPassword ? '⏳ Actualizando...' : '🔒 Cambiar contraseña'}
+              {savingPassword ? 'Actualizando...' : 'Cambiar contraseña'}
             </button>
           }
         >
@@ -343,16 +354,27 @@ const SeccionCuenta = () => {
           </div>
         </CardBlock>
       </form>
+
+      <CardBlock
+        icon={<Icon name="salir" size={20} />} iconBg="linear-gradient(135deg,#fee2e2,#fecaca)"
+        title="Cerrar sesión"
+        desc="Saldrás de tu cuenta en este dispositivo"
+      >
+        <button type="button" className="vc-btn-logout" onClick={cerrarSesion}>
+          <Icon name="salir" size={18} style={{ verticalAlign: '-4px', marginRight: 8 }} />
+          Cerrar sesión
+        </button>
+      </CardBlock>
     </div>
   );
 };
 
 // ── Notificaciones ────────────────────────────────────────────────────────────
 const NOTIF_ITEMS = [
-  { id: 'nueva_orden',     icon: '📦', label: 'Nueva orden recibida',  desc: 'Notificación cuando recibes un pedido nuevo' },
-  { id: 'orden_entregada', icon: '✅', label: 'Orden entregada',       desc: 'Cuando el domiciliario confirma la entrega'  },
-  { id: 'stock_bajo',      icon: '⚠️', label: 'Stock bajo',            desc: 'Cuando un producto tiene menos de 10 unidades' },
-  { id: 'resumen_diario',  icon: '📊', label: 'Resumen diario',        desc: 'Reporte de ventas al final de cada día'       },
+  { id: 'nueva_orden',     icon: 'paquete',   label: 'Nueva orden recibida',  desc: 'Notificación cuando recibes un pedido nuevo' },
+  { id: 'orden_entregada', icon: 'check',     label: 'Orden entregada',       desc: 'Cuando el domiciliario confirma la entrega'  },
+  { id: 'stock_bajo',      icon: 'alerta',    label: 'Stock bajo',            desc: 'Cuando un producto tiene menos de 10 unidades' },
+  { id: 'resumen_diario',  icon: 'dashboard', label: 'Resumen diario',        desc: 'Reporte de ventas al final de cada día'       },
 ];
 
 const SeccionNotificaciones = () => {
@@ -372,7 +394,7 @@ const SeccionNotificaciones = () => {
   return (
     <div className="vc-sections">
       <CardBlock
-        icon="🔔" iconBg="linear-gradient(135deg,#fef9c3,#fde68a)"
+        icon={<Icon name="notificaciones" size={20} />} iconBg="linear-gradient(135deg,#fef9c3,#fde68a)"
         title="Notificaciones"
         desc="Elige qué eventos te generan alertas"
         footer={
@@ -414,7 +436,7 @@ const SeccionApariencia = () => {
   return (
     <div className="vc-sections">
       <CardBlock
-        icon="🎨" iconBg="linear-gradient(135deg,#f3e8ff,#e9d5ff)"
+        icon={<Icon name="apariencia" size={20} />} iconBg="linear-gradient(135deg,#f3e8ff,#e9d5ff)"
         title="Apariencia"
         desc="Personaliza el tema de la plataforma"
       >
@@ -423,7 +445,7 @@ const SeccionApariencia = () => {
             className={`vc-theme-card ${!isDark ? 'vc-theme-card--active' : ''}`}
             onClick={() => { if (isDark) { toggle(); addToast('Modo claro activado', 'info'); } }}
           >
-            <div className="vc-theme-preview vc-theme-preview--light">☀️</div>
+            <div className="vc-theme-preview vc-theme-preview--light"><Icon name="sol" size={20} /></div>
             <p className="vc-theme-name">Modo claro</p>
             {!isDark && <p className="vc-theme-check">✓ Activo</p>}
           </div>
@@ -431,7 +453,7 @@ const SeccionApariencia = () => {
             className={`vc-theme-card ${isDark ? 'vc-theme-card--active' : ''}`}
             onClick={() => { if (!isDark) { toggle(); addToast('Modo oscuro activado', 'info'); } }}
           >
-            <div className="vc-theme-preview vc-theme-preview--dark">🌙</div>
+            <div className="vc-theme-preview vc-theme-preview--dark"><Icon name="luna" size={20} /></div>
             <p className="vc-theme-name">Modo oscuro</p>
             {isDark && <p className="vc-theme-check">✓ Activo</p>}
           </div>
@@ -469,7 +491,7 @@ const VendorConfigPage = () => {
   return (
     <VendorLayout searchPlaceholder="Buscar...">
       <div className="vc-page-header">
-        <div className="vc-page-icon">⚙️</div>
+        <div className="vc-page-icon"><Icon name="config" size={24} /></div>
         <div>
           <h1 className="vc-title">Configuración</h1>
           <p className="vc-subtitle">Gestiona tu tienda y cuenta</p>
@@ -484,7 +506,7 @@ const VendorConfigPage = () => {
               className={`vc-nav-item ${activeTab === id ? 'vc-nav-item--active' : ''}`}
               onClick={() => setActiveTab(id)}
             >
-              <span className="vc-nav-icon">{icon}</span>
+              <span className="vc-nav-icon"><Icon name={icon} size={19} /></span>
               <span>{label}</span>
             </button>
           ))}

@@ -449,3 +449,27 @@
   .vc-card { padding: 18px 16px 16px; }
   .vc-theme-cards { grid-template-columns: 1fr 1fr; }
 }
+
+
+/* ── Botón de cerrar sesión ──────────────────────────────────────────── */
+.vc-btn-logout {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 20px;
+  border: 1px solid rgba(239, 68, 68, .35);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, .08);
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, transform .12s;
+}
+
+.vc-btn-logout:hover {
+  background: rgba(239, 68, 68, .16);
+  border-color: rgba(239, 68, 68, .55);
+}
+
+.vc-btn-logout:active { transform: scale(.98); }
