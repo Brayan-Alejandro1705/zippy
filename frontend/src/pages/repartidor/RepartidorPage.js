@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { useTheme } from '../../context/ThemeContext';
-import { ordenesService, usuariosService, productosService } from '../../config/api';
+import { ordenesService, usuariosService, productosService, pedidosEspecialesService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
@@ -24,8 +24,9 @@ const MAP_OPTIONS = {
 
 const ESTADO_CFG = {
   disponible: { label: 'Disponible', bg: '#fef3c7', color: '#b45309', btnLabel: 'Aceptar →',          btnClass: 'rp-btn--orange' },
-  en_domicilio: { label: 'En camino',  bg: '#d1fae5', color: '#065f46', btnLabel: '✓ Marcar entregado', btnClass: 'rp-btn--green'  },
-  entregada:    { label: 'Entregado ✓', bg: '#f0fdf4', color: '#15803d', btnLabel: null,                  btnClass: ''              },
+  en_domicilio: { label: 'En camino',  bg: '#d1fae5', color: '#065f46', btnLabel: 'Marcar entregado', btnClass: 'rp-btn--green'  },
+  en_camino:    { label: 'En camino',  bg: '#d1fae5', color: '#065f46', btnLabel: 'Marcar entregado', btnClass: 'rp-btn--green'  },
+  entregada:    { label: 'Entregado',  bg: '#f0fdf4', color: '#15803d', btnLabel: null,               btnClass: ''              },
 };
 const ESTADO_COLOR = { disponible: '#f59e0b', en_domicilio: '#10b981', entregada: '#94a3b8' };
 
@@ -566,9 +567,11 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
           <span className="rp-pago-badge" style={{ background: '#ede9fe', color: '#6d28d9' }}><Icon name="solicitudes" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Pedido especial</span>
           <span className="rp-order-badge" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
         </div>
-        <div className="rp-order-meta">
-          <span className="rp-order-eta">⏱ {pedido.eta} min</span>
-        </div>
+        {pedido.fecha && (
+          <div className="rp-order-meta">
+            <span className="rp-order-eta">{pedido.fecha}</span>
+          </div>
+        )}
       </div>
 
       <div className="rp-order-addr-row">
@@ -608,7 +611,7 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
           {cfg.btnLabel && (
             <button
               className={`rp-action-btn ${cfg.btnClass}`}
-              onClick={() => onAdvance(pedido.id)}
+              onClick={() => onAdvance(pedido)}
             >
               {cfg.btnLabel}
             </button>
@@ -646,10 +649,7 @@ const RepartidorPage = () => {
 
   const [ordenes,  setOrdenes]  = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [pedidosEspeciales, setPedidosEspeciales] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('pedidos_especiales') || '[]'); }
-    catch { return []; }
-  });
+  const [pedidosEspeciales, setPedidosEspeciales] = useState([]);
   const [selected,  setSelected]  = useState(null);
   const [online,    setOnline]    = useState(true);
   const [driverPos, setDriverPos] = useState(null);
@@ -735,6 +735,32 @@ const RepartidorPage = () => {
 
   useEffect(() => { cargarOrdenes(); }, [cargarOrdenes]);
 
+  /* Pedidos especiales reales: disponibles + los que este repartidor tomó */
+  const cargarEspeciales = useCallback(async () => {
+    if (!online) { setPedidosEspeciales([]); return; }
+    try {
+      const [disp, mios] = await Promise.all([
+        pedidosEspecialesService.disponibles().then(r => r.data).catch(() => []),
+        pedidosEspecialesService.misEntregas().then(r => r.data).catch(() => []),
+      ]);
+      // los que tomó primero (en curso), luego los disponibles
+      const enCurso = mios.filter(p => p.estado === 'en_camino');
+      const idsEnCurso = new Set(enCurso.map(p => p.idCompleto));
+      const disponibles = disp
+        .filter(p => !idsEnCurso.has(p.idCompleto))
+        .map(p => ({ ...p, estado: 'disponible' }));
+      setPedidosEspeciales([...enCurso, ...disponibles]);
+    } catch {
+      setPedidosEspeciales([]);
+    }
+  }, [online]);
+
+  useEffect(() => {
+    cargarEspeciales();
+    const t = setInterval(cargarEspeciales, 15000);
+    return () => clearInterval(t);
+  }, [cargarEspeciales]);
+
   /* Geocodificar direcciones pendientes una vez cargado el mapa */
   useEffect(() => {
     if (!isLoaded) return;
@@ -802,12 +828,18 @@ const RepartidorPage = () => {
     if (orden.estado === 'en_domicilio') return marcarEntregado(orden);
   };
 
-  const advanceEspecial = id => {
-    setPedidosEspeciales(prev => {
-      const updated = prev.map(p => (p.id === id ? { ...p, estado: 'entregada' } : p));
-      localStorage.setItem('pedidos_especiales', JSON.stringify(updated));
-      return updated;
-    });
+  const advanceEspecial = async (pedido) => {
+    try {
+      if (pedido.estado === 'disponible') {
+        await pedidosEspecialesService.aceptar(pedido.idCompleto);
+      } else if (pedido.estado === 'en_camino') {
+        await pedidosEspecialesService.entregar(pedido.idCompleto);
+      }
+      await cargarEspeciales();
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'No se pudo actualizar el pedido especial.');
+      await cargarEspeciales();
+    }
   };
 
   const handleLogout = () => { localStorage.clear(); navigate('/login'); };

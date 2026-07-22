@@ -660,3 +660,34 @@ class LogSistema(Base):
 
     def __repr__(self):
         return f"<LogSistema {self.id}>"
+
+# ============================================================================
+# TABLA: PEDIDOS ESPECIALES
+# El cliente describe lo que necesita y un domiciliario lo consigue.
+# No pasa por un negocio: es un encargo directo cliente <-> domiciliario.
+# ============================================================================
+
+class PedidoEspecial(Base):
+    __tablename__ = "pedidos_especiales"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    cliente_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, index=True)
+    domiciliario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True, index=True)
+
+    # pendiente -> aceptada -> en_camino -> entregada / cancelada
+    estado = Column(String(30), default="pendiente", index=True)
+
+    # Lista de artículos: [{ "descripcion": "...", "cantidad": 2, "unidad": "kg" }]
+    items = Column(JSON, default=[])
+
+    direccion = Column(String(500), nullable=False)
+    barrio = Column(String(150))
+    telefono = Column(String(30))
+    notas = Column(Text)
+
+    fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)
+    fecha_aceptacion = Column(DateTime)
+    fecha_entrega = Column(DateTime)
+
+    def __repr__(self):
+        return f"<PedidoEspecial {self.id} - {self.estado}>"

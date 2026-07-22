@@ -108,6 +108,17 @@ export const authService = {
   reenviarCodigo:  (email, metodo_verificacion) => api.post('/auth/reenviar-codigo', { email, metodo_verificacion }),
 };
 
+export const pedidosEspecialesService = {
+  crear:        (datos) => api.post('/pedidos-especiales/', datos),
+  misPedidos:   () => api.get('/pedidos-especiales/mis-pedidos/'),
+  cancelar:     (id) => api.post(`/pedidos-especiales/${id}/cancelar/`),
+  // domiciliario
+  disponibles:  () => api.get('/pedidos-especiales/disponibles/'),
+  misEntregas:  () => api.get('/pedidos-especiales/mis-entregas/'),
+  aceptar:      (id) => api.post(`/pedidos-especiales/${id}/aceptar/`),
+  entregar:     (id) => api.post(`/pedidos-especiales/${id}/entregar/`),
+};
+
 export const clienteService = {
   // Productos guardados
   favoritos:        () => api.get('/cliente/favoritos/'),

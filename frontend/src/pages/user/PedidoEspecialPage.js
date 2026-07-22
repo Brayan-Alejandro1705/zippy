@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import UserLayout from '../../components/UserLayout';
 import { useToast } from '../../context/ToastContext';
 import '../../styles/PedidoEspecial.css';
+import { pedidosEspecialesService } from '../../config/api';
+import Icon from '../../components/Icons';
 
 const UNIDADES = ['unidad', 'kg', 'g', 'libra', 'litro', 'ml', 'paquete', 'caja', 'lata', 'botella'];
 
@@ -28,7 +30,7 @@ const PedidoEspecialPage = () => {
 
   const itemsValidos = items.filter(i => i.descripcion.trim() !== '');
 
-  const handleSubmit = e => {
+  const handleSubmit = async e => {
     e.preventDefault();
     if (itemsValidos.length === 0) {
       addToast('Agrega al menos un producto al pedido', 'warning');
@@ -41,37 +43,26 @@ const PedidoEspecialPage = () => {
 
     setEnviando(true);
 
-    // Guardar en localStorage para que el repartidor lo vea (mock)
-    const pedido = {
-      id: `#PE${Date.now().toString().slice(-4)}`,
-      tipo: 'especial',
-      estado: 'pendiente',
-      fecha: new Date().toLocaleDateString('es-CO'),
-      cliente: JSON.parse(localStorage.getItem('usuario') || '{}').nombre || 'Cliente',
-      telefono: telefono.trim() || 'No especificado',
-      direccion: direccion.trim(),
-      barrio: barrio.trim() || 'Sin barrio',
-      items: itemsValidos,
-      notas: notas.trim(),
-      total: 0,
-      eta: 25,
-      distancia: 3.5,
-      position: { lat: 2.1974, lng: -75.6246 },
-      color: '#8b5cf6',
-      pago: 'pendiente',
-      propina: 0,
-      retraso: false,
-      emoji: '📋',
-    };
-
-    const anteriores = JSON.parse(localStorage.getItem('pedidos_especiales') || '[]');
-    localStorage.setItem('pedidos_especiales', JSON.stringify([pedido, ...anteriores]));
-
-    setTimeout(() => {
-      setEnviando(false);
-      addToast('¡Pedido especial enviado! El domiciliario lo recibirá pronto.', 'success');
+    try {
+      await pedidosEspecialesService.crear({
+        items: itemsValidos.map(i => ({
+          descripcion: i.descripcion.trim(),
+          cantidad: i.cantidad,
+          unidad: i.unidad,
+        })),
+        direccion: direccion.trim(),
+        barrio: barrio.trim(),
+        telefono: telefono.trim(),
+        notas: notas.trim(),
+      });
+      addToast('¡Pedido especial enviado! Un domiciliario lo tomará pronto.', 'success');
       navigate('/tienda');
-    }, 1200);
+    } catch (err) {
+      const detalle = err?.response?.data?.detail;
+      addToast(typeof detalle === 'string' ? detalle : 'No se pudo enviar el pedido', 'error');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -79,7 +70,7 @@ const PedidoEspecialPage = () => {
       <div className="pe-page">
         <div className="pe-header">
 <div className="pe-title-wrap">
-            <span className="pe-icon">📋</span>
+            <span className="pe-icon"><Icon name="solicitudes" size={24} /></span>
             <div>
               <h1 className="pe-title">Pedido Especial</h1>
               <p className="pe-subtitle">Describe exactamente lo que necesitas y el domiciliario lo consigue</p>
@@ -220,7 +211,7 @@ const PedidoEspecialPage = () => {
           )}
 
           <button type="submit" className={`pe-submit ${enviando ? 'pe-submit--loading' : ''}`} disabled={enviando}>
-            {enviando ? '⏳ Enviando pedido...' : '📤 Enviar pedido especial'}
+            {enviando ? 'Enviando pedido…' : 'Enviar pedido especial'}
           </button>
         </form>
       </div>
