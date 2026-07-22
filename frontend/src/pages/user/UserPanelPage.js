@@ -657,6 +657,7 @@ const UserPanelPage = () => {
 
   const [pedidos, setPedidos] = useState([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
+  const [numGuardados, setNumGuardados] = useState(0);
   const [trackingPedido, setTrackingPedido] = useState(null);
   const [calificarPedido, setCalificarPedido] = useState(null);
 
@@ -696,6 +697,15 @@ const UserPanelPage = () => {
         if (activo) setLoadingPedidos(false);
       }
     })();
+    return () => { activo = false; };
+  }, []);
+
+  // Contador de productos guardados para la cabecera
+  useEffect(() => {
+    let activo = true;
+    clienteService.favoritos()
+      .then(({ data }) => { if (activo) setNumGuardados((data || []).length); })
+      .catch(() => { if (activo) setNumGuardados(0); });
     return () => { activo = false; };
   }, []);
 
@@ -741,7 +751,7 @@ const UserPanelPage = () => {
           </div>
           <div className="up-stat-div" />
           <div className="up-stat">
-            <span className="up-stat-val">{GUARDADOS.length}</span>
+            <span className="up-stat-val">{numGuardados}</span>
             <span className="up-stat-label">Guardados</span>
           </div>
         </div>
