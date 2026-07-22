@@ -30,6 +30,9 @@ class UsuarioCreate(UsuarioBase):
     categoria_negocio: Optional[str] = None
     ciudad: Optional[str] = None
     es_servicio: Optional[bool] = False
+    # Campos para domiciliario (opcionales en registro)
+    vehiculo: Optional[str] = None
+    placa: Optional[str] = None
 
     @validator('email')
     def validate_email_desechable(cls, v):
@@ -70,6 +73,8 @@ class UsuarioUpdate(BaseModel):
     foto_perfil: Optional[str] = None
     latitud: Optional[Decimal] = None
     longitud: Optional[Decimal] = None
+    vehiculo: Optional[str] = None
+    placa: Optional[str] = None
 
     @validator('telefono')
     def validate_telefono_formato(cls, v):
@@ -82,6 +87,8 @@ class UsuarioUpdate(BaseModel):
 
 class UsuarioResponse(UsuarioBase):
     id: uuid.UUID
+    vehiculo: Optional[str] = None
+    placa: Optional[str] = None
     foto_perfil: Optional[str]
     es_verificado: bool
     es_super_admin: bool = False

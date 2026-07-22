@@ -99,6 +99,10 @@ class Usuario(Base):
     latitud = Column(DECIMAL(10, 8))
     longitud = Column(DECIMAL(11, 8))
 
+    # Datos del vehículo (solo domiciliarios)
+    vehiculo = Column(String(20))   # moto, bicicleta, carro
+    placa = Column(String(10))
+
     # Relaciones
     negocio = relationship("Negocio", back_populates="vendedor", uselist=False)
     ordenes_cliente = relationship("Orden", foreign_keys="Orden.cliente_id", back_populates="cliente")

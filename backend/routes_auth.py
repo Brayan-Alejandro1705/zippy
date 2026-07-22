@@ -208,6 +208,8 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         codigo_verificacion=codigo,
         codigo_verificacion_expira=datetime.utcnow() + timedelta(minutes=settings.CODIGO_VERIFICACION_MINUTOS),
         metodo_verificacion=usuario.metodo_verificacion,
+        vehiculo=(usuario.vehiculo or None) if usuario.tipo_usuario == "domiciliario" else None,
+        placa=(usuario.placa or "").upper().replace(" ", "")[:10] or None if usuario.tipo_usuario == "domiciliario" else None,
         fecha_creacion=datetime.utcnow()
     )
 

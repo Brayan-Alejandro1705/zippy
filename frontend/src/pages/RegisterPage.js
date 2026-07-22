@@ -16,6 +16,13 @@ const ROLES = [
 // Para habilitar más municipios, basta con agregarlos a esta lista.
 const CIUDADES = ['Garzón'];
 
+// Vehículos con los que puede repartir un domiciliario
+const VEHICULOS = [
+  { value: 'moto',      label: 'Moto'      },
+  { value: 'bicicleta', label: 'Bicicleta' },
+  { value: 'carro',     label: 'Carro'     },
+];
+
 const CATEGORIAS_NEGOCIO = [
   'Restaurante', 'Comida rápida', 'Panadería', 'Cafetería', 'Frutas y verduras',
   'Supermercado', 'Droguería', 'Ropa', 'Electrónica', 'Mascotas', 'General',
@@ -61,6 +68,7 @@ const RegisterPage = () => {
     metodo_verificacion: 'email',
     // Campos vendedor
     nombre_negocio: '', categoria_negocio: 'General', ciudad: CIUDADES[0], es_servicio: false,
+    vehiculo: 'moto', placa: '',
   });
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -70,6 +78,7 @@ const RegisterPage = () => {
   const [touched, setTouched]         = useState({});
 
   const isVendedor = form.tipo_usuario === 'vendedor';
+  const isDomiciliario = form.tipo_usuario === 'domiciliario';
   const strength   = getPasswordStrength(form.password);
   const strengthPct = (strength / 4) * 100;
 
@@ -98,11 +107,18 @@ const RegisterPage = () => {
     e.preventDefault();
     const baseFields = { nombre: true, apellido: true, email: true, telefono: true, password: true, confirmPassword: true };
     const vendorFields = isVendedor ? { nombre_negocio: true, ciudad: true } : {};
+    const repartidorFields = (isDomiciliario && form.vehiculo !== 'bicicleta') ? { placa: true } : {};
     setTouched({ ...baseFields, ...vendorFields });
 
     if (!form.nombre || !form.apellido || !form.email || !form.telefono || !form.password || !form.confirmPassword) {
       setError('Completa todos los campos obligatorios'); triggerShake(); return;
     }
+    if (isDomiciliario && form.vehiculo !== 'bicicleta' && !form.placa.trim()) {
+      setError('Escribe la placa de tu vehículo');
+      triggerShake();
+      return;
+    }
+
     if (isVendedor && !form.nombre_negocio) {
       setError('El nombre del negocio es obligatorio'); triggerShake(); return;
     }
@@ -128,7 +144,19 @@ const RegisterPage = () => {
     setLoading(true);
     setError('');
     try {
-      const { confirmPassword, ...payload } = form;
+      const { confirmPassword, ...datos } = form;
+
+      // Enviar solo los campos que aplican al rol elegido
+      const payload = { ...datos };
+      if (!isVendedor) {
+        delete payload.nombre_negocio;
+        delete payload.categoria_negocio;
+        delete payload.es_servicio;
+      }
+      if (!isDomiciliario) {
+        delete payload.vehiculo;
+        delete payload.placa;
+      }
       const response = await authService.registro(payload);
       navigate('/verificar', {
         state: {
@@ -251,6 +279,40 @@ const RegisterPage = () => {
                   />
                   {fieldError('ciudad') && <span className="reg-field-err">{fieldError('ciudad')}</span>}
                 </div>
+              </div>
+            </>
+          )}
+
+          {isDomiciliario && (
+            <>
+              <div className="reg-section-label">Tu vehículo</div>
+              <div className="reg-grid-2">
+                <div className="reg-field">
+                  <label>¿Con qué repartes? <span className="reg-req">*</span></label>
+                  <SelectPro
+                    name="vehiculo"
+                    value={form.vehiculo}
+                    onChange={(val) => setForm(prev => ({ ...prev, vehiculo: val, placa: val === 'bicicleta' ? '' : prev.placa }))}
+                    options={VEHICULOS}
+                    placeholder="Selecciona tu vehículo"
+                  />
+                </div>
+
+                {form.vehiculo !== 'bicicleta' && (
+                  <div className="reg-field">
+                    <label>Placa <span className="reg-req">*</span></label>
+                    <div className="reg-input-wrap">
+                      <span className="reg-input-icon"><Icon name={form.vehiculo === 'carro' ? 'carro' : 'moto'} size={18} /></span>
+                      <input
+                        name="placa"
+                        value={form.placa}
+                        onChange={e => setForm(prev => ({ ...prev, placa: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7) }))}
+                        placeholder={form.vehiculo === 'carro' ? 'ABC123' : 'ABC12D'}
+                        autoCapitalize="characters"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
