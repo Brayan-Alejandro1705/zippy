@@ -627,3 +627,32 @@
   border-radius: 20px;
   white-space: nowrap;
 }
+
+/* ── Pestañas del modal de cuenta / ayuda ───────────────── */
+.rp-cuenta-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+
+.rp-cuenta-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid #e6e6e6;
+  border-radius: 10px;
+  background: #fafafa;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rp-cuenta-tab--on {
+  background: #FF7A00;
+  border-color: #FF7A00;
+  color: white;
+}
