@@ -327,7 +327,7 @@ const RegisterPage = () => {
               <input
                 name="nombre" value={form.nombre}
                 onChange={handleChange} onBlur={handleBlur}
-                placeholder="María" autoComplete="given-name"
+                placeholder="Nombre" autoComplete="given-name"
                 className={fieldError('nombre') ? 'reg-input--err' : ''}
               />
               {fieldError('nombre') && <span className="reg-field-err">{fieldError('nombre')}</span>}
@@ -337,7 +337,7 @@ const RegisterPage = () => {
               <input
                 name="apellido" value={form.apellido}
                 onChange={handleChange} onBlur={handleBlur}
-                placeholder="García" autoComplete="family-name"
+                placeholder="Apellido" autoComplete="family-name"
                 className={fieldError('apellido') ? 'reg-input--err' : ''}
               />
               {fieldError('apellido') && <span className="reg-field-err">{fieldError('apellido')}</span>}
