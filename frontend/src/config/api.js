@@ -188,6 +188,7 @@ export const ordenesService = {
   actualizar:(id, datos) => api.put(`/ordenes/${id}`, datos),
   seguimiento:(id) => api.get(`/ordenes/${id}/seguimiento`),
   ubicacionDomiciliario:(id) => api.get(`/ordenes/${id}/ubicacion`),
+  estadoChat:    (id) => api.get(`/ordenes/${id}/chat-estado`),
   mensajes:      (id) => api.get(`/ordenes/${id}/mensajes`),
   enviarMensaje: (id, contenido) => api.post(`/ordenes/${id}/mensajes`, { contenido }),
 };

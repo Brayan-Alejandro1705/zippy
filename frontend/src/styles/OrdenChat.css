@@ -90,3 +90,23 @@
   flex-shrink: 0;
 }
 .oc-send-btn:disabled { background: #ffc999; cursor: default; }
+
+.oc-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oc-aviso {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border-top: 1px solid #eee;
+  background: white;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.35;
+  flex-shrink: 0;
+}
+.oc-aviso svg { flex-shrink: 0; }

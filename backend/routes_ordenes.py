@@ -686,7 +686,10 @@ async def listar_mensajes(
 
     _verificar_acceso_chat(orden, current_user)
 
-    if _estado_chat(orden, db) != "activo":
+    # "activo"  -> se lee y se escribe
+    # "cerrado" -> solo lectura, el historial sigue visible durante 1 hora
+    # "sin_domiciliario" / "expirado" -> no hay nada que mostrar
+    if _estado_chat(orden, db) not in ("activo", "cerrado"):
         return []
 
     mensajes = db.query(MensajeOrden).filter(
