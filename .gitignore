@@ -1,3 +1,31 @@
+# ── Variables de entorno (nunca deben subirse) ──────────────────────────
+.env
+.env.local
+.env.*.local
+*/.env
+backend/.env
+frontend/.env
+
+# ── Dependencias ────────────────────────────────────────────────────────
+node_modules/
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# ── Builds ──────────────────────────────────────────────────────────────
+frontend/build/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+
+# ── Firmas de Android (nunca deben subirse) ─────────────────────────────
+*.keystore
+*.jks
+
+# ── Editores y sistema ──────────────────────────────────────────────────
 .DS_Store
 *.log
-".idea/" 
+.idea/
+.vscode/

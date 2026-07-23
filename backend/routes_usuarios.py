@@ -15,6 +15,21 @@ from routes_auth import hash_password, verify_password, get_current_user
 
 router = APIRouter(prefix="/api/v1/usuarios", tags=["Usuarios"])
 
+
+# ============================================================================
+# AUTORIZACIÓN
+# ============================================================================
+
+def _requiere_admin(current_user: Usuario):
+    """Corta la petición si quien llama no es administrador."""
+    tipo = current_user.tipo_usuario
+    tipo = tipo.value if hasattr(tipo, "value") else str(tipo)
+    if tipo.lower() != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo un administrador puede realizar esta acción"
+        )
+
 # ============================================================================
 # ENDPOINTS: MI PERFIL (usuario autenticado)
 # ============================================================================
@@ -76,7 +91,11 @@ async def cambiar_mi_password(
     summary="Crear nuevo vendedor (Admin)",
     description="Crea un nuevo usuario tipo vendedor y su negocio asociado"
 )
-async def crear_vendedor(datos: dict, db: Session = Depends(get_db)):
+async def crear_vendedor(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     Crea un nuevo vendedor desde el panel de administración
     
@@ -92,7 +111,9 @@ async def crear_vendedor(datos: dict, db: Session = Depends(get_db)):
     - **descripcion**: Descripción del negocio (opcional)
     - **password**: Contraseña temporal
     """
-    
+
+    _requiere_admin(current_user)
+
     try:
         # Validar datos requeridos
         campos_requeridos = ['nombre', 'email', 'telefono', 'documento', 'nombre_negocio', 'ciudad', 'direccion', 'rol', 'password']
@@ -245,12 +266,17 @@ async def listar_vendedores(
     limit: int = Query(100, ge=1, le=1000),
     ciudad: Optional[str] = None,
     estado: Optional[str] = None,
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Lista todos los vendedores con sus negocios asociados, en el formato
     plano que consume la pantalla de administración de vendedores.
+
+    Solo accesible para administradores: expone datos de contacto y documento.
     """
+
+    _requiere_admin(current_user)
 
     query = db.query(Usuario).filter(Usuario.tipo_usuario == 'vendedor')
 
@@ -352,15 +378,21 @@ async def obtener_usuario(
 async def cambiar_estado_usuario(
     usuario_id: str,
     datos: dict,
+    current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Cambia el estado de un usuario
-    
+
+    Solo administradores. Un admin no puede cambiar su propio estado ni
+    tocar a un súper admin.
+
     Body:
     - **estado**: Nuevo estado (activo, suspendido, inactivo)
     """
-    
+
+    _requiere_admin(current_user)
+
     try:
         from uuid import UUID
         usuario = db.query(Usuario).filter(Usuario.id == UUID(usuario_id)).first()
@@ -372,7 +404,21 @@ async def cambiar_estado_usuario(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado"
         )
-    
+
+    # Evita que un admin se bloquee a sí mismo por error
+    if usuario.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes cambiar el estado de tu propia cuenta"
+        )
+
+    # Los súper admin no pueden ser suspendidos por otro admin
+    if getattr(usuario, "es_super_admin", False) and not getattr(current_user, "es_super_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No puedes cambiar el estado de un súper administrador"
+        )
+
     estado_valido = datos.get('estado')
     if estado_valido not in ['activo', 'suspendido', 'inactivo']:
         raise HTTPException(

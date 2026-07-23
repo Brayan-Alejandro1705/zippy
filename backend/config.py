@@ -46,14 +46,17 @@ class Settings:
     # API
     API_TITLE = os.getenv("API_TITLE", "ZIPPY API")
     API_VERSION = os.getenv("API_VERSION", "1.0.0")
-    DEBUG = os.getenv("DEBUG", "True") == "True"
+    # Por defecto False: en producción DEBUG expone el texto de las excepciones
+    # al cliente. En local se activa poniendo DEBUG=True en backend/.env
+    DEBUG = os.getenv("DEBUG", "False") == "True"
     
     # Servidor
     HOST = os.getenv("HOST", "0.0.0.0")
     PORT = int(os.getenv("PORT", 8000))
     
     # JWT
-    SECRET_KEY = os.getenv("SECRET_KEY", "cambiar-esto-en-produccion")
+    # Sin valor por defecto a propósito: ver la validación al final del archivo
+    SECRET_KEY = os.getenv("SECRET_KEY", "")
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 60
     REFRESH_TOKEN_EXPIRE_DAYS = 30
@@ -101,6 +104,21 @@ class Settings:
 
 # Instancia global de settings
 settings = Settings()
+
+# ============================================================================
+# VALIDACIÓN DE ARRANQUE
+# ============================================================================
+# El servidor NO arranca sin SECRET_KEY. Antes había un valor por defecto
+# ("cambiar-esto-en-produccion") que quedó publicado en el repositorio: con esa
+# clave cualquiera podía firmar un token válido y entrar como administrador.
+# Fallar al arrancar es preferible a quedar abierto sin que nadie se entere.
+
+if len(settings.SECRET_KEY) < 32:
+    raise RuntimeError(
+        "SECRET_KEY no está configurada o es demasiado corta (mínimo 32 caracteres). "
+        "Genera una con:  python -c \"import secrets; print(secrets.token_urlsafe(48))\"  "
+        "y agrégala como variable de entorno en Render y en tu backend/.env local."
+    )
 
 # ============================================================================
 # FUNCIÓN PARA OBTENER SESIÓN DE BASE DE DATOS

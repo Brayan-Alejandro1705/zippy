@@ -28,6 +28,9 @@ jobs:
         env:
           GENERATE_SOURCEMAP: 'false'
           CI: 'false'
+          # La clave ya no vive en frontend/.env. Se configura una sola vez en
+          # GitHub: Settings > Secrets and variables > Actions > New secret
+          REACT_APP_GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY }}
 
       - name: Sincronizar Capacitor con Android
         working-directory: frontend
