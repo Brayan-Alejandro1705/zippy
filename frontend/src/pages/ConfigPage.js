@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { authService, usuariosService, adminService } from '../config/api';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
+import CentroAyuda from '../components/CentroAyuda';
 import { getPrefs, savePrefs, requestPermission, checkPermission, sendNotification, scheduleReporteSemanal } from '../utils/notifications';
 import '../styles/Config.css';
 
@@ -13,6 +14,7 @@ const TABS = [
   { id: 'notificaciones',  icon: 'notificaciones',  label: 'Notificaciones' },
   { id: 'apariencia',      icon: 'apariencia',      label: 'Apariencia' },
   { id: 'soporte',         icon: 'soporte',         label: 'Soporte', soloSuperAdmin: true },
+  { id: 'ayuda',           icon: 'interrogacion',   label: 'Ayuda' },
 ];
 
 // Solo los super admin pueden configurar el WhatsApp de soporte
@@ -470,6 +472,7 @@ const SECTION_MAP = {
   notificaciones: <SeccionNotificaciones />,
   apariencia:     <SeccionApariencia />,
   soporte:        <SeccionSoporte />,
+  ayuda:          <CentroAyuda perfil="admin" />,
 };
 
 const ConfigPage = () => {

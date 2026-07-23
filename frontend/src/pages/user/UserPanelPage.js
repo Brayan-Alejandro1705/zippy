@@ -4,6 +4,7 @@ import { useLoadScript, GoogleMap, Marker } from '@react-google-maps/api';
 import UserLayout from '../../components/UserLayout';
 import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
+import CentroAyuda from '../../components/CentroAyuda';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -70,6 +71,7 @@ const TABS = [
   { id: 'guardados',   icon: 'corazon',   label: 'Guardados'  },
   { id: 'direcciones', icon: 'ubicacion', label: 'Direcciones'},
   { id: 'cuenta',      icon: 'config',    label: 'Cuenta'     },
+  { id: 'ayuda',       icon: 'interrogacion', label: 'Ayuda'  },
 ];
 
 /* ── Pedidos ─────────────────────────────────────────────── */
@@ -723,6 +725,7 @@ const UserPanelPage = () => {
     guardados:   <SeccionGuardados addItem={addItem} addToast={addToast} />,
     direcciones: <SeccionDirecciones addToast={addToast} />,
     cuenta:      <SeccionCuenta addToast={addToast} />,
+    ayuda:       <CentroAyuda perfil="cliente" />,
   };
 
   return (

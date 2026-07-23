@@ -138,6 +138,12 @@ export const adminService = {
   actualizarSoporte: (whatsapp) => api.put('/admin/configuracion/soporte', { whatsapp }),
 };
 
+// Lectura del WhatsApp de soporte. El endpoint es público, lo usa el centro
+// de ayuda de todos los perfiles (cliente, vendedor, repartidor y admin).
+export const soporteService = {
+  obtener: () => api.get('/admin/configuracion/soporte'),
+};
+
 export const usuariosService = {
   listar:       (params) => api.get('/usuarios/', { params }),
   obtener:      (id) => api.get(`/usuarios/${id}/`),

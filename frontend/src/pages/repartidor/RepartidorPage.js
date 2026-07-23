@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, usuariosService, productosService, pedidosEspecialesService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
+import CentroAyuda from '../../components/CentroAyuda';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
@@ -364,11 +365,13 @@ const VehiculoSelect = ({ value, onChange }) => {
 /* ── Modal de cuenta del repartidor ──────────────────────── */
 const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
   const { isDark, toggle } = useTheme();
+  const [tab, setTab] = useState('cuenta');
   const [form, setForm] = useState({ nombre: '', telefono: '', email: '', vehiculo: 'moto', placa: '' });
   const [notifs, setNotifs] = useState({ pedidos: true, mensajes: true, promos: false });
 
   useEffect(() => {
     if (!open) return;
+    setTab('cuenta');
     setForm({
       nombre:   usuario.nombre   || '',
       telefono: usuario.telefono || '',
@@ -388,10 +391,36 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
 
   return (
     <div className="rp-modal-overlay" onClick={onClose}>
-      <form className="rp-modal" onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
-        <h3 className="rp-modal-title">Mi cuenta</h3>
-        <p className="rp-modal-sub">Datos del repartidor</p>
+      <div className="rp-modal" onClick={e => e.stopPropagation()}>
+        <h3 className="rp-modal-title">{tab === 'cuenta' ? 'Mi cuenta' : 'Ayuda'}</h3>
+        <p className="rp-modal-sub">
+          {tab === 'cuenta' ? 'Datos del repartidor' : 'Preguntas frecuentes y soporte'}
+        </p>
 
+        <div className="rp-cuenta-tabs">
+          <button
+            type="button"
+            className={`rp-cuenta-tab ${tab === 'cuenta' ? 'rp-cuenta-tab--on' : ''}`}
+            onClick={() => setTab('cuenta')}
+          >
+            <Icon name="perfil" size={15} />Cuenta
+          </button>
+          <button
+            type="button"
+            className={`rp-cuenta-tab ${tab === 'ayuda' ? 'rp-cuenta-tab--on' : ''}`}
+            onClick={() => setTab('ayuda')}
+          >
+            <Icon name="interrogacion" size={15} />Ayuda
+          </button>
+        </div>
+
+        {tab === 'ayuda' ? (
+          <>
+            <CentroAyuda perfil="repartidor" />
+            <button type="button" className="rp-modal-cancel" onClick={onClose}>Cerrar</button>
+          </>
+        ) : (
+        <form onSubmit={handleSubmit}>
         <p className="rp-cuenta-section">Información personal</p>
         <div className="rp-field">
           <label>Nombre</label>
@@ -450,9 +479,11 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
           </button>
         </div>
 
-        <button type="submit" className="rp-cuenta-save">✓ Guardar cambios</button>
+        <button type="submit" className="rp-cuenta-save"><Icon name="check" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Guardar cambios</button>
         <button type="button" className="rp-cuenta-logout" onClick={onLogout}><Icon name="salir" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Cerrar sesión</button>
-      </form>
+        </form>
+        )}
+      </div>
     </div>
   );
 };

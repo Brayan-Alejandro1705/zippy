@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { negociosService, usuariosService, authService } from '../../config/api';
 import '../../styles/VendorConfig.css';
 import Icon from '../../components/Icons';
+import CentroAyuda from '../../components/CentroAyuda';
 import { useNavigate } from 'react-router-dom';
 
 const TABS = [
@@ -483,6 +484,7 @@ const SECTION_MAP = {
   cuenta:         <SeccionCuenta />,
   notificaciones: <SeccionNotificaciones />,
   apariencia:     <SeccionApariencia />,
+  ayuda:          <CentroAyuda perfil="vendedor" />,
 };
 
 const VendorConfigPage = () => {

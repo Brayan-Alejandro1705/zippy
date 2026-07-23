@@ -6,7 +6,7 @@ import Layout from '../components/Layout';
 import '../styles/NuevoVendedor.css';
 
 const CIUDADES = ['Garzón', 'Neiva', 'Pitalito', 'La Plata', 'Campoalegre'];
-const ROLES = ['Vendedor', 'Repartidor', 'Admin', 'Soporte'];
+const ROLES = ['Vendedor', 'Repartidor', 'Admin'];
 
 const initialForm = { nombre: '', email: '', telefono: '', documento: '', negocio: '', ciudad: '', direccion: '', rol: 'Vendedor', descripcion: '', password: '' };
 
