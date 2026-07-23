@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from config import get_db
 from models import Usuario, ConfiguracionSistema
 from routes_auth import get_current_user
+from logs_utils import registrar_log
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -152,6 +153,14 @@ async def actualizar_whatsapp_soporte(
         CLAVE_WHATSAPP,
         numero,
         "Número de WhatsApp al que llegan los mensajes de soporte",
+    )
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        accion="Configuración",
+        tabla_afectada="configuracion_sistema",
+        detalle=f"WhatsApp de soporte actualizado a {numero}",
     )
 
     return {

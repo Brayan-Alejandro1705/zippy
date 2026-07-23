@@ -199,6 +199,10 @@ export const ordenesService = {
   enviarMensaje: (id, contenido) => api.post(`/ordenes/${id}/mensajes`, { contenido }),
 };
 
+export const logsService = {
+  listar: (accion) => api.get('/logs/', { params: accion && accion !== 'Todas' ? { accion } : {} }),
+};
+
 export const resenasService = {
   crear:           (datos) => api.post('/resenas/', datos),
   obtenerPorOrden: (ordenId) => api.get(`/resenas/orden/${ordenId}`),

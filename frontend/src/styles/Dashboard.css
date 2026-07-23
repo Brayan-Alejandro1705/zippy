@@ -66,6 +66,106 @@ body {
   white-space: nowrap;
 }
 
+.account-switcher { position: relative; }
+
+.account-switcher-trigger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+.account-switcher-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.account-switcher-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 260px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  padding: 8px;
+  z-index: 101;
+}
+
+.account-switcher-current {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eef0f2;
+  margin-bottom: 6px;
+}
+
+.account-switcher-current strong,
+.account-switcher-item strong {
+  display: block;
+  font-size: 13.5px;
+  color: #1a2530;
+}
+
+.account-switcher-current span,
+.account-switcher-item span {
+  display: block;
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.account-switcher-list { max-height: 240px; overflow-y: auto; }
+
+.account-switcher-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.account-switcher-item:hover { background: #fff3e8; }
+
+.account-switcher-remove {
+  background: none;
+  border: none;
+  color: #95a5a6;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.account-switcher-remove:hover { color: #c0392b; background: rgba(192,57,43,0.1); }
+
+.account-switcher-add {
+  display: block;
+  text-align: center;
+  padding: 10px 12px;
+  margin-top: 6px;
+  border-top: 1px solid #eef0f2;
+  color: #FF7A00;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.account-switcher-add:hover { background: #fff3e8; border-radius: 0 0 8px 8px; }
+
+.account-switcher-drawer-list {
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 0 12px 8px;
+  padding: 6px;
+}
+
+.account-switcher-drawer-toggle { cursor: pointer; }
+
 /* Main Layout */
 .dashboard-main {
   display: flex;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../config/api';
+import { guardarCuentaActual } from '../utils/cuentas';
 import ZLoader from '../components/ZLoader';
 import '../styles/LoginPage.css';
 
@@ -32,9 +33,11 @@ const LoginPage = () => {
     setError('');
     try {
       const response = await authService.login(email, password);
+      guardarCuentaActual(); // conserva la sesión que estaba activa antes de este login
       localStorage.setItem('access_token',  response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
       localStorage.setItem('usuario',       JSON.stringify(response.data.usuario));
+      guardarCuentaActual(); // registra la cuenta recién ingresada
       redirectByTipo(response.data.usuario.tipo_usuario);
     } catch (err) {
       const detail = err.response?.data?.detail;

@@ -198,6 +198,20 @@
   white-space: nowrap;
 }
 
+/* ── Selector de cuentas ──────────────────────────────────────────────────── */
+.dark-theme .account-switcher-dropdown {
+  background: #1e293b;
+  border-color: #334155;
+}
+.dark-theme .account-switcher-current { border-color: #334155; }
+.dark-theme .account-switcher-current strong,
+.dark-theme .account-switcher-item strong { color: #e2e8f0; }
+.dark-theme .account-switcher-current span,
+.dark-theme .account-switcher-item span { color: #94a3b8; }
+.dark-theme .account-switcher-item:hover { background: rgba(255,122,0,0.15); }
+.dark-theme .account-switcher-add { border-color: #334155; }
+.dark-theme .account-switcher-drawer-list { background: #162032; }
+
 /* ════════════════════════════════════════════════════════════════════════
    VENDEDOR — Layout + páginas
    ════════════════════════════════════════════════════════════════════════ */

@@ -12,6 +12,7 @@ from config import get_db, settings
 from models import Usuario, Negocio, Producto
 from schemas import UsuarioCreate, UsuarioResponse, UsuarioUpdate, MensajeResponse
 from routes_auth import hash_password, verify_password, get_current_user
+from logs_utils import registrar_log
 
 router = APIRouter(prefix="/api/v1/usuarios", tags=["Usuarios"])
 
@@ -412,8 +413,8 @@ async def cambiar_estado_usuario(
             detail="No puedes cambiar el estado de tu propia cuenta"
         )
 
-    # Los súper admin no pueden ser suspendidos por otro admin
-    if getattr(usuario, "es_super_admin", False) and not getattr(current_user, "es_super_admin", False):
+    # Los súper admin no pueden ser suspendidos por nadie (ni por otro súper admin)
+    if getattr(usuario, "es_super_admin", False):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No puedes cambiar el estado de un súper administrador"
@@ -429,7 +430,16 @@ async def cambiar_estado_usuario(
     usuario.estado = estado_valido
     db.commit()
     db.refresh(usuario)
-    
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        accion="Activación" if estado_valido == "activo" else "Suspensión",
+        tabla_afectada="usuarios",
+        registro_id=usuario.id,
+        detalle=f"{usuario.nombre} {usuario.apellido} ({usuario.email}) → {estado_valido}",
+    )
+
     return {
         "mensaje": f"Usuario {estado_valido} exitosamente",
         "usuario": {

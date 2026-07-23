@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { logsService } from '../config/api';
 import '../styles/Usuarios.css';
 
 const ACCIONES = ['Todas', 'Suspensión', 'Activación', 'Eliminación', 'Aprobación', 'Configuración', 'Acceso'];
-
-const MOCK_LOGS = [];
 
 const ACCION_BADGE = {
   'Suspensión':    'badge-suspended',
@@ -16,8 +15,19 @@ const ACCION_BADGE = {
 };
 
 const LogsActividadPage = () => {
-  const [filtro, setFiltro] = useState('Todas');
-  const logs = filtro === 'Todas' ? MOCK_LOGS : MOCK_LOGS.filter(l => l.accion === filtro);
+  const [filtro, setFiltro]   = useState('Todas');
+  const [logs, setLogs]       = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    setLoading(true);
+    logsService.listar(filtro)
+      .then(res => { if (!cancelado) setLogs(res.data); })
+      .catch(() => { if (!cancelado) setLogs([]); })
+      .finally(() => { if (!cancelado) setLoading(false); });
+    return () => { cancelado = true; };
+  }, [filtro]);
 
   return (
     <Layout>
@@ -35,7 +45,9 @@ const LogsActividadPage = () => {
       </div>
 
       <div className="table-section">
-        {logs.length === 0 ? (
+        {loading ? (
+          <div className="us-skeleton-row" style={{ height: 120, borderRadius: 8 }} />
+        ) : logs.length === 0 ? (
           <div className="us-empty"><p>No hay registros para este filtro.</p></div>
         ) : (
           <table className="data-table">
@@ -45,7 +57,7 @@ const LogsActividadPage = () => {
             <tbody>
               {logs.map(l => (
                 <tr key={l.id}>
-                  <td className="us-email">{l.fecha}</td>
+                  <td className="us-email">{new Date(l.fecha).toLocaleString('es-CO')}</td>
                   <td className="us-nombre">{l.admin}</td>
                   <td><span className={`badge ${ACCION_BADGE[l.accion]}`}>{l.accion}</span></td>
                   <td className="us-email">{l.detalle}</td>

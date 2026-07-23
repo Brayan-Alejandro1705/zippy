@@ -145,6 +145,7 @@ from routes_resenas import router as resenas_router
 from routes_admin import router as admin_router
 from routes_cliente import router as cliente_router
 from routes_pedidos_especiales import router as pedidos_especiales_router
+from routes_logs import router as logs_router
 
 app.include_router(auth_router)
 app.include_router(usuarios_router)
@@ -156,6 +157,7 @@ app.include_router(resenas_router)
 app.include_router(admin_router)
 app.include_router(cliente_router)
 app.include_router(pedidos_especiales_router)
+app.include_router(logs_router)
 # ============================================================================
 # MAIN - Ejecutar servidor
 # ============================================================================
