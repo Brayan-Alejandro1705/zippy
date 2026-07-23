@@ -94,7 +94,7 @@ const NuevoVendedorPage = () => {
             </div>
             <div className="form-group">
               <label>Email</label>
-              <input type="email" name="email" placeholder="maria@tienda.com" value={form.email} onChange={handleChange} className={errors.email ? 'input-error' : ''} />
+              <input type="email" name="email" placeholder="usuario@tienda.com" value={form.email} onChange={handleChange} className={errors.email ? 'input-error' : ''} />
               {errors.email && <span className="nv-field-error">{errors.email}</span>}
             </div>
           </div>

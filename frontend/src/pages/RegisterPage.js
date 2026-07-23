@@ -351,7 +351,7 @@ const RegisterPage = () => {
               <input
                 name="email" type="email" value={form.email}
                 onChange={handleChange} onBlur={handleBlur}
-                placeholder="maria@ejemplo.com" autoComplete="email"
+                placeholder="usuario@ejemplo.com" autoComplete="email"
                 className={fieldError('email') ? 'reg-input--err' : ''}
               />
             </div>

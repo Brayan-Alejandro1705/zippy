@@ -9,11 +9,11 @@ import '../styles/Usuarios.css';
 import '../styles/UsuarioDetalle.css';
 
 const MOCK_USERS = {
-  'U-2546': { id: 'U-2546', nombre: 'María García',   email: 'maria@tienda.com',  telefono: '311-234-5678', documento: '1075489632', rol: 'Vendedor',   ciudad: 'Garzón',   estado: 'Activo',     productos: 234, negocio: 'Café La Montaña',   fechaRegistro: '2024-03-15' },
-  'U-2545': { id: 'U-2545', nombre: 'Carlos López',   email: 'carlos@tienda.com', telefono: '320-987-6543', documento: '1075123456', rol: 'Vendedor',   ciudad: 'Neiva',    estado: 'Suspendido', productos: 156, negocio: 'Panadería Don Juan', fechaRegistro: '2024-01-08' },
-  'U-2544': { id: 'U-2544', nombre: 'Ana Martínez',   email: 'ana@correo.com',    telefono: '315-456-7890', documento: '1076234567', rol: 'Cliente',    ciudad: 'Pitalito', estado: 'Activo',     productos: 0,   negocio: null,                fechaRegistro: '2024-06-20' },
-  'U-2543': { id: 'U-2543', nombre: 'Luis Rodríguez', email: 'luis@correo.com',   telefono: '318-765-4321', documento: '1077345678', rol: 'Repartidor', ciudad: 'Neiva',    estado: 'Activo',     productos: 0,   negocio: null,                fechaRegistro: '2024-02-11' },
-  'U-2542': { id: 'U-2542', nombre: 'Pedro Suárez',   email: 'pedro@tienda.com',  telefono: '312-111-2233', documento: '1078456789', rol: 'Vendedor',   ciudad: 'Garzón',   estado: 'Activo',     productos: 89,  negocio: 'Fruver El Paraíso', fechaRegistro: '2024-05-03' },
+  'U-2546': { id: 'U-2546', nombre: 'Usuario 1', email: 'usuario1@tienda.com', telefono: '311-234-5678', documento: '1075489632', rol: 'Vendedor',   ciudad: 'Garzón',   estado: 'Activo',     productos: 234, negocio: 'Café La Montaña',   fechaRegistro: '2024-03-15' },
+  'U-2545': { id: 'U-2545', nombre: 'Usuario 2', email: 'usuario2@tienda.com', telefono: '320-987-6543', documento: '1075123456', rol: 'Vendedor',   ciudad: 'Neiva',    estado: 'Suspendido', productos: 156, negocio: 'Panadería Don Juan', fechaRegistro: '2024-01-08' },
+  'U-2544': { id: 'U-2544', nombre: 'Usuario 3', email: 'usuario3@tienda.com', telefono: '315-456-7890', documento: '1076234567', rol: 'Cliente',    ciudad: 'Pitalito', estado: 'Activo',     productos: 0,   negocio: null,                fechaRegistro: '2024-06-20' },
+  'U-2543': { id: 'U-2543', nombre: 'Usuario 4', email: 'usuario4@tienda.com', telefono: '318-765-4321', documento: '1077345678', rol: 'Repartidor', ciudad: 'Neiva',    estado: 'Activo',     productos: 0,   negocio: null,                fechaRegistro: '2024-02-11' },
+  'U-2542': { id: 'U-2542', nombre: 'Usuario 5', email: 'usuario5@tienda.com', telefono: '312-111-2233', documento: '1078456789', rol: 'Vendedor',   ciudad: 'Garzón',   estado: 'Activo',     productos: 89,  negocio: 'Fruver El Paraíso', fechaRegistro: '2024-05-03' },
 };
 
 const UsuarioDetallePage = () => {
