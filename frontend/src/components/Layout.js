@@ -145,7 +145,7 @@ const Layout = ({ children }) => {
                         ))}
                       </div>
                     )}
-                    <a href="/login" className="account-switcher-add">+ Agregar otra cuenta</a>
+                    <a href="/login?agregar=1" className="account-switcher-add">+ Agregar otra cuenta</a>
                   </div>
                 </div>
               )}
@@ -202,7 +202,7 @@ const Layout = ({ children }) => {
                     </button>
                   </div>
                 ))}
-                <a href="/login" className="account-switcher-add">+ Agregar otra cuenta</a>
+                <a href="/login?agregar=1" className="account-switcher-add">+ Agregar otra cuenta</a>
               </div>
             )}
 

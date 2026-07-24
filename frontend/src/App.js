@@ -72,8 +72,13 @@ const RootRedirect = () => {
 };
 
 // Evita que alguien ya logueado vuelva a ver la pantalla de login/registro.
+// Excepción: si viene con ?agregar=1 es porque está añadiendo otra cuenta al
+// selector de cuentas a propósito, así que sí debe ver el formulario.
+const vieneAAgregarCuenta = () =>
+  new URLSearchParams(window.location.search).get('agregar') === '1';
+
 const PublicOnlyRoute = ({ children }) => {
-  if (isAuthenticated()) {
+  if (isAuthenticated() && !vieneAAgregarCuenta()) {
     return <Navigate to={homeRouteFor(getStoredTipoUsuario())} replace />;
   }
   return children;
