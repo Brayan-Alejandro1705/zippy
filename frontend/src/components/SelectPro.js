@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import '../styles/selectPro.css';
+import '../styles/selectpro.css';
 // ============================================================================
 // SelectPro.js - Desplegable propio (reemplaza al <select> nativo del sistema)
 //
-// Uso:1
+// Uso:
 //   <SelectPro
 //     value={form.categoria}
 //     onChange={(v) => setForm(p => ({ ...p, categoria: v }))}

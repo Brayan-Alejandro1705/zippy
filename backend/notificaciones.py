@@ -151,3 +151,62 @@ def enviar_codigo(metodo: str, destinatario_email: str, telefono: str, nombre: s
         enviar_codigo_sms(telefono, codigo)
     else:
         enviar_codigo_email(destinatario_email, nombre, codigo)
+
+def enviar_resena_email(destinatario: str, nombre_vendedor: str, nombre_negocio: str,
+                        estrellas: int, comentario: str = "", cliente: str = "") -> None:
+    """Avisa al vendedor por correo (Brevo) que recibió una calificación.
+    No lanza excepción: una notificación no debe tumbar el guardado de la reseña.
+    Si Brevo no está configurado o falla, solo se registra en consola."""
+    if not settings.BREVO_API_KEY or not settings.SMTP_REMITENTE:
+        print("[resena_email] Brevo no configurado, se omite el correo")
+        return
+
+    llenas = "★" * estrellas
+    vacias = "☆" * (5 - estrellas)
+    bloque_comentario = f'<p style="margin:16px 0;padding:12px 16px;background:#f8fafc;border-left:3px solid #FF7A00;border-radius:6px;color:#334155;">"{comentario}"</p>' if comentario else ""
+    de_quien = f" de {cliente}" if cliente else ""
+
+    cuerpo_html = f"""<!DOCTYPE html>
+<html><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;padding:24px;">
+    <div style="background:#FF7A00;border-radius:14px 14px 0 0;padding:22px 24px;">
+      <p style="margin:0;color:#fff;font-size:20px;font-weight:bold;">Zippy</p>
+    </div>
+    <div style="background:#fff;border-radius:0 0 14px 14px;padding:24px;">
+      <p style="margin:0 0 6px;font-size:16px;color:#1e293b;">Hola {nombre_vendedor},</p>
+      <p style="margin:0 0 16px;color:#475569;">Recibiste una nueva calificación{de_quien} en <strong>{nombre_negocio}</strong>.</p>
+      <p style="margin:0;font-size:30px;letter-spacing:3px;color:#FF7A00;">{llenas}<span style="color:#cbd5e1;">{vacias}</span></p>
+      <p style="margin:4px 0 0;color:#64748b;font-size:14px;">{estrellas} de 5 estrellas</p>
+      {bloque_comentario}
+      <p style="margin:20px 0 0;color:#94a3b8;font-size:12px;">Abre la app de Zippy para ver todas tus reseñas.</p>
+    </div>
+  </div>
+</body></html>"""
+
+    cuerpo_texto = (
+        f"Hola {nombre_vendedor},\n\n"
+        f"Recibiste una nueva calificacion{de_quien} en {nombre_negocio}: "
+        f"{estrellas} de 5 estrellas.\n"
+        + (f'\nComentario: "{comentario}"\n' if comentario else "")
+        + "\nAbre la app de Zippy para ver todas tus resenas.\n"
+    )
+
+    payload = json.dumps({
+        "sender": {"email": settings.SMTP_REMITENTE, "name": settings.SMTP_REMITENTE_NOMBRE},
+        "to": [{"email": destinatario, "name": nombre_vendedor}],
+        "subject": f"Nueva calificacion de {estrellas}\u2605 en {nombre_negocio}",
+        "textContent": cuerpo_texto,
+        "htmlContent": cuerpo_html,
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email", data=payload, method="POST")
+    request.add_header("accept", "application/json")
+    request.add_header("api-key", settings.BREVO_API_KEY)
+    request.add_header("content-type", "application/json")
+
+    try:
+        with urllib.request.urlopen(request, timeout=15) as resp:
+            resp.read()
+    except Exception as e:
+        print(f"[resena_email] no se pudo enviar el correo: {e}")

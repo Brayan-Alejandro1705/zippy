@@ -14,6 +14,7 @@ from config import get_db
 from models import ResenaCalificacion, Orden, Negocio, Usuario
 from schemas import ResenaCreate, ResenaResponse
 from routes_auth import get_current_user
+from notificaciones import enviar_resena_email
 
 router = APIRouter(prefix="/api/v1/resenas", tags=["Reseñas"])
 
@@ -84,6 +85,24 @@ async def crear_resena(
 
     db.commit()
     db.refresh(resena)
+
+    # Avisar al vendedor por correo. Va despues del commit y envuelto en try:
+    # si el correo falla, la reseña ya quedó guardada y no se pierde.
+    try:
+        negocio = db.query(Negocio).filter(Negocio.id == orden.negocio_id).first()
+        vendedor = db.query(Usuario).filter(Usuario.id == negocio.vendedor_id).first() if negocio else None
+        if vendedor and vendedor.email:
+            enviar_resena_email(
+                destinatario=vendedor.email,
+                nombre_vendedor=vendedor.nombre or "vendedor",
+                nombre_negocio=negocio.nombre_negocio,
+                estrellas=resena.calificacion_general,
+                comentario=resena.comentario or "",
+                cliente=current_user.nombre or "",
+            )
+    except Exception as e:
+        print(f"[crear_resena] fallo al notificar por correo: {e}")
+
     return resena
 
 @router.get(
