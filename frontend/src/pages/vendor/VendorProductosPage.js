@@ -5,6 +5,7 @@ import { productosService, negociosService } from '../../config/api';
 import { useToast } from '../../context/ToastContext';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorProductos.css';
+import { urlImagen } from '../../utils/media';
 
 const productoDeApi = (p) => ({
   id: p.id,
@@ -329,7 +330,7 @@ const VendorProductosPage = () => {
                 <div className="vp-photo">
                   {p.foto ? (
                     <>
-                      <img src={p.foto} alt={p.nombre} />
+                      <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" />
                       <span className="vp-cat-badge">{p.categoria}</span>
                     </>
                   ) : (
@@ -389,7 +390,7 @@ const VendorProductosPage = () => {
             return (
               <div key={p.id} className={`vp-list-row ${lowStock ? 'vp-list-row--low-stock' : ''} ${p.pausado ? 'vp-list-row--pausado' : ''}`}>
                 <div className="vp-list-photo">
-                  {p.foto ? <img src={p.foto} alt={p.nombre} /> : <span className="vp-list-icon">{CATEGORY_ICONS[p.categoria] || DEFAULT_CAT_ICON}</span>}
+                  {p.foto ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" /> : <span className="vp-list-icon">{CATEGORY_ICONS[p.categoria] || DEFAULT_CAT_ICON}</span>}
                 </div>
                 <div className="vp-list-info">
                   <p className="vp-list-nombre">{p.nombre}</p>

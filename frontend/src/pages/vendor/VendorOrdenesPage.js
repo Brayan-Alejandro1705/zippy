@@ -3,6 +3,7 @@ import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorOrdenes.css';
+import Icon from '../../components/Icons';
 
 const TABS = [
   { label: 'Todos',      value: 'Todos'     },
@@ -281,7 +282,17 @@ const VendorOrdenesPage = () => {
       {loading ? (
         <ZLoader size="sm" label="Cargando órdenes..." />
       ) : filtradas.length === 0 ? (
-        <p>No tienes órdenes{tab !== 'Todos' ? ` en "${tab}"` : ''}.</p>
+        <div className="vo-empty">
+          <div className="vo-empty-icon"><Icon name="paquete" size={26} /></div>
+          <p className="vo-empty-title">
+            {tab === 'Todos' ? 'Aún no tienes órdenes' : `Ninguna orden en "${tab}"`}
+          </p>
+          <p className="vo-empty-desc">
+            {tab === 'Todos'
+              ? 'Cuando un cliente te compre, el pedido aparece aquí.'
+              : 'Prueba con otro filtro para ver el resto de tus órdenes.'}
+          </p>
+        </div>
       ) : (
         <>
           {/* Order cards */}

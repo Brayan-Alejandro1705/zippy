@@ -618,3 +618,12 @@
 }
 .vp-modal-dur-btn:hover { border-color: #FF7A00; }
 .vp-modal-dur-btn--active { background: #FF7A00; border-color: #FF7A00; color: white; }
+/* Nota bajo el desplegable de categoria de producto */
+.vnp-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #64748b;
+}
+.dark-theme .vnp-hint { color: #94a3b8; }

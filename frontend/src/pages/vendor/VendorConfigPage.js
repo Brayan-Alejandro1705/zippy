@@ -6,6 +6,7 @@ import { negociosService, usuariosService, authService } from '../../config/api'
 import '../../styles/VendorConfig.css';
 import Icon from '../../components/Icons';
 import CentroAyuda from '../../components/CentroAyuda';
+import { opcionesCategoria } from '../../constants/categorias';
 import { useNavigate } from 'react-router-dom';
 
 const TABS = [
@@ -142,10 +143,7 @@ const SeccionTienda = () => {
         <div className="vc-field-row">
           <Field label="Categoría">
             <select name="categoria" value={form.categoria} onChange={set}>
-              {['Restaurante','Comida rápida','Panadería','Cafetería','Frutas y verduras',
-                'Supermercado','Droguería','Ropa','Electrónica','Mascotas',
-                'Transporte','Aseo y limpieza','Belleza','Plomería y electricidad',
-                'Reparaciones','Tutorías y clases','General'].map(c =>
+              {opcionesCategoria(form.categoria).map(c =>
                 <option key={c}>{c}</option>
               )}
             </select>
@@ -408,7 +406,7 @@ const SeccionNotificaciones = () => {
           {NOTIF_ITEMS.map(({ id, icon, label, desc }) => (
             <div key={id} className="vc-notif-row">
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 20, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                <span className="vc-notif-icon"><Icon name={icon} size={20} /></span>
                 <div>
                   <p className="vc-notif-label">{label}</p>
                   <p className="vc-notif-desc">{desc}</p>
@@ -458,20 +456,6 @@ const SeccionApariencia = () => {
             <p className="vc-theme-name">Modo oscuro</p>
             {isDark && <p className="vc-theme-check">✓ Activo</p>}
           </div>
-        </div>
-
-        <div className="vc-notif-row" style={{ paddingTop: 0, borderBottom: 'none', paddingBottom: 0 }}>
-          <div>
-            <p className="vc-notif-label">Cambiar tema rápidamente</p>
-            <p className="vc-notif-desc">Activa o desactiva el modo oscuro con este interruptor</p>
-          </div>
-          <button
-            type="button"
-            className={`vc-toggle ${isDark ? 'vc-toggle--on' : ''}`}
-            onClick={() => { toggle(); addToast(isDark ? 'Modo claro activado' : 'Modo oscuro activado', 'info'); }}
-          >
-            <span className="vc-toggle-thumb" />
-          </button>
         </div>
       </CardBlock>
     </div>

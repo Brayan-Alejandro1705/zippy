@@ -106,11 +106,13 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.vpf-dia-btn:hover { border-color: #FF7A00; color: #FF7A00; }
-.vpf-dia-btn--active {
+.vpf-dia-btn:hover:not(.vpf-dia-btn--active) { border-color: #FF7A00; color: #FF7A00; }
+.vpf-dia-btn--active,
+.vpf-dia-btn--active:hover,
+.vpf-dia-btn--active:focus {
   background: #FF7A00;
   border-color: #FF7A00;
-  color: white;
+  color: #fff;
 }
 
 /* Footer */

@@ -149,3 +149,40 @@
 .vo-btn-contact:hover { border-color:#FF7A00; color:#FF7A00; }
 .vo-btn-invoice { padding:10px 8px; background:white; border:1.5px solid #e2e8f0; color:#555; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; }
 .vo-btn-invoice:hover { border-color:#94a3b8; }
+
+/* ── Estado vacío ─────────────────────────────────────────── */
+.vo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 48px 24px 56px;
+}
+.vo-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: #fff3e6;
+  color: #c2410c;
+  margin-bottom: 6px;
+}
+.vo-empty-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.vo-empty-desc {
+  margin: 0;
+  max-width: 300px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #64748b;
+}
+.dark-theme .vo-empty-icon  { background: #2a3547; color: #FFA14D; }
+.dark-theme .vo-empty-title { color: #e2e8f0; }
+.dark-theme .vo-empty-desc  { color: #94a3b8; }

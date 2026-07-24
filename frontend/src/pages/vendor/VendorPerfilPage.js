@@ -4,13 +4,13 @@ import { useToast } from '../../context/ToastContext';
 import { negociosService, productosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorPerfil.css';
+import { opcionesCategoria } from '../../constants/categorias';
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const CIUDADES = ['Garzón', 'Neiva', 'Pitalito', 'La Plata', 'Campoalegre'];
-const CATEGORIAS = ['Bebidas', 'Panadería', 'Pastelería', 'Comida', 'Snacks'];
 
 const FORM_VACIO = {
-  nombre: '', categoria: 'Pastelería', descripcion: '',
+  nombre: '', categoria: 'General', descripcion: '',
   direccion: '', ciudad: 'Garzón', telefono: '',
   horarioApertura: '07:00', horarioCierre: '20:00',
 };
@@ -31,7 +31,7 @@ const VendorPerfilPage = () => {
         setNegocio(data);
         setForm({
           nombre:          data.nombre_negocio || '',
-          categoria:       data.categoria || 'Pastelería',
+          categoria:       data.categoria || 'General',
           descripcion:     data.descripcion || '',
           direccion:       data.direccion || '',
           ciudad:          data.ciudad || 'Garzón',
@@ -132,7 +132,7 @@ const VendorPerfilPage = () => {
           <div className="vpf-field">
             <label>Categoría principal</label>
             <select name="categoria" value={form.categoria} onChange={set}>
-              {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+              {opcionesCategoria(form.categoria).map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
         </div>

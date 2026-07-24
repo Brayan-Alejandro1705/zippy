@@ -386,7 +386,9 @@
 .dark-theme .vpf-field textarea:focus { background-color: #1e293b; border-color: #FF7A00; }
 .dark-theme .vpf-section-title { border-color: #334155; }
 .dark-theme .vpf-dia-btn { background-color: #273548; border-color: #334155; color: #94a3b8; }
-.dark-theme .vpf-dia-btn--active { background-color: #FF7A00; border-color: #FF7A00; color: white; }
+.dark-theme .vpf-dia-btn--active,
+.dark-theme .vpf-dia-btn--active:hover,
+.dark-theme .vpf-dia-btn--active:focus { background-color: #FF7A00; border-color: #FF7A00; color: #fff; }
 
 /* Pagos y comisiones */
 .dark-theme .vpg-title { color: #e2e8f0; }

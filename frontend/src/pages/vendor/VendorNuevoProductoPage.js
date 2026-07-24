@@ -5,8 +5,8 @@ import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorProductos.css';
+import { useCategoriasProducto } from '../../hooks/useCategoriasProducto';
 
-const CATEGORIAS = ['Bebidas', 'Panadería', 'Pastelería', 'Frutas y Verduras', 'Lácteos', 'Carnes', 'Otros'];
 
 const Field = ({ label, error, children }) => (
   <div className="vnp-field">
@@ -31,6 +31,8 @@ const VendorNuevoProductoPage = () => {
     nombre: '', categoria: '', precio: '', stock: '',
     descripcion: '', disponible: true,
   });
+
+  const { opciones: catsOpciones, cargando: catsCargando, categoriaNegocio } = useCategoriasProducto();
 
   // ── Validation ──────────────────────────────────────────────────────────────
   const errors = {
@@ -128,9 +130,17 @@ const VendorNuevoProductoPage = () => {
                     name="categoria" value={form.categoria} onChange={handleChange}
                     className={tried && errors.categoria ? 'vnp-input-err' : ''}
                   >
-                    <option value="">Selecciona categoría</option>
-                    {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+                    <option value="">
+                      {catsCargando ? 'Cargando categorías...' : 'Selecciona categoría'}
+                    </option>
+                    {catsOpciones.map(c => <option key={c}>{c}</option>)}
                   </select>
+                  {categoriaNegocio && (
+                    <span className="vnp-hint">
+                      Categorías de {categoriaNegocio}. Si cambias la categoría de tu
+                      negocio en Configuración, esta lista cambia con ella.
+                    </span>
+                  )}
                 </Field>
 
                 <div className="vnp-field-row">
