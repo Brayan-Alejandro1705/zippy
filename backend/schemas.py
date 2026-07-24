@@ -2,9 +2,9 @@
 # schemas.py - Schemas Pydantic para validación de datos
 # ============================================================================
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator, field_validator
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 import uuid
 
@@ -147,6 +147,17 @@ class NegocioResponse(NegocioBase):
     es_verificado: bool
     estado: str
     fecha_creacion: datetime
+
+    # hora_apertura / hora_cierre son Column(Time) en models.py, asi que el ORM
+    # las devuelve como datetime.time y pydantic las rechaza contra Optional[str].
+    # mode='before' corre antes de validar el tipo: convierte a "07:00", que es
+    # el formato corto que ya espera el frontend (no "07:00:00").
+    @field_validator('hora_apertura', 'hora_cierre', mode='before')
+    @classmethod
+    def _hora_a_texto(cls, v):
+        if isinstance(v, time):
+            return v.strftime('%H:%M')
+        return v
 
     class Config:
         from_attributes = True
