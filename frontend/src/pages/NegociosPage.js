@@ -7,6 +7,7 @@ import { negociosService } from '../config/api';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import '../styles/Negocios.css';
+import { urlImagen } from '../utils/media';
 
 const COLORS = ['#FF7A00', '#3b82f6', '#22c55e', '#9b59b6', '#ef4444', '#f59e0b', '#14b8a6'];
 
@@ -156,7 +157,7 @@ const NegociosPage = () => {
               {/* Avatar del negocio */}
               <div className="ng-card-avatar" style={{ background: COLORS[i % COLORS.length] }}>
                 {n.logo
-                  ? <img src={n.logo} alt={n.nombre_negocio} />
+                  ? <img src={urlImagen(n.logo)} alt={n.nombre_negocio} loading="lazy" />
                   : <span>{n.nombre_negocio?.charAt(0) ?? '?'}</span>
                 }
               </div>

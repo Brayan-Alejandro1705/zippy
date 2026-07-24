@@ -7,6 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/UserHome.css';
+import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
 
 /* ── Countdown ──────────────────────────────────────────── */
@@ -244,7 +245,7 @@ const UserHomePage = () => {
             {populares.map(p => (
               <button key={p.id} className="uh-pop-card" onClick={() => setModalProd(p)}>
                 <div className="uh-pop-photo" style={{ background: getGradient(p.categoria, p.gradIdx) }}>
-                  {p.foto ? <img src={p.foto} alt={p.nombre} /> : <span className="uh-pop-emoji"><Icon name={getIcon(p.categoria)} size={30} strokeWidth={1.4} /></span>}
+                  {p.foto ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" /> : <span className="uh-pop-emoji"><Icon name={getIcon(p.categoria)} size={30} strokeWidth={1.4} /></span>}
                   {p.rating > 0 && <span className="uh-pop-rating"><Icon name="estrella" size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />{p.rating.toFixed(1)}</span>}
                 </div>
                 <div className="uh-pop-body">
@@ -442,7 +443,7 @@ const UserHomePage = () => {
                   <div key={p.id} className="uh-card" onClick={() => setModalProd(p)}>
                     <div className="uh-photo" style={{ background: getGradient(p.categoria, p.gradIdx) }}>
                       {p.foto
-                        ? <img src={p.foto} alt={p.nombre} />
+                        ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" />
                         : <span className="uh-photo-emoji"><Icon name={getIcon(p.categoria)} size={40} strokeWidth={1.3} /></span>
                       }
                       {p.enOferta && <span className="uh-badge-oferta"><Icon name="destacado" size={12} style={{ verticalAlign: '-2px', marginRight: 3 }} />Oferta</span>}

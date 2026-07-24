@@ -37,8 +37,8 @@ const DIA_CORTO  = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const DIA_LARGO  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
 const fmt = (n) => {
-  if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
+  // En pesos colombianos abreviar a K/M pierde toda la precision: $1.428 se
+  // volvia "$1K". Se muestra la cifra completa con separador de miles.
   return `$${Math.round(n).toLocaleString('es-CO')}`;
 };
 const fmtFull = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;

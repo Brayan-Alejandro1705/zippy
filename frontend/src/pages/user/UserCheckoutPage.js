@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { ordenesService } from '../../config/api';
+import { ordenesService, clienteService } from '../../config/api';
 import '../../styles/UserCheckout.css';
 
 const ENVIO_POR_TIENDA = 3000;
@@ -17,6 +17,30 @@ const UserCheckoutPage = () => {
   const [nota, setNota]       = useState('');
   const [loading, setLoading] = useState(false);
 
+  // La direccion venia escrita a mano en el codigo ('Cra 5 #23-45, Apto 402'),
+  // asi que TODAS las ordenes salian con la misma direccion falsa. Ahora se
+  // cargan las que el cliente guardo y no se deja confirmar sin una.
+  const [direcciones, setDirecciones]     = useState([]);
+  const [dirId, setDirId]                 = useState(null);
+  const [cargandoDirs, setCargandoDirs]   = useState(true);
+
+  useEffect(() => {
+    let activo = true;
+    clienteService.direcciones()
+      .then(({ data }) => {
+        if (!activo) return;
+        const lista = Array.isArray(data) ? data : (data?.items || []);
+        setDirecciones(lista);
+        const principal = lista.find(d => d.es_predeterminada) || lista[0];
+        if (principal) setDirId(principal.id);
+      })
+      .catch(() => { if (activo) setDirecciones([]); })
+      .finally(() => { if (activo) setCargandoDirs(false); });
+    return () => { activo = false; };
+  }, []);
+
+  const dirElegida = direcciones.find(d => d.id === dirId) || null;
+
   const tiendas    = [...new Set(items.map(i => i.tienda))];
   const envioTotal = tiendas.length * ENVIO_POR_TIENDA;
   const total      = subtotal + envioTotal;
@@ -27,6 +51,10 @@ const UserCheckoutPage = () => {
   }
 
   const handleConfirmar = async () => {
+    if (!dirElegida) {
+      addToast('Agrega una direccion de entrega antes de confirmar.', 'error');
+      return;
+    }
     setLoading(true);
 
     // El backend crea una orden por negocio: agrupamos el carrito por negocioId
@@ -43,7 +71,7 @@ const UserCheckoutPage = () => {
             negocio_id,
             items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty })),
             metodo_pago: pago,
-            direccion_entrega: 'Cra 5 #23-45, Apto 402',
+            direccion_entrega: dirElegida.direccion,
             notas_cliente: nota || undefined,
           })
         )
@@ -89,13 +117,43 @@ const UserCheckoutPage = () => {
         {/* Delivery address */}
         <div className="ucho-section ucho-section--address">
           <p className="ucho-section-label">Dirección de entrega</p>
-          <div className="ucho-address">
-            <span className="ucho-address-icon">📍</span>
-            <div>
-              <p className="ucho-address-text">Cra 5 #23-45, Apto 402</p>
-              <button className="ucho-address-change">Cambiar dirección</button>
+          {cargandoDirs ? (
+            <p className="ucho-address-text">Cargando direcciones...</p>
+          ) : direcciones.length === 0 ? (
+            <div className="ucho-address ucho-address--vacia">
+              <span className="ucho-address-icon">📍</span>
+              <div>
+                <p className="ucho-address-text">No tienes direcciones guardadas</p>
+                <button
+                  className="ucho-address-change"
+                  onClick={() => navigate('/tienda/perfil?tab=direcciones')}
+                >
+                  Agregar una dirección
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="ucho-address-list">
+              {direcciones.map(d => (
+                <label
+                  key={d.id}
+                  className={`ucho-address-opt ${dirId === d.id ? 'ucho-address-opt--sel' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="direccion"
+                    checked={dirId === d.id}
+                    onChange={() => setDirId(d.id)}
+                  />
+                  <span>
+                    <strong>{d.etiqueta || 'Direccion'}</strong>
+                    <em>{d.direccion}</em>
+                    {d.referencia_adicional && <small>{d.referencia_adicional}</small>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Payment method */}
@@ -138,9 +196,9 @@ const UserCheckoutPage = () => {
         <button
           className="ucho-btn-confirm"
           onClick={handleConfirmar}
-          disabled={loading}
+          disabled={loading || !dirElegida}
         >
-          {loading ? 'Procesando...' : 'Confirmar Orden'}
+          {loading ? 'Procesando...' : (!dirElegida ? 'Agrega una direccion' : 'Confirmar Orden')}
         </button>
         <p className="ucho-confirm-note">Recibirás confirmación en tu correo</p>
       </div>

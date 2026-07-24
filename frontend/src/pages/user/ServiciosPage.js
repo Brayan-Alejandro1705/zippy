@@ -1,315 +1,789 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLoadScript, GoogleMap, Marker } from '@react-google-maps/api';
 import UserLayout from '../../components/UserLayout';
-import '../../styles/Servicios.css';
+import OrdenChat from '../../components/OrdenChat';
+import ZLoader from '../../components/ZLoader';
+import CentroAyuda from '../../components/CentroAyuda';
+import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
+import { useTheme } from '../../context/ThemeContext';
+import { ordenesService, negociosService, productosService, resenasService, usuariosService } from '../../config/api';
+import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
+import '../../styles/UserPanel.css';
+import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
-import { negociosService } from '../../config/api';
+import { clienteService } from '../../config/api';
 
-/* ── Categorías ─────────────────────────────────────────── */
-const CATS = [
-  { id: 'todos',       icon: 'filtro',        label: 'Todos'             },
-  { id: 'taxi',        icon: 'taxi',          label: 'Taxi / Transporte' },
-  { id: 'acarreos',    icon: 'camion',        label: 'Acarreos / Fletes' },
-  { id: 'mensajeria',  icon: 'paquete',       label: 'Mensajería'        },
-  { id: 'mecanico',    icon: 'llave_inglesa', label: 'Mecánico'          },
-  { id: 'plomeria',    icon: 'ducha',         label: 'Plomería'          },
-  { id: 'electricista',icon: 'rayo',          label: 'Electricista'      },
-  { id: 'otro',        icon: 'herramientas',  label: 'Otros'             },
+const MAP_STYLE = { width: '100%', height: '220px', borderRadius: '12px' };
+
+const PASO_LABEL = {
+  pendiente:          'Recibido',
+  confirmada:          'Confirmado',
+  en_preparacion:      'En preparación',
+  lista_para_retirar:  'Listo para recoger',
+  en_domicilio:        'En camino',
+  entregada:           'Entregado',
+  cancelada:           'Cancelado',
+};
+
+const ESTADO_UI = {
+  pendiente:          'Pendiente',
+  confirmada:         'Confirmado',
+  en_preparacion:     'En preparación',
+  lista_para_retirar: 'Listo para recoger',
+  en_domicilio:       'En camino',
+  entregada:          'Entregado',
+  cancelada:          'Cancelado',
+  rechazada:          'Rechazado',
+};
+
+// Pasos que ve el cliente, en orden
+const PASOS_PEDIDO = [
+  { estado: 'Pendiente',          icon: 'reloj',        titulo: 'Pedido recibido',    detalle: 'Esperando que el negocio lo confirme' },
+  { estado: 'Confirmado',         icon: 'check',        titulo: 'Confirmado',         detalle: 'El negocio aceptó tu pedido' },
+  { estado: 'En preparación',     icon: 'vendedores',   titulo: 'En preparación',     detalle: 'Están alistando tu pedido' },
+  { estado: 'Listo para recoger', icon: 'paquete',      titulo: 'Listo',              detalle: 'Esperando al repartidor' },
+  { estado: 'En camino',          icon: 'repartidores', titulo: 'En camino',          detalle: 'Tu pedido va hacia ti' },
+  { estado: 'Entregado',          icon: 'check',        titulo: 'Entregado',          detalle: 'Pedido completado' },
 ];
 
-/* ── Datos mock ─────────────────────────────────────────── */
+const indicePaso = (estado) => PASOS_PEDIDO.findIndex(p => p.estado === estado);
+const fmtFecha = iso => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-/* ── Modal de detalle ───────────────────────────────────── */
-const ServicioModal = ({ servicio, onClose }) => {
-  if (!servicio) return null;
-  const cat = CATS.find(c => c.id === servicio.categoria);
-  const waUrl = `https://wa.me/57${servicio.whatsapp}?text=${encodeURIComponent(`Hola, vi tu servicio en Zippy y me gustaría obtener más información sobre ${servicio.nombre}.`)}`;
+/* ── Mock data (todavía no hay backend para esto) ─────────── */
+
+const ESTADO_STYLE = {
+  Entregado:            { bg: '#dcfce7', color: '#15803d' },
+  'En camino':          { bg: '#fef3c7', color: '#b45309' },
+  'Listo para recoger': { bg: '#ffedd5', color: '#c2410c' },
+  'En preparación':     { bg: '#e0f2fe', color: '#0369a1' },
+  Confirmado:           { bg: '#ede9fe', color: '#6d28d9' },
+  Cancelado:            { bg: '#fee2e2', color: '#b91c1c' },
+  Rechazado:            { bg: '#fee2e2', color: '#b91c1c' },
+  Pendiente:            { bg: '#e0e7ff', color: '#3730a3' },
+};
+
+const fmt = n => `$${n.toLocaleString('es-CO')}`;
+
+/* ── Tabs ────────────────────────────────────────────────── */
+const TABS = [
+  { id: 'pedidos',     icon: 'paquete',   label: 'Pedidos'    },
+  { id: 'guardados',   icon: 'corazon',   label: 'Guardados'  },
+  { id: 'direcciones', icon: 'ubicacion', label: 'Direcciones'},
+  { id: 'cuenta',      icon: 'config',    label: 'Cuenta'     },
+  { id: 'ayuda',       icon: 'interrogacion', label: 'Ayuda'  },
+];
+
+/* ── Pedidos ─────────────────────────────────────────────── */
+const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
+  if (loading) return <ZLoader size="sm" label="Cargando pedidos..." />;
+  if (pedidos.length === 0) return (
+    <div className="up-empty">
+      <span><Icon name="paquete" size={40} strokeWidth={1.2} /></span>
+      <p>Todavía no has hecho ningún pedido</p>
+    </div>
+  );
 
   return (
-    <div className="sv-overlay" onClick={onClose}>
-      <div className="sv-modal" onClick={e => e.stopPropagation()}>
-        <button className="sv-modal-close" onClick={onClose}>✕</button>
-
-        <div className="sv-modal-hero" style={{ background: servicio.bg }}>
-          <span className="sv-modal-logo"><Icon name={servicio.logo} size={34} strokeWidth={1.4} /></span>
-          {servicio.destacado && <span className="sv-modal-featured"><Icon name="estrella" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Destacado</span>}
-          {!servicio.disponible && <span className="sv-modal-closed">Cerrado ahora</span>}
-        </div>
-
-        <div className="sv-modal-body">
-          <div className="sv-modal-cat" style={{ color: servicio.text, background: servicio.bg }}>
-            {cat && <Icon name={cat.icon} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />}{cat?.label}
-          </div>
-          <h2 className="sv-modal-name">{servicio.nombre}</h2>
-
-          <div className="sv-modal-rating">
-            <span className="sv-stars">{Array.from({ length: Math.round(servicio.calificacion) }).map((_, i) => (
-              <Icon key={i} name="estrella" size={14} />
-            ))}</span>
-            <span className="sv-rating-val">{servicio.calificacion}</span>
-            <span className="sv-rating-count">({servicio.resenas} reseñas)</span>
-          </div>
-
-          <p className="sv-modal-desc">{servicio.descripcion}</p>
-
-          <div className="sv-modal-details">
-            <div className="sv-detail-row">
-              <span className="sv-detail-icon"><Icon name="ubicacion" size={17} /></span>
-              <div>
-                <p className="sv-detail-label">Cobertura</p>
-                <p className="sv-detail-val">{servicio.cobertura}</p>
-              </div>
+    <div className="up-list">
+      {pedidos.map(p => {
+        const st = ESTADO_STYLE[p.estado] || ESTADO_STYLE.Pendiente;
+        return (
+          <div key={p.id} className="up-order-card">
+            <div className="up-order-top">
+              <span className="up-order-id">{p.id}</span>
+              <span className="up-order-badge" style={{ background: st.bg, color: st.color }}>
+                {p.estado}
+              </span>
             </div>
-            <div className="sv-detail-row">
-              <span className="sv-detail-icon"><Icon name="reloj" size={17} /></span>
-              <div>
-                <p className="sv-detail-label">Horario</p>
-                <p className="sv-detail-val">{servicio.horario}</p>
-              </div>
+            <p className="up-order-tienda"><Icon name="vendedores" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{p.tienda}</p>
+            <p className="up-order-items">{p.items}</p>
+            <div className="up-order-bottom">
+              <span className="up-order-fecha">{p.fecha}</span>
+              <span className="up-order-total">{fmt(p.total)}</span>
             </div>
-            {servicio.desde > 0 && (
-              <div className="sv-detail-row">
-                <span className="sv-detail-icon"><Icon name="dinero" size={17} /></span>
-                <div>
-                  <p className="sv-detail-label">Tarifa</p>
-                  <p className="sv-detail-val">Desde ${servicio.desde.toLocaleString('es-CO')}</p>
-                </div>
-              </div>
+            {!['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
+              <button className="up-track-btn" onClick={() => onTrack(p)}>
+                <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
+              </button>
+            )}
+            {p.estado === 'Entregado' && (
+              <button className="up-track-btn" onClick={() => onCalificar(p)}>
+                <Icon name="estrella" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Calificar pedido
+              </button>
             )}
           </div>
+        );
+      })}
+    </div>
+  );
+};
 
-          <div className="sv-modal-actions">
-            <a
-              className="sv-btn sv-btn--call"
-              href={`tel:${servicio.telefono.replace(/-/g, '')}`}
-            >
-              <Icon name="telefono" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Llamar
-            </a>
-            <a
-              className="sv-btn sv-btn--wa"
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Icon name="whatsapp" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />WhatsApp
-            </a>
-          </div>
+/* ── Calificar pedido (reseña real, recalcula la calificación de la tienda) ─ */
+const StarPicker = ({ value, onChange }) => (
+  <div className="up-stars">
+    {[1, 2, 3, 4, 5].map(n => (
+      <button
+        key={n}
+        type="button"
+        className={`up-star ${n <= value ? 'up-star--on' : ''}`}
+        onClick={() => onChange(n)}
+      ><Icon name="estrella" size={20} /></button>
+    ))}
+  </div>
+);
+
+const CalificarModal = ({ pedido, onClose }) => {
+  const { addToast } = useToast();
+  const [loading, setLoading]     = useState(true);
+  const [existente, setExistente] = useState(null);
+  const [saving, setSaving]       = useState(false);
+  const [form, setForm] = useState({ calificacion_general: 0, calificacion_producto: 0, calificacion_entrega: 0, comentario: '' });
+
+  useEffect(() => {
+    if (!pedido) return;
+    let activo = true;
+    setLoading(true);
+    setForm({ calificacion_general: 0, calificacion_producto: 0, calificacion_entrega: 0, comentario: '' });
+    resenasService.obtenerPorOrden(pedido.idCompleto)
+      .then(({ data }) => { if (activo) setExistente(data); })
+      .catch(() => { if (activo) setExistente(null); })
+      .finally(() => { if (activo) setLoading(false); });
+    return () => { activo = false; };
+  }, [pedido]);
+
+  if (!pedido) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.calificacion_general) { addToast('Selecciona una calificación general', 'error'); return; }
+    setSaving(true);
+    try {
+      const { data } = await resenasService.crear({
+        orden_id: pedido.idCompleto,
+        calificacion_general: form.calificacion_general,
+        calificacion_producto: form.calificacion_producto || undefined,
+        calificacion_entrega: form.calificacion_entrega || undefined,
+        comentario: form.comentario || undefined,
+      });
+      setExistente(data);
+      addToast('¡Gracias por tu calificación!', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo enviar la calificación', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="up-modal-overlay" onClick={onClose}>
+      <div className="up-modal" onClick={e => e.stopPropagation()}>
+        <div className="up-modal-header">
+          <h3>Calificar {pedido.id}</h3>
+          <button className="up-modal-close" onClick={onClose}>✕</button>
         </div>
+
+        {loading ? (
+          <div style={{ padding: 20 }}><ZLoader size="sm" /></div>
+        ) : existente ? (
+          <div className="up-track-status" style={{ margin: 16 }}>
+            <p>Ya calificaste este pedido con {existente.calificacion_general} <Icon name="estrella" size={14} style={{ verticalAlign: '-2px' }} /></p>
+            {existente.comentario && <p style={{ marginTop: 8 }}>"{existente.comentario}"</p>}
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ padding: '4px 20px 20px' }}>
+            <div className="up-field">
+              <label>Calificación general *</label>
+              <StarPicker value={form.calificacion_general} onChange={v => setForm(p => ({ ...p, calificacion_general: v }))} />
+            </div>
+            <div className="up-field">
+              <label>Productos</label>
+              <StarPicker value={form.calificacion_producto} onChange={v => setForm(p => ({ ...p, calificacion_producto: v }))} />
+            </div>
+            <div className="up-field">
+              <label>Entrega</label>
+              <StarPicker value={form.calificacion_entrega} onChange={v => setForm(p => ({ ...p, calificacion_entrega: v }))} />
+            </div>
+            <div className="up-field">
+              <label>Comentario (opcional)</label>
+              <textarea
+                rows={3}
+                value={form.comentario}
+                onChange={e => setForm(p => ({ ...p, comentario: e.target.value }))}
+                placeholder="¿Cómo fue tu experiencia?"
+              />
+            </div>
+            <button type="submit" className="up-btn-primary" disabled={saving}>
+              {saving ? 'Enviando...' : 'Enviar calificación'}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
 };
 
-/* ── Tarjeta de servicio ────────────────────────────────── */
-const ServicioCard = ({ servicio, onClick }) => {
-  const cat = CATS.find(c => c.id === servicio.categoria);
-  const waUrl = `https://wa.me/57${servicio.whatsapp}?text=${encodeURIComponent(`Hola, vi tu servicio en Zippy y me gustaría obtener más información sobre ${servicio.nombre}.`)}`;
 
-  return (
-    <div className={`sv-card ${!servicio.disponible ? 'sv-card--closed' : ''}`} onClick={onClick}>
-      <div className="sv-card-header" style={{ background: servicio.bg }}>
-        <span className="sv-card-logo"><Icon name={servicio.logo} size={26} strokeWidth={1.4} /></span>
-        <div className="sv-card-badges">
-          {servicio.destacado && <span className="sv-badge-featured"><Icon name="estrella" size={13} /></span>}
-          <span
-            className="sv-badge-cat"
-            style={{ background: servicio.text + '22', color: servicio.text }}
-          >
-            {cat && <Icon name={cat.icon} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />}{cat?.label}
-          </span>
-          <span className={`sv-badge-status ${servicio.disponible ? 'sv-badge-status--open' : 'sv-badge-status--closed'}`}>
-            {servicio.disponible ? 'Abierto' : 'Cerrado'}
-          </span>
+/* ── Línea de estado del pedido ──────────────────────────── */
+const LineaEstado = ({ estado, tieneRepartidor, nombreRepartidor }) => {
+  const actual = indicePaso(estado);
+  const cancelado = estado === 'Cancelado' || estado === 'Rechazado';
+
+  if (cancelado) {
+    return (
+      <div className="up-linea up-linea--cancelado">
+        <Icon name="bloqueado" size={20} />
+        <div>
+          <p className="up-linea-titulo">Pedido {estado.toLowerCase()}</p>
+          <p className="up-linea-detalle">Este pedido ya no está en curso</p>
         </div>
       </div>
+    );
+  }
 
-      <div className="sv-card-body">
-        <h3 className="sv-card-name">{servicio.nombre}</h3>
-        <p className="sv-card-desc">{servicio.descripcion}</p>
+  return (
+    <div className="up-linea">
+      <p className="up-linea-encabezado">Estado de mi pedido</p>
 
-        <div className="sv-card-meta">
-          <span className="sv-card-rating"><Icon name="estrella" size={13} style={{ verticalAlign: '-2px', marginRight: 3 }} />{servicio.calificacion} <span className="sv-card-resenas">({servicio.resenas})</span></span>
-          {servicio.desde > 0 && (
-            <span className="sv-card-desde">Desde ${servicio.desde.toLocaleString('es-CO')}</span>
+      <ol className="up-linea-pasos">
+        {PASOS_PEDIDO.map((paso, i) => {
+          const hecho   = i < actual;
+          const activo  = i === actual;
+          const clase   = hecho ? 'up-paso--hecho' : activo ? 'up-paso--activo' : 'up-paso--pendiente';
+
+          return (
+            <li key={paso.estado} className={`up-paso ${clase}`}>
+              <span className="up-paso-marca">
+                <Icon name={hecho ? 'check' : paso.icon} size={16} />
+              </span>
+              <div className="up-paso-texto">
+                <p className="up-paso-titulo">{paso.titulo}</p>
+                {activo && <p className="up-paso-detalle">{paso.detalle}</p>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className={`up-linea-repartidor ${tieneRepartidor ? 'up-linea-repartidor--si' : ''}`}>
+        <Icon name={tieneRepartidor ? 'repartidores' : 'reloj'} size={16} />
+        <span>
+          {tieneRepartidor
+            ? <><strong>{nombreRepartidor || 'Un repartidor'}</strong> ya tiene tu pedido</>
+            : 'Todavía ningún repartidor ha tomado tu pedido'}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+/* ── Seguimiento de pedido (mapa real + estado real) ──────── */
+const SeguimientoModal = ({ pedido, onClose }) => {
+  const { isLoaded } = useLoadScript({ googleMapsApiKey: MAPS_KEY, libraries: MAPS_LIBRARIES });
+  const [driverPos, setDriverPos] = useState(null);
+  const [destino, setDestino]     = useState(null);
+  const [ubicacion, setUbicacion] = useState(null);
+  const [pasos, setPasos]         = useState([]);
+
+  useEffect(() => {
+    if (!pedido) return;
+    let activo = true;
+    const cargarUbicacion = async () => {
+      try {
+        const { data } = await ordenesService.ubicacionDomiciliario(pedido.idCompleto);
+        if (!activo) return;
+        setUbicacion(data);
+        if (data.lat != null && data.lng != null) setDriverPos({ lat: data.lat, lng: data.lng });
+      } catch { /* sin permiso o sin domiciliario aún */ }
+    };
+    cargarUbicacion();
+    const interval = setInterval(cargarUbicacion, 12000);
+    return () => { activo = false; clearInterval(interval); };
+  }, [pedido]);
+
+  useEffect(() => {
+    if (!pedido) return;
+    let activo = true;
+    ordenesService.seguimiento(pedido.idCompleto)
+      .then(({ data }) => { if (activo) setPasos(data); })
+      .catch(() => { if (activo) setPasos([]); });
+    return () => { activo = false; };
+  }, [pedido]);
+
+  useEffect(() => {
+    if (!pedido || !isLoaded || !window.google || !pedido.direccion) return;
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: `${pedido.direccion}, Garzón, Huila, Colombia` }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const loc = results[0].geometry.location;
+        setDestino({ lat: loc.lat(), lng: loc.lng() });
+      }
+    });
+  }, [pedido, isLoaded]);
+
+  if (!pedido) return null;
+
+  return (
+    <div className="up-modal-overlay" onClick={onClose}>
+      <div className="up-modal" onClick={e => e.stopPropagation()}>
+        <div className="up-modal-header">
+          <h3>Seguimiento {pedido.id}</h3>
+          <button className="up-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="up-track-map">
+          {!MAPS_KEY ? (
+            <div className="up-track-map-msg">Mapa no disponible</div>
+          ) : isLoaded ? (
+            <GoogleMap mapContainerStyle={MAP_STYLE} center={driverPos || destino || GARZON} zoom={14}>
+              {destino   && <Marker position={destino}   label="Destino" />}
+              {driverPos && <Marker position={driverPos} label="Repartidor" />}
+            </GoogleMap>
+          ) : (
+            <div className="up-track-map-msg"><ZLoader size="sm" label="Cargando mapa..." /></div>
           )}
         </div>
 
-        <p className="sv-card-horario"><Icon name="reloj" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{servicio.horario}</p>
-      </div>
+        <LineaEstado
+          estado={pedido.estado}
+          tieneRepartidor={!!ubicacion?.asignado}
+          nombreRepartidor={ubicacion?.domiciliario_nombre}
+        />
 
-      <div className="sv-card-actions" onClick={e => e.stopPropagation()}>
-        <a
-          className="sv-card-btn sv-card-btn--call"
-          href={`tel:${servicio.telefono.replace(/-/g, '')}`}
-        >
-          <Icon name="telefono" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Llamar
-        </a>
-        <a
-          className="sv-card-btn sv-card-btn--wa"
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Icon name="whatsapp" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />WhatsApp
-        </a>
-        <button className="sv-card-btn sv-card-btn--info">Ver más</button>
+        <div className="up-track-status">
+          {ubicacion?.asignado ? (
+            <>
+              <p><Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} /><strong>{ubicacion.domiciliario_nombre || 'Un repartidor'}</strong> va en camino con tu pedido.</p>
+              {ubicacion.domiciliario_telefono && (
+                <a className="up-track-call-btn" href={`tel:${ubicacion.domiciliario_telefono}`}>
+                  <Icon name="telefono" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Llamar al repartidor
+                </a>
+              )}
+            </>
+          ) : pedido.estado === 'En camino' ? (
+            <p><Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tu pedido va en camino.</p>
+          ) : (
+            <p><Icon name="paquete" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tu pedido está siendo preparado. Aún no hay un repartidor asignado.</p>
+          )}
+        </div>
+
+        {ubicacion?.asignado && <OrdenChat ordenId={pedido.idCompleto} />}
+
+        {pasos.length > 0 && (
+          <div className="up-track-steps">
+            {pasos.map(s => (
+              <div key={s.id} className="up-track-step">
+                <span className="up-track-step-dot" />
+                <div>
+                  <p className="up-track-step-label">{PASO_LABEL[s.estado_nuevo] || s.estado_nuevo}</p>
+                  <p className="up-track-step-fecha">{new Date(s.fecha).toLocaleString('es-CO')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-/* ── Página principal ────────────────────────────────────── */
-const ServiciosPage = () => {
-  const navigate = useNavigate();
-  const [catActiva, setCatActiva] = useState('todos');
-  const [query, setQuery] = useState('');
-  const [detalle, setDetalle] = useState(null);
-
-  const [servicios, setServicios] = useState([]);
+/* ── Guardados ───────────────────────────────────────────── */
+const SeccionGuardados = ({ addItem, addToast }) => {
+  const [guardados, setGuardados] = useState([]);
   const [cargando, setCargando]   = useState(true);
 
   useEffect(() => {
-    negociosService.listarServicios()
-      .then(({ data }) => {
-        const lista = Array.isArray(data) ? data : (data.negocios ?? []);
-        setServicios(lista.map(n => ({
-          id: n.id,
-          nombre: n.nombre_negocio,
-          categoria: (n.categoria || 'otro').toLowerCase(),
-          descripcion: n.descripcion || '',
-          cobertura: n.ciudad || 'Garzón',
-          horario: n.horario || 'Horario no especificado',
-          telefono: n.telefono || '',
-          whatsapp: (n.whatsapp || n.telefono || '').replace(/\D/g, ''),
-          desde: n.precio_desde || 0,
-          logo: 'maletin',
-          bg: '#f8fafc',
-          text: '#334155',
-          calificacion: n.calificacion_promedio || 0,
-          resenas: n.total_resenas || 0,
-          destacado: false,
-          abierto: n.estado === 'activo',
-        })));
-      })
-      .catch(() => setServicios([]))
+    clienteService.favoritos()
+      .then(({ data }) => setGuardados(data || []))
+      .catch(() => setGuardados([]))
       .finally(() => setCargando(false));
   }, []);
 
-  const filtrados = servicios.filter(s => {
-    const matchCat = catActiva === 'todos' || s.categoria === catActiva;
-    const matchQ   = !query ||
-      s.nombre.toLowerCase().includes(query.toLowerCase()) ||
-      s.descripcion.toLowerCase().includes(query.toLowerCase());
-    return matchCat && matchQ;
-  });
+  const quitar = async (item) => {
+    try {
+      await clienteService.quitarFavorito(item.producto_id);
+      setGuardados(prev => prev.filter(g => g.id !== item.id));
+      addToast('Producto quitado de guardados', 'success');
+    } catch {
+      addToast('No se pudo quitar el producto', 'error');
+    }
+  };
 
-  const destacados = filtrados.filter(s => s.destacado);
-  const resto      = filtrados.filter(s => !s.destacado);
+  if (cargando) {
+    return <div className="up-empty"><p>Cargando tus productos guardados…</p></div>;
+  }
+
+  return guardados.length === 0 ? (
+    <div className="up-empty">
+      <span><Icon name="corazon" size={40} strokeWidth={1.2} /></span>
+      <p>No tienes productos guardados</p>
+    </div>
+  ) : (
+    <div className="up-saved-grid">
+      {guardados.map(p => (
+        <div key={p.id} className="up-saved-card">
+          <div className="up-saved-photo">
+            {p.foto
+              ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" />
+              : <span><Icon name="paquete" size={26} strokeWidth={1.4} /></span>}
+            <button className="up-saved-remove" onClick={() => quitar(p)}>✕</button>
+          </div>
+          <div className="up-saved-info">
+            <p className="up-saved-name">{p.nombre}</p>
+            <p className="up-saved-tienda">{p.tienda}</p>
+            <p className="up-saved-price">{fmt(p.precio)}</p>
+            <button
+              className="up-saved-add"
+              onClick={() => { addItem(p); addToast(`${p.nombre} agregado`, 'success'); }}
+            >
+              + Agregar al carrito
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* ── Direcciones ─────────────────────────────────────────── */
+const SeccionDirecciones = ({ addToast }) => {
+  const [dirs, setDirs]         = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm]         = useState({ label: '', dir: '', ciudad: 'Garzón' });
+
+  useEffect(() => {
+    clienteService.direcciones()
+      .then(({ data }) => setDirs(data || []))
+      .catch(() => setDirs([]))
+      .finally(() => setCargando(false));
+  }, []);
+
+  const agregar = async (e) => {
+    e.preventDefault();
+    if (!form.label || !form.dir) return;
+    try {
+      const { data } = await clienteService.agregarDireccion({
+        etiqueta: form.label,
+        direccion: form.dir,
+      });
+      setDirs(prev => [...prev.map(d => ({ ...d, principal: data.principal ? false : d.principal })), data]);
+      setForm({ label: '', dir: '', ciudad: 'Garzón' });
+      setShowForm(false);
+      addToast('Dirección agregada', 'success');
+    } catch {
+      addToast('No se pudo guardar la dirección', 'error');
+    }
+  };
+
+  const setPrincipal = async (id) => {
+    try {
+      await clienteService.marcarPrincipal(id);
+      setDirs(prev => prev.map(d => ({ ...d, principal: d.id === id })));
+    } catch {
+      addToast('No se pudo cambiar la dirección principal', 'error');
+    }
+  };
+
+  const eliminar = async (id) => {
+    try {
+      await clienteService.eliminarDireccion(id);
+      setDirs(prev => prev.filter(d => d.id !== id));
+      addToast('Dirección eliminada', 'success');
+    } catch {
+      addToast('No se pudo eliminar la dirección', 'error');
+    }
+  };
+
+  if (cargando) {
+    return <div className="up-empty"><p>Cargando tus direcciones…</p></div>;
+  }
 
   return (
-    <UserLayout>
-      <div className="sv-page">
-
-        {/* Header */}
-        <div className="sv-page-header">
-<div className="sv-title-wrap">
-            <span className="sv-page-icon"><Icon name="herramientas" size={24} /></span>
+    <div className="up-list">
+      {dirs.length === 0 && !showForm && (
+        <div className="up-empty">
+          <span><Icon name="ubicacion" size={40} strokeWidth={1.2} /></span>
+          <p>Aún no tienes direcciones guardadas</p>
+        </div>
+      )}
+      {dirs.map(d => (
+        <div key={d.id} className={`up-addr-card ${d.principal ? 'up-addr-card--main' : ''}`}>
+          <div className="up-addr-top">
             <div>
-              <h1 className="sv-page-title">Servicios locales</h1>
-              <p className="sv-page-sub">Negocios y profesionales de Garzón a tu servicio</p>
+              <span className="up-addr-label">{d.etiqueta || d.label}</span>
+              {d.principal && <span className="up-addr-chip">Principal</span>}
+            </div>
+            <div className="up-addr-actions">
+              {!d.principal && (
+                <button className="up-addr-btn" onClick={() => setPrincipal(d.id)}>Usar</button>
+              )}
+              <button className="up-addr-btn up-addr-btn--del" onClick={() => eliminar(d.id)}>✕</button>
             </div>
           </div>
+          <p className="up-addr-dir"><Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.dir}</p>
+          <p className="up-addr-ciudad">{d.ciudad}</p>
         </div>
+      ))}
 
-        {/* Búsqueda */}
-        <div className="sv-search-wrap">
-          <span className="sv-search-icon"><Icon name="buscar" size={18} /></span>
+      {showForm ? (
+        <form className="up-addr-form" onSubmit={agregar}>
           <input
-            className="sv-search"
-            placeholder="Buscar servicio..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
+            placeholder="Etiqueta (Casa, Trabajo...)"
+            value={form.label}
+            onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
+            required
           />
-          {query && (
-            <button className="sv-search-clear" onClick={() => setQuery('')}>✕</button>
-          )}
-        </div>
+          <input
+            placeholder="Dirección completa"
+            value={form.dir}
+            onChange={e => setForm(p => ({ ...p, dir: e.target.value }))}
+            required
+          />
+          <div className="up-addr-form-row">
+            <button type="submit" className="up-btn-primary">Guardar</button>
+            <button type="button" className="up-btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
+          </div>
+        </form>
+      ) : (
+        <button className="up-add-dir-btn" onClick={() => setShowForm(true)}>
+          + Agregar dirección
+        </button>
+      )}
+    </div>
+  );
+};
 
-        {/* Tabs de categoría */}
-        <div className="sv-cats">
-          {CATS.map(c => (
+/* ── Cuenta ──────────────────────────────────────────────── */
+const SeccionCuenta = ({ addToast }) => {
+  const navigate = useNavigate();
+  const { isDark, toggle } = useTheme();
+  const stored   = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const [form, setForm] = useState({ nombre: stored.nombre || '', telefono: stored.telefono || '' });
+  const [notifs, setNotifs] = useState({ pedidos: true, ofertas: true, guardados: false });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await usuariosService.actualizarPerfil({ nombre: form.nombre, telefono: form.telefono });
+      localStorage.setItem('usuario', JSON.stringify({ ...stored, nombre: form.nombre, telefono: form.telefono }));
+      addToast('Perfil actualizado', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo actualizar el perfil', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('usuario');
+    navigate('/login');
+  };
+
+  return (
+    <div className="up-list">
+      <form className="up-cuenta-card" onSubmit={handleSave}>
+        <p className="up-cuenta-section">Información personal</p>
+        <div className="up-field">
+          <label>Nombre</label>
+          <input value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Tu nombre" />
+        </div>
+        <div className="up-field">
+          <label>Teléfono</label>
+          <input value={form.telefono} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} placeholder="300-000-0000" />
+        </div>
+        <div className="up-field">
+          <label>Email</label>
+          <input type="email" value={stored.email || ''} disabled />
+        </div>
+        <button type="submit" className="up-btn-primary" disabled={saving}>
+          {saving ? 'Guardando...' : '✓ Guardar cambios'}
+        </button>
+      </form>
+
+      <div className="up-cuenta-card">
+        <p className="up-cuenta-section">Notificaciones</p>
+        {[
+          { id: 'pedidos',   label: 'Estado de mis pedidos', desc: 'Cuando tu orden cambia de estado' },
+          { id: 'ofertas',   label: 'Ofertas y promociones', desc: 'Descuentos de tus tiendas favoritas' },
+          { id: 'guardados', label: 'Vuelven al stock',      desc: 'Cuando un guardado vuelve a estar disponible' },
+        ].map(n => (
+          <div key={n.id} className="up-notif-row">
+            <div>
+              <p className="up-notif-label">{n.label}</p>
+              <p className="up-notif-desc">{n.desc}</p>
+            </div>
             <button
-              key={c.id}
-              className={`sv-cat-btn ${catActiva === c.id ? 'sv-cat-btn--active' : ''}`}
-              onClick={() => setCatActiva(c.id)}
+              className={`up-toggle ${notifs[n.id] ? 'up-toggle--on' : ''}`}
+              onClick={() => setNotifs(p => ({ ...p, [n.id]: !p[n.id] }))}
             >
-              <span><Icon name={c.icon} size={17} /></span>
-              <span>{c.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Destacados */}
-        {destacados.length > 0 && (
-          <div className="sv-group">
-            <p className="sv-group-title"><Icon name="estrella" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Destacados</p>
-            <div className="sv-grid">
-              {destacados.map(s => (
-                <ServicioCard key={s.id} servicio={s} onClick={() => setDetalle(s)} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Resto */}
-        {resto.length > 0 && (
-          <div className="sv-group">
-            {destacados.length > 0 && <p className="sv-group-title">Todos los servicios</p>}
-            <div className="sv-grid">
-              {resto.map(s => (
-                <ServicioCard key={s.id} servicio={s} onClick={() => setDetalle(s)} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {cargando && (
-          <div className="sv-empty"><p>Cargando servicios…</p></div>
-        )}
-
-        {!cargando && filtrados.length === 0 && (
-          <div className="sv-empty">
-            <span><Icon name="buscar" size={38} strokeWidth={1.2} /></span>
-            <p>{servicios.length === 0
-              ? 'Todavía no hay servicios registrados en Garzón.'
-              : 'No se encontraron servicios con esos filtros.'}</p>
-            <button className="sv-empty-btn" onClick={() => { setCatActiva('todos'); setQuery(''); }}>
-              Ver todos
+              <span className="up-toggle-thumb" />
             </button>
           </div>
-        )}
+        ))}
+      </div>
 
-        {/* Aviso para proveedores */}
-        <div className="sv-proveedor-cta">
-          <span className="sv-proveedor-icon"><Icon name="maletin" size={18} /></span>
+      <div className="up-cuenta-card">
+        <p className="up-cuenta-section">Apariencia</p>
+        <div className="up-notif-row">
           <div>
-            <p className="sv-proveedor-title">¿Ofreces un servicio?</p>
-            <p className="sv-proveedor-sub">Anúnciate gratis en Zippy y llega a más clientes en Garzón</p>
+            <p className="up-notif-label">Modo oscuro</p>
+            <p className="up-notif-desc">Cambia la apariencia de toda la app</p>
           </div>
-          <a
-            href={`https://wa.me/573001234567?text=${encodeURIComponent('Hola, quiero anunciar mi servicio en Zippy Garzón.')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="sv-proveedor-btn"
+          <button
+            className={`up-toggle ${isDark ? 'up-toggle--on' : ''}`}
+            onClick={() => { toggle(); addToast(isDark ? 'Modo claro activado' : 'Modo oscuro activado', 'info'); }}
           >
-            Registrarme
-          </a>
+            <span className="up-toggle-thumb" />
+          </button>
         </div>
       </div>
 
-      <ServicioModal servicio={detalle} onClose={() => setDetalle(null)} />
+      <button className="up-logout-btn" onClick={handleLogout}>
+        <Icon name="salir" size={17} style={{ verticalAlign: '-3px', marginRight: 7 }} />Cerrar sesión
+      </button>
+    </div>
+  );
+};
+
+/* ── Main page ───────────────────────────────────────────── */
+const UserPanelPage = () => {
+  const navigate    = useNavigate();
+  const { addItem } = useCart();
+  const { addToast }= useToast();
+  const [tab, setTab] = useState('pedidos');
+
+  const [pedidos, setPedidos] = useState([]);
+  const [loadingPedidos, setLoadingPedidos] = useState(true);
+  const [numGuardados, setNumGuardados] = useState(0);
+  const [trackingPedido, setTrackingPedido] = useState(null);
+  const [calificarPedido, setCalificarPedido] = useState(null);
+
+  const usuario  = JSON.parse(localStorage.getItem('usuario') || '{}');
+
+  useEffect(() => {
+    let activo = true;
+    (async () => {
+      try {
+        const { data: ordenesRaw } = await ordenesService.listar();
+
+        const negocioIds  = [...new Set(ordenesRaw.map(o => o.negocio_id))];
+        const productoIds = [...new Set(ordenesRaw.flatMap(o => o.items.map(it => it.producto_id)))];
+
+        const [negociosPairs, productosPairs] = await Promise.all([
+          Promise.all(negocioIds.map(id => negociosService.obtener(id).then(({ data }) => [id, data.nombre_negocio]).catch(() => [id, 'Tienda']))),
+          Promise.all(productoIds.map(id => productosService.obtener(id).then(({ data }) => [id, data.nombre]).catch(() => [id, 'Producto']))),
+        ]);
+        const negociosMap  = Object.fromEntries(negociosPairs);
+        const productosMap = Object.fromEntries(productosPairs);
+
+        const pedidosReales = ordenesRaw.map(o => ({
+          id: `#${o.id.slice(0, 8)}`,
+          idCompleto: o.id,
+          fecha: fmtFecha(o.fecha_creacion),
+          estado: ESTADO_UI[o.estado] || 'Pendiente',
+          items: o.items.map(it => `${productosMap[it.producto_id] || 'Producto'} x${it.cantidad}`).join(', '),
+          total: Number(o.total),
+          tienda: negociosMap[o.negocio_id] || 'Tienda',
+          direccion: o.direccion_entrega,
+        }));
+
+        if (activo) setPedidos(pedidosReales);
+      } catch {
+        if (activo) setPedidos([]);
+      } finally {
+        if (activo) setLoadingPedidos(false);
+      }
+    })();
+    return () => { activo = false; };
+  }, []);
+
+  // Contador de productos guardados para la cabecera
+  useEffect(() => {
+    let activo = true;
+    clienteService.favoritos()
+      .then(({ data }) => { if (activo) setNumGuardados((data || []).length); })
+      .catch(() => { if (activo) setNumGuardados(0); });
+    return () => { activo = false; };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('usuario');
+    navigate('/login');
+  };
+  const inicial  = (usuario.nombre || 'U').charAt(0).toUpperCase();
+  const gastado  = pedidos.filter(p => p.estado === 'Entregado').reduce((s, p) => s + p.total, 0);
+
+  const content = {
+    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} />,
+    guardados:   <SeccionGuardados addItem={addItem} addToast={addToast} />,
+    direcciones: <SeccionDirecciones addToast={addToast} />,
+    cuenta:      <SeccionCuenta addToast={addToast} />,
+    ayuda:       <CentroAyuda perfil="cliente" />,
+  };
+
+  return (
+    <UserLayout>
+      {/* Profile header */}
+      <div className="up-profile">
+        <div className="up-profile-avatar">{inicial}</div>
+        <div className="up-profile-info">
+          <p className="up-profile-name">{usuario.nombre || 'Usuario'}</p>
+          <p className="up-profile-email">{usuario.email || 'usuario@zippy.com'}</p>
+        </div>
+        <div className="up-profile-actions">
+          <button className="up-profile-edit" onClick={() => setTab('cuenta')} aria-label="Editar perfil"><Icon name="editar" size={17} /></button>
+          <button className="up-profile-logout" onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={17} /></button>
+        </div>
+
+        <div className="up-stats">
+          <div className="up-stat">
+            <span className="up-stat-val">{pedidos.length}</span>
+            <span className="up-stat-label">Pedidos</span>
+          </div>
+          <div className="up-stat-div" />
+          <div className="up-stat">
+            <span className="up-stat-val">{fmt(gastado)}</span>
+            <span className="up-stat-label">Gastado</span>
+          </div>
+          <div className="up-stat-div" />
+          <div className="up-stat">
+            <span className="up-stat-val">{numGuardados}</span>
+            <span className="up-stat-label">Guardados</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="up-tabs">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            className={`up-tab ${tab === t.id ? 'up-tab--active' : ''}`}
+            onClick={() => setTab(t.id)}
+          >
+            <span><Icon name={t.icon} size={18} /></span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="up-content">
+        {content[tab]}
+      </div>
+
+      <SeguimientoModal pedido={trackingPedido} onClose={() => setTrackingPedido(null)} />
+      <CalificarModal pedido={calificarPedido} onClose={() => setCalificarPedido(null)} />
     </UserLayout>
   );
 };
 
-export default ServiciosPage;
+export default UserPanelPage;
