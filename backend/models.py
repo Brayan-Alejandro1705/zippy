@@ -151,7 +151,7 @@ class Negocio(Base):
     # Horarios
     hora_apertura = Column(Time)
     hora_cierre = Column(Time)
-    dias_operacion = Column(String(50))
+    dias_operacion = Column(String(100))
     
     # Datos bancarios
     banco = Column(String(100))
