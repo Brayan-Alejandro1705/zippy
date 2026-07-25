@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import '../styles/UserLayout.css';
 import Icon from './Icons';
+import AccountSwitcher from './AccountSwitcher';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
@@ -47,6 +48,8 @@ const UserLayout = ({ children, onSearch }) => {
         <button className="ulo-profile-btn" onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos" aria-label="Mi perfil">
           <Icon name="perfil" size={20} />
         </button>
+
+        <AccountSwitcher variant="icon" />
 
         <button className="ulo-cart-btn" onClick={() => navigate('/tienda/carrito')} aria-label="Carrito">
           <Icon name="carrito" size={20} />

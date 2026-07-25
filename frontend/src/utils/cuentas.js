@@ -33,6 +33,26 @@ export const guardarCuentaActual = () => {
 
 export const listarCuentas = () => leer();
 
+/**
+ * Cuando el access token de la sesión activa se renueva (auto-refresh en
+ * api.js), actualiza también la copia guardada en la lista de cuentas.
+ * Sin esto, al volver a esta cuenta se restauraba un token ya vencido.
+ */
+export const sincronizarAccessToken = (accessToken) => {
+  const usuarioRaw = localStorage.getItem('usuario');
+  if (!usuarioRaw || !accessToken) return;
+
+  let usuario;
+  try { usuario = JSON.parse(usuarioRaw); } catch { return; }
+  if (!usuario?.id) return;
+
+  const lista = leer();
+  const cuenta = lista.find(c => c.usuario.id === usuario.id);
+  if (!cuenta) return;
+  cuenta.access_token = accessToken;
+  escribir(lista);
+};
+
 /** Activa una cuenta guardada como la sesión actual. Devuelve el usuario activado, o null. */
 export const activarCuenta = (usuarioId) => {
   const cuenta = leer().find(c => c.usuario.id === usuarioId);

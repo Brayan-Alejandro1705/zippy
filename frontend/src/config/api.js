@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { sincronizarAccessToken } from '../utils/cuentas';
 
 // ── URLs base ────────────────────────────────────────────────────────────────
 const PROD_API_URL  = 'https://zippy-eedd.onrender.com/api/v1';  // servidor en la nube (Render)
@@ -82,6 +83,7 @@ api.interceptors.response.use(
     try {
       const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken });
       localStorage.setItem('access_token', data.access_token);
+      sincronizarAccessToken(data.access_token); // mantiene al día la copia en "cuentas_guardadas"
       api.defaults.headers.Authorization = `Bearer ${data.access_token}`;
       processQueue(null, data.access_token);
       original.headers.Authorization = `Bearer ${data.access_token}`;

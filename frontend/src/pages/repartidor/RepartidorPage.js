@@ -9,6 +9,7 @@ import CentroAyuda from '../../components/CentroAyuda';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
+import AccountSwitcher from '../../components/AccountSwitcher';
 
 const MAP_OPTIONS = {
   disableDefaultUI: false,
@@ -956,6 +957,7 @@ const RepartidorPage = () => {
             <span className="rp-user-avatar">{(usuario.nombre || 'R').charAt(0).toUpperCase()}</span>
             <span className="rp-user-name">{usuario.nombre || 'Repartidor'}</span>
           </div>
+          <AccountSwitcher variant="icon" />
           <button className="rp-logout" onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={18} /></button>
         </div>
       </header>
