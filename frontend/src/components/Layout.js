@@ -89,6 +89,7 @@ const Layout = ({ children }) => {
   const visibleBottom = BOTTOM_NAV.filter(({ permId }) => canSee(permId, rolKey, matrix));
 
   const handleLogout = () => {
+    if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
     olvidarCuenta(usuario.id);
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');

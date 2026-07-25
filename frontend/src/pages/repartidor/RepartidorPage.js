@@ -873,7 +873,7 @@ const RepartidorPage = () => {
     }
   };
 
-  const handleLogout = () => { localStorage.clear(); navigate('/login'); };
+  const handleLogout = () => { if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return; localStorage.clear(); navigate('/login'); };
 
   const handleReportSubmit = (orden, reason) => {
     setReportedMap(prev => ({ ...prev, [orden.id]: reason }));

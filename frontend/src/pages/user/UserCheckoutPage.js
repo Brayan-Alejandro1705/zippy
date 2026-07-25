@@ -57,12 +57,25 @@ const UserCheckoutPage = () => {
     }
     setLoading(true);
 
-    // El backend crea una orden por negocio: agrupamos el carrito por negocioId
+    // El backend crea una orden por negocio: agrupamos el carrito por negocio.
+    // Segun la pantalla desde donde se agrego, el producto trae 'negocioId'
+    // (mapeado) o 'negocio_id' (crudo del backend). Aceptamos ambos: si solo
+    // miramos uno, los productos agregados desde la otra pantalla quedaban con
+    // clave undefined y el backend rechazaba la orden con 422.
     const porNegocio = {};
+    const sinNegocio = [];
     items.forEach(item => {
-      if (!porNegocio[item.negocioId]) porNegocio[item.negocioId] = [];
-      porNegocio[item.negocioId].push(item);
+      const nid = item.negocioId || item.negocio_id;
+      if (!nid) { sinNegocio.push(item); return; }
+      if (!porNegocio[nid]) porNegocio[nid] = [];
+      porNegocio[nid].push(item);
     });
+
+    if (sinNegocio.length > 0 || Object.keys(porNegocio).length === 0) {
+      setLoading(false);
+      addToast('Un producto del carrito no tiene tienda asociada. Quitalo y vuelve a agregarlo.', 'error');
+      return;
+    }
 
     try {
       await Promise.all(

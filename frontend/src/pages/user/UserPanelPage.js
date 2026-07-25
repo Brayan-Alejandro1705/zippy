@@ -11,6 +11,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, negociosService, productosService, resenasService, usuariosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import '../../styles/UserPanel.css';
+import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
 import { clienteService } from '../../config/api';
 
@@ -424,7 +425,7 @@ const SeccionGuardados = ({ addItem, addToast }) => {
         <div key={p.id} className="up-saved-card">
           <div className="up-saved-photo">
             {p.foto
-              ? <img src={p.foto} alt={p.nombre} />
+              ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" />
               : <span><Icon name="paquete" size={26} strokeWidth={1.4} /></span>}
             <button className="up-saved-remove" onClick={() => quitar(p)}>✕</button>
           </div>
@@ -434,7 +435,7 @@ const SeccionGuardados = ({ addItem, addToast }) => {
             <p className="up-saved-price">{fmt(p.precio)}</p>
             <button
               className="up-saved-add"
-              onClick={() => { addItem(p); addToast(`${p.nombre} agregado`, 'success'); }}
+              onClick={() => { addItem({ ...p, negocioId: p.negocioId || p.negocio_id }); addToast(`${p.nombre} agregado`, 'success'); }}
             >
               + Agregar al carrito
             </button>
@@ -578,6 +579,7 @@ const SeccionCuenta = ({ addToast }) => {
   };
 
   const handleLogout = () => {
+    if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('usuario');
@@ -712,6 +714,7 @@ const UserPanelPage = () => {
   }, []);
 
   const handleLogout = () => {
+    if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('usuario');
