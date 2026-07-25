@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import Icon from './Icons';
+import { urlImagen } from '../utils/media';
 import '../styles/UserProductModal.css';
 
 const Stars = ({ n, size = 14 }) => (
@@ -13,7 +15,7 @@ const Stars = ({ n, size = 14 }) => (
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
-const UserProductModal = ({ producto, grad, emoji, onClose }) => {
+const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
   const { addItem } = useCart();
   const { addToast } = useToast();
   const [qty, setQty] = useState(1);
@@ -37,8 +39,10 @@ const UserProductModal = ({ producto, grad, emoji, onClose }) => {
         </div>
 
         {/* Photo */}
-        <div className="upm-photo" style={{ background: grad }}>
-          <span className="upm-emoji">{emoji}</span>
+        <div className="upm-photo" style={{ background: producto.foto ? '#f1f5f9' : grad }}>
+          {producto.foto
+            ? <img className="upm-photo-img" src={urlImagen(producto.foto)} alt={producto.nombre} />
+            : <span className="upm-emoji"><Icon name={iconName || 'paquete'} size={64} strokeWidth={1.3} /></span>}
           {producto.nuevo && <span className="upm-badge-new">NUEVO</span>}
         </div>
 

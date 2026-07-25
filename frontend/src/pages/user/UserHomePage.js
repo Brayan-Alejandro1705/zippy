@@ -489,6 +489,7 @@ const UserHomePage = () => {
         producto={modalProd}
         grad={modalProd ? getGradient(modalProd.categoria, modalProd.gradIdx) : ''}
         emoji={modalProd ? getIcon(modalProd.categoria) : ''}
+        iconName={modalProd ? getIcon(modalProd.categoria) : 'paquete'}
         onClose={() => setModalProd(null)}
       />
     </UserLayout>
