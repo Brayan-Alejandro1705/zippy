@@ -6,7 +6,7 @@ import { ordenesService, clienteService } from '../../config/api';
 import '../../styles/UserCheckout.css';
 
 const ENVIO_POR_TIENDA = 3000;
-const fmt = n => `$${n.toLocaleString('es-CO')}`;
+const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
 const UserCheckoutPage = () => {
   const navigate = useNavigate();
@@ -45,10 +45,14 @@ const UserCheckoutPage = () => {
   const envioTotal = tiendas.length * ENVIO_POR_TIENDA;
   const total      = subtotal + envioTotal;
 
-  if (items.length === 0) {
-    navigate('/tienda');
-    return null;
-  }
+  // Si el carrito queda vacio (p.ej. tras confirmar), volver a la tienda.
+  // OJO: navigate() no puede llamarse durante el render -> pantalla en blanco.
+  // Por eso va dentro de useEffect y aqui solo cortamos el render con null.
+  useEffect(() => {
+    if (items.length === 0) navigate('/tienda');
+  }, [items.length, navigate]);
+
+  if (items.length === 0) return null;
 
   const handleConfirmar = async () => {
     if (!dirElegida) {

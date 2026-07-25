@@ -11,7 +11,7 @@ from decimal import Decimal
 from datetime import datetime
 
 from config import get_db
-from models import ResenaCalificacion, Orden, Negocio, Usuario
+from models import ResenaCalificacion, Orden, Negocio, Usuario, ItemOrden, Producto
 from schemas import ResenaCreate, ResenaResponse
 from routes_auth import get_current_user
 from notificaciones import enviar_resena_email
@@ -26,6 +26,25 @@ def _recalcular_calificacion_negocio(negocio_id, db: Session):
     negocio = db.query(Negocio).filter(Negocio.id == negocio_id).first()
     if negocio:
         negocio.calificacion_promedio = round(Decimal(str(promedio)), 2) if promedio is not None else Decimal(0)
+
+
+def _recalcular_calificacion_productos(orden, db: Session):
+    """Actualiza el promedio de cada producto que venia en la orden calificada.
+    La reseña es de la orden completa, asi que su calificacion aplica a todos
+    sus productos. Para cada uno se promedia sobre TODAS las resenas de ordenes
+    donde ese producto aparecio."""
+    ids_productos = {item.producto_id for item in orden.items}
+    for pid in ids_productos:
+        promedio = (
+            db.query(func.avg(ResenaCalificacion.calificacion_general))
+            .join(Orden, ResenaCalificacion.orden_id == Orden.id)
+            .join(ItemOrden, ItemOrden.orden_id == Orden.id)
+            .filter(ItemOrden.producto_id == pid)
+            .scalar()
+        )
+        producto = db.query(Producto).filter(Producto.id == pid).first()
+        if producto:
+            producto.calificacion_promedio = round(Decimal(str(promedio)), 2) if promedio is not None else Decimal(0)
 
 @router.post(
     "/",
@@ -82,6 +101,7 @@ async def crear_resena(
     db.flush()
 
     _recalcular_calificacion_negocio(orden.negocio_id, db)
+    _recalcular_calificacion_productos(orden, db)
 
     db.commit()
     db.refresh(resena)

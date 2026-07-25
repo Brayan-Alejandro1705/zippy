@@ -8,7 +8,7 @@ import CentroAyuda from '../../components/CentroAyuda';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
-import { ordenesService, negociosService, productosService, resenasService, usuariosService } from '../../config/api';
+import { ordenesService, negociosService, productosService, resenasService, usuariosService, pedidosEspecialesService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import '../../styles/UserPanel.css';
 import { urlImagen } from '../../utils/media';
@@ -97,18 +97,18 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
                 {p.estado}
               </span>
             </div>
-            <p className="up-order-tienda"><Icon name="vendedores" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{p.tienda}</p>
+            <p className="up-order-tienda"><Icon name={p.esEspecial ? 'rayo' : 'vendedores'} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{p.tienda}</p>
             <p className="up-order-items">{p.items}</p>
             <div className="up-order-bottom">
               <span className="up-order-fecha">{p.fecha}</span>
-              <span className="up-order-total">{fmt(p.total)}</span>
+              {p.total != null && <span className="up-order-total">{fmt(p.total)}</span>}
             </div>
             {!['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
               <button className="up-track-btn" onClick={() => onTrack(p)}>
                 <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
               </button>
             )}
-            {p.estado === 'Entregado' && (
+            {p.estado === 'Entregado' && !p.esEspecial && (
               <button className="up-track-btn" onClick={() => onCalificar(p)}>
                 <Icon name="estrella" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Calificar pedido
               </button>
@@ -671,7 +671,15 @@ const UserPanelPage = () => {
     let activo = true;
     (async () => {
       try {
-        const { data: ordenesRaw } = await ordenesService.listar();
+        // Ordenes normales y pedidos especiales en paralelo. Los especiales
+        // se guardaban bien (201) pero nunca se consultaban aqui, por eso no
+        // aparecian en la pestana de Pedidos.
+        const [ordenesRes, especialesRes] = await Promise.all([
+          ordenesService.listar(),
+          pedidosEspecialesService.misPedidos().catch(() => ({ data: [] })),
+        ]);
+        const ordenesRaw    = ordenesRes.data;
+        const especialesRaw = Array.isArray(especialesRes.data) ? especialesRes.data : (especialesRes.data?.items || []);
 
         const negocioIds  = [...new Set(ordenesRaw.map(o => o.negocio_id))];
         const productoIds = [...new Set(ordenesRaw.flatMap(o => o.items.map(it => it.producto_id)))];
@@ -687,6 +695,7 @@ const UserPanelPage = () => {
           id: `#${o.id.slice(0, 8)}`,
           idCompleto: o.id,
           fecha: fmtFecha(o.fecha_creacion),
+          fechaRaw: o.fecha_creacion,
           estado: ESTADO_UI[o.estado] || 'Pendiente',
           items: o.items.map(it => `${productosMap[it.producto_id] || 'Producto'} x${it.cantidad}`).join(', '),
           total: Number(o.total),
@@ -694,7 +703,24 @@ const UserPanelPage = () => {
           direccion: o.direccion_entrega,
         }));
 
-        if (activo) setPedidos(pedidosReales);
+        const especialesUI = especialesRaw.map(e => ({
+          id: `#${e.id.slice(0, 8)}`,
+          idCompleto: e.id,
+          fecha: fmtFecha(e.fecha_creacion),
+          fechaRaw: e.fecha_creacion,
+          estado: ESTADO_UI[e.estado] || 'Pendiente',
+          items: (e.items || []).map(it => `${it.descripcion}${it.cantidad ? ` x${it.cantidad}` : ''}`).join(', ') || 'Pedido especial',
+          total: null,               // los especiales no tienen precio fijo
+          tienda: 'Pedido especial',
+          direccion: e.direccion,
+          esEspecial: true,
+        }));
+
+        const todos = [...pedidosReales.map(p => ({ ...p, fechaRaw: p.fechaRaw }))]
+          .concat(especialesUI)
+          .sort((a, b) => new Date(b.fechaRaw || 0) - new Date(a.fechaRaw || 0));
+
+        if (activo) setPedidos(todos);
       } catch {
         if (activo) setPedidos([]);
       } finally {
