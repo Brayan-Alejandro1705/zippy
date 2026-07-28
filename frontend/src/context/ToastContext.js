@@ -23,8 +23,25 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const addToast = useCallback((message, type = 'success', duration = 3500) => {
+    // 'message' deberia ser siempre un string, pero varios catch() de la app
+    // pasan err.response?.data?.detail directo -- y en un 422 de validacion
+    // de FastAPI/Pydantic, 'detail' es una LISTA de objetos {type,loc,msg,...},
+    // no un string. Renderizar eso directo en el <span> de abajo tumbaba toda
+    // la app (React no puede pintar un objeto como hijo). Lo normalizamos aca,
+    // en un solo lugar, para que ningun catch() en ninguna pantalla vuelva a
+    // provocar esto.
+    let texto = message;
+    if (typeof message !== 'string') {
+      if (Array.isArray(message)) {
+        texto = message.map(m => (m && m.msg) ? m.msg : JSON.stringify(m)).join(' · ');
+      } else if (message && typeof message === 'object') {
+        texto = message.msg || message.detail || JSON.stringify(message);
+      } else {
+        texto = String(message);
+      }
+    }
     const id = Date.now() + Math.random();
-    setToasts(prev => [...prev, { id, message, type }]);
+    setToasts(prev => [...prev, { id, message: texto, type }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
   }, []);
 

@@ -102,6 +102,14 @@ class Settings:
     # Verificación de cuenta
     CODIGO_VERIFICACION_MINUTOS = int(os.getenv("CODIGO_VERIFICACION_MINUTOS", 15))
 
+    # Supabase Storage (imágenes de productos). Reemplaza el guardado en disco
+    # local: Render borra el disco en cada redeploy/reinicio (plan free), asi
+    # que las fotos "desaparecian" con cada push a main. Supabase Storage
+    # persiste independientemente del backend.
+    SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+    SUPABASE_BUCKET_PRODUCTOS = os.getenv("SUPABASE_BUCKET_PRODUCTOS", "productos")
+
 # Instancia global de settings
 settings = Settings()
 

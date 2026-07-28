@@ -31,7 +31,7 @@ const UserCheckoutPage = () => {
         if (!activo) return;
         const lista = Array.isArray(data) ? data : (data?.items || []);
         setDirecciones(lista);
-        const principal = lista.find(d => d.es_predeterminada) || lista[0];
+        const principal = lista.find(d => d.principal) || lista[0];
         if (principal) setDirId(principal.id);
       })
       .catch(() => { if (activo) setDirecciones([]); })
@@ -88,7 +88,7 @@ const UserCheckoutPage = () => {
             negocio_id,
             items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty })),
             metodo_pago: pago,
-            direccion_entrega: dirElegida.direccion,
+            direccion_entrega: dirElegida.dir,
             notas_cliente: nota || undefined,
           })
         )
@@ -97,7 +97,19 @@ const UserCheckoutPage = () => {
       addToast('¡Orden confirmada! Recibirás un correo de confirmación.', 'success');
       navigate('/tienda/perfil');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'No se pudo confirmar la orden. Intenta de nuevo.';
+      const detail = err.response?.data?.detail;
+      let msg = 'No se pudo confirmar la orden. Intenta de nuevo.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        // Error 422 de validación de FastAPI/Pydantic: detail es una lista de
+        // objetos {type, loc, msg, input, url}, no un string. Antes esto se
+        // pasaba directo a addToast() y React tumbaba toda la app al intentar
+        // renderizar un objeto como hijo (por eso la pantalla se ponia en blanco).
+        msg = detail.map(d => d.msg || JSON.stringify(d)).join(' · ');
+        // eslint-disable-next-line no-console
+        console.error('Detalle completo del error 422 al confirmar orden:', detail);
+      }
       addToast(msg, 'error');
     } finally {
       setLoading(false);
@@ -164,8 +176,8 @@ const UserCheckoutPage = () => {
                   />
                   <span>
                     <strong>{d.etiqueta || 'Direccion'}</strong>
-                    <em>{d.direccion}</em>
-                    {d.referencia_adicional && <small>{d.referencia_adicional}</small>}
+                    <em>{d.dir}</em>
+                    {d.referencia && <small>{d.referencia}</small>}
                   </span>
                 </label>
               ))}

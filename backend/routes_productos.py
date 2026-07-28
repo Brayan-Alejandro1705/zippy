@@ -16,6 +16,7 @@ from config import get_db
 from models import Producto, Negocio, Usuario
 from schemas import ProductoCreate, ProductoUpdate, ProductoResponse, OfertaCreate
 from routes_auth import get_current_user
+from storage_supabase import subir_archivo, SupabaseStorageError
 
 router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
 
@@ -66,13 +67,26 @@ async def subir_imagen_producto(
         )
 
     nombre_archivo = f"{uuid.uuid4()}{extension}"
-    ruta_destino = os.path.join(UPLOAD_DIR, nombre_archivo)
 
     contenido = await file.read()
-    with open(ruta_destino, "wb") as destino:
-        destino.write(contenido)
 
-    return {"url": f"/uploads/productos/{nombre_archivo}"}
+    content_type_map = {
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".png": "image/png", ".webp": "image/webp",
+    }
+    try:
+        url = subir_archivo(
+            contenido,
+            nombre_archivo,
+            content_type_map.get(extension, "application/octet-stream"),
+        )
+    except SupabaseStorageError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        )
+
+    return {"url": url}
 
 # ============================================================================
 # ENDPOINTS: CRUD DE PRODUCTOS
