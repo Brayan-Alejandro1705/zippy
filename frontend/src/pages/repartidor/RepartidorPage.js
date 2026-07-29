@@ -931,7 +931,8 @@ const RepartidorPage = () => {
   const entregadasHoy = ordenes.filter(o => o.estado === 'entregada' && esHoy(o.fechaCreacion));
   const activeOrden  = enCamino[0];
   const ganado    = entregadasHoy.reduce((s, o) => s + o.total * COMISION_PCT, 0);
-  const activasCount = disponibles.length + enCamino.length;
+  const especialesActivos = pedidosEspeciales.filter(p => p.estado !== 'entregada');
+  const activasCount = disponibles.length + enCamino.length + especialesActivos.length;
 
   return (
     <div className="rp-page">
@@ -1054,11 +1055,18 @@ const RepartidorPage = () => {
               <p className="rp-offline-sub">Esperando nuevos pedidos...</p>
             </div>
           ) : (
-            [...enCamino, ...disponibles].map(o => (
+            [
+              ...enCamino.map(o => ({ tipo: 'normal', data: o })),
+              ...especialesActivos.filter(p => p.estado === 'en_camino').map(p => ({ tipo: 'especial', data: p })),
+              ...disponibles.map(o => ({ tipo: 'normal', data: o })),
+              ...especialesActivos.filter(p => p.estado === 'disponible').map(p => ({ tipo: 'especial', data: p })),
+            ].map(item => item.tipo === 'normal' ? (
               <OrdenCard
-                key={o.id} orden={o} onAvanzar={avanzar} onSelect={setSelected} selected={selected}
-                onReport={setReportTarget} reported={reportedMap[o.id]} onChat={setChatOrden}
+                key={item.data.id} orden={item.data} onAvanzar={avanzar} onSelect={setSelected} selected={selected}
+                onReport={setReportTarget} reported={reportedMap[item.data.id]} onChat={setChatOrden}
               />
+            ) : (
+              <PedidoEspecialCard key={item.data.id} pedido={item.data} onAdvance={advanceEspecial} />
             ))
           )}
 
@@ -1070,20 +1078,6 @@ const RepartidorPage = () => {
                   key={o.id} orden={o} onAvanzar={avanzar} onSelect={setSelected} selected={selected}
                   onReport={setReportTarget} reported={reportedMap[o.id]}
                 />
-              ))}
-            </>
-          )}
-
-          {/* Pedidos especiales (todavía locales, sin backend) */}
-          {pedidosEspeciales.length > 0 && (
-            <>
-              <div className="rp-especial-header">
-                <span className="rp-especial-header-icon"><Icon name="solicitudes" size={18} /></span>
-                <p className="rp-done-title" style={{ margin: 0 }}>Pedidos especiales</p>
-                <span className="rp-orders-count" style={{ background: '#8b5cf6' }}>{pedidosEspeciales.filter(p => p.estado !== 'entregada').length}</span>
-              </div>
-              {pedidosEspeciales.map(p => (
-                <PedidoEspecialCard key={p.id} pedido={p} onAdvance={advanceEspecial} />
               ))}
             </>
           )}
