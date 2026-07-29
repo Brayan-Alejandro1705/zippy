@@ -580,7 +580,7 @@ const PATHS = {
   ),
 };
 
-export const Icon = ({ name, size = 20, strokeWidth = 1.7, className = '', style }) => {
+export const Icon = ({ name, size = 20, strokeWidth = 1.7, className = '', style, filled = false }) => {
   const path = PATHS[name];
   if (!path) return null;
 
@@ -591,7 +591,7 @@ export const Icon = ({ name, size = 20, strokeWidth = 1.7, className = '', style
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? 'currentColor' : 'none'}
       stroke="currentColor"
       strokeWidth={strokeWidth}
       strokeLinecap="round"

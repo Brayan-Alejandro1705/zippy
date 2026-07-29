@@ -4,7 +4,7 @@ import UserLayout from '../../components/UserLayout';
 import UserProductModal from '../../components/UserProductModal';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { productosService, negociosService } from '../../config/api';
+import { productosService, negociosService, clienteService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/UserHome.css';
 import { urlImagen } from '../../utils/media';
@@ -138,6 +138,18 @@ const UserHomePage = () => {
     return () => { activo = false; };
   }, []);
 
+  useEffect(() => {
+    let activo = true;
+    clienteService.favoritos()
+      .then(({ data }) => {
+        if (!activo) return;
+        const lista = Array.isArray(data) ? data : (data?.items || []);
+        setSaved(new Set(lista.map(p => p.producto_id || p.id)));
+      })
+      .catch(() => { if (activo) setSaved(new Set()); });
+    return () => { activo = false; };
+  }, []);
+
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
   const hora    = new Date().getHours();
   const saludo  = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
@@ -166,7 +178,20 @@ const UserHomePage = () => {
     });
 
   const handleAdd = p => { addItem(p); addToast(`${p.nombre} agregado al carrito`, 'success'); };
-  const toggleSave = id => setSaved(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const toggleSave = (id) => {
+    const yaGuardado = saved.has(id);
+    // Actualizacion optimista: refleja el cambio ya mismo en la UI...
+    setSaved(prev => { const s = new Set(prev); yaGuardado ? s.delete(id) : s.add(id); return s; });
+    // ...y lo confirma contra el backend. Antes esto NUNCA se guardaba de
+    // verdad: solo cambiaba un estado local de React que se perdia al
+    // recargar, por eso "Guardados" en el perfil siempre aparecia vacio.
+    const peticion = yaGuardado ? clienteService.quitarFavorito(id) : clienteService.agregarFavorito(id);
+    peticion.catch(() => {
+      // Si falla, revierte el cambio optimista.
+      setSaved(prev => { const s = new Set(prev); yaGuardado ? s.add(id) : s.delete(id); return s; });
+      addToast('No se pudo actualizar guardados', 'error');
+    });
+  };
   const inCart  = id => items.some(i => i.id === id);
   const cartQty = id => items.find(i => i.id === id)?.qty || 0;
 
@@ -466,7 +491,7 @@ const UserHomePage = () => {
                           <button
                             className={`uh-btn-save ${saved.has(p.id) ? 'uh-btn-save--on' : ''}`}
                             onClick={() => toggleSave(p.id)}
-                          ><Icon name="corazon" size={18} /></button>
+                          ><Icon name="corazon" size={18} filled={saved.has(p.id)} /></button>
                           <button
                             className={`uh-btn-cart ${inCart(p.id) ? 'uh-btn-cart--added' : ''}`}
                             onClick={() => handleAdd(p)}
