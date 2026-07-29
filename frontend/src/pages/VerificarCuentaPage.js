@@ -20,6 +20,7 @@ const VerificarCuentaPage = () => {
 
   const [email]  = useState(state.email || '');
   const [metodo] = useState(state.metodo || 'email');
+  const [tipoUsuario] = useState(state.tipo_usuario || '');
   const [codigo, setCodigo] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -54,7 +55,7 @@ const VerificarCuentaPage = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await authService.verificarCodigo(email, codigo.trim());
+      const { data } = await authService.verificarCodigo(email, codigo.trim(), tipoUsuario);
       localStorage.setItem('access_token',  data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
       localStorage.setItem('usuario',       JSON.stringify(data.usuario));
@@ -72,7 +73,7 @@ const VerificarCuentaPage = () => {
     setError('');
     setInfo('');
     try {
-      const { data } = await authService.reenviarCodigo(email, metodo);
+      const { data } = await authService.reenviarCodigo(email, metodo, tipoUsuario);
       setInfo(data.mensaje);
       setCooldown(RESEND_COOLDOWN);
     } catch (err) {

@@ -102,9 +102,9 @@ def get_current_user(
             settings.SECRET_KEY, 
             algorithms=[settings.ALGORITHM]
         )
-        email: str = payload.get("sub")
+        user_id: str = payload.get("sub")
         
-        if email is None:
+        if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token inválido",
@@ -118,7 +118,13 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"}
         )
     
-    user = db.query(Usuario).filter(Usuario.email == email).first()
+    # El 'sub' del token es el id del usuario (no el email): un mismo email
+    # puede pertenecer a varias cuentas (una por rol), asi que el id es lo
+    # unico que identifica exactamente la cuenta con la que se inicio sesion.
+    try:
+        user = db.query(Usuario).filter(Usuario.id == user_id).first()
+    except Exception:
+        user = None
     
     if user is None:
         raise HTTPException(
@@ -269,12 +275,15 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
     - **password**: Contraseña del usuario
     """
     
-    # Buscar usuario
-    usuario = db.query(Usuario).filter(
-        Usuario.email == credenciales.email
-    ).first()
-    
-    if not usuario or not verify_password(credenciales.password, usuario.password_hash):
+    # Un mismo correo puede tener varias cuentas (una por rol: cliente,
+    # vendedor, domiciliario...). Antes esto tomaba solo la primera que
+    # encontraba con ese correo (.first()), lo que a veces autenticaba a la
+    # persona contra la cuenta equivocada. Ahora se prueba la contraseña
+    # contra cada cuenta de ese correo hasta encontrar la que coincide.
+    candidatos = db.query(Usuario).filter(Usuario.email == credenciales.email).all()
+    usuario = next((u for u in candidatos if verify_password(credenciales.password, u.password_hash)), None)
+
+    if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos"
@@ -297,9 +306,10 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
             detail=f"Usuario {usuario.estado}"
         )
     
-    # Crear tokens
-    access_token = create_access_token(data={"sub": usuario.email})
-    refresh_token = create_refresh_token(data={"sub": usuario.email})
+    # Crear tokens. Se usa el id (no el email) como 'sub' porque el email
+    # puede pertenecer a varias cuentas -- el id identifica exactamente cual.
+    access_token = create_access_token(data={"sub": str(usuario.id)})
+    refresh_token = create_refresh_token(data={"sub": str(usuario.id)})
     
     return LoginResponse(
         access_token=access_token,
@@ -317,8 +327,19 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
 async def verificar_codigo(datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
     codigo = (datos.get("codigo") or "").strip()
+    tipo_usuario = (datos.get("tipo_usuario") or "").strip()
 
-    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    # Un mismo correo puede tener varias cuentas (una por rol), asi que filtrar
+    # solo por email no basta -- eso hacia que a veces se verificara y devolviera
+    # una cuenta distinta (ej. la de cliente en vez de la de vendedor recien
+    # creada). Se prioriza la cuenta sin verificar que coincida con el rol
+    # indicado, y si no se indica rol, la mas reciente sin verificar.
+    query = db.query(Usuario).filter(Usuario.email == email, Usuario.es_verificado == False)
+    if tipo_usuario:
+        query = query.filter(Usuario.tipo_usuario == tipo_usuario)
+    usuario = query.order_by(Usuario.fecha_creacion.desc()).first()
+    if not usuario:
+        usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if not usuario:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
@@ -337,8 +358,8 @@ async def verificar_codigo(datos: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(usuario)
 
-    access_token = create_access_token(data={"sub": usuario.email})
-    refresh_token = create_refresh_token(data={"sub": usuario.email})
+    access_token = create_access_token(data={"sub": str(usuario.id)})
+    refresh_token = create_refresh_token(data={"sub": str(usuario.id)})
 
     return LoginResponse(
         access_token=access_token,
@@ -355,8 +376,14 @@ async def verificar_codigo(datos: dict, db: Session = Depends(get_db)):
 )
 async def reenviar_codigo(datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
+    tipo_usuario = (datos.get("tipo_usuario") or "").strip()
 
-    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    query = db.query(Usuario).filter(Usuario.email == email, Usuario.es_verificado == False)
+    if tipo_usuario:
+        query = query.filter(Usuario.tipo_usuario == tipo_usuario)
+    usuario = query.order_by(Usuario.fecha_creacion.desc()).first()
+    if not usuario:
+        usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if not usuario:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
@@ -404,9 +431,9 @@ async def refresh_token(datos: TokenRefresh, db: Session = Depends(get_db)):
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM]
         )
-        email: str = payload.get("sub")
+        user_id: str = payload.get("sub")
         
-        if email is None:
+        if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token inválido"
@@ -418,7 +445,7 @@ async def refresh_token(datos: TokenRefresh, db: Session = Depends(get_db)):
             detail="Token expirado"
         )
     
-    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
     
     if not usuario:
         raise HTTPException(
@@ -427,7 +454,7 @@ async def refresh_token(datos: TokenRefresh, db: Session = Depends(get_db)):
         )
     
     # Crear nuevo access token
-    new_access_token = create_access_token(data={"sub": usuario.email})
+    new_access_token = create_access_token(data={"sub": str(usuario.id)})
     
     return {
         "access_token": new_access_token,

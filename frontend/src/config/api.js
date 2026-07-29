@@ -107,8 +107,8 @@ export const authService = {
   registro: (datos) => api.post('/auth/registro', datos),
   me:       () => api.get('/auth/me'),
   logout:   () => api.post('/auth/logout'),
-  verificarCodigo: (email, codigo) => api.post('/auth/verificar-codigo', { email, codigo }),
-  reenviarCodigo:  (email, metodo_verificacion) => api.post('/auth/reenviar-codigo', { email, metodo_verificacion }),
+  verificarCodigo: (email, codigo, tipo_usuario) => api.post('/auth/verificar-codigo', { email, codigo, tipo_usuario }),
+  reenviarCodigo:  (email, metodo_verificacion, tipo_usuario) => api.post('/auth/reenviar-codigo', { email, metodo_verificacion, tipo_usuario }),
 };
 
 export const pedidosEspecialesService = {
