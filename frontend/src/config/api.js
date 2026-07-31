@@ -103,7 +103,7 @@ export default api;
 // ── Servicios ─────────────────────────────────────────────────────────────────
 
 export const authService = {
-  login:    (email, password) => api.post('/auth/login', { email, password }),
+  login:    (email, password, tipo_usuario) => api.post('/auth/login', { email, password, tipo_usuario }),
   registro: (datos) => api.post('/auth/registro', datos),
   me:       () => api.get('/auth/me'),
   logout:   () => api.post('/auth/logout'),

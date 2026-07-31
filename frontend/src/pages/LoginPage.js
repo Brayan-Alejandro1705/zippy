@@ -5,6 +5,13 @@ import { guardarCuentaActual } from '../utils/cuentas';
 import ZLoader from '../components/ZLoader';
 import '../styles/LoginPage.css';
 
+const ETIQUETA_ROL = {
+  cliente:      'Cliente',
+  vendedor:     'Vendedor',
+  domiciliario: 'Repartidor',
+  admin:        'Administrador',
+};
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const [email, setEmail]       = useState('');
@@ -13,6 +20,10 @@ const LoginPage = () => {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [shake, setShake]       = useState(false);
+  // Cuando el correo tiene varias cuentas con la misma clave, el backend
+  // responde 409 con la lista de roles en vez de adivinar. Aqui se guardan
+  // para pintar el selector.
+  const [cuentas, setCuentas]   = useState(null);
 
   const triggerShake = () => {
     setShake(true);
@@ -26,13 +37,11 @@ const LoginPage = () => {
     return navigate('/tienda');
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!email || !password) { setError('Completa todos los campos'); triggerShake(); return; }
+  const entrar = async (tipoElegido) => {
     setLoading(true);
     setError('');
     try {
-      const response = await authService.login(email, password);
+      const response = await authService.login(email, password, tipoElegido);
       guardarCuentaActual(); // conserva la sesión que estaba activa antes de este login
       localStorage.setItem('access_token',  response.data.access_token);
       localStorage.setItem('refresh_token', response.data.refresh_token);
@@ -45,11 +54,22 @@ const LoginPage = () => {
         navigate('/verificar', { state: { email, metodo: detail.metodo_verificacion } });
         return;
       }
+      if (detail && typeof detail === 'object' && detail.code === 'MULTIPLE_CUENTAS') {
+        setCuentas(detail.cuentas || []);
+        return;
+      }
       setError((typeof detail === 'string' && detail) || 'Credenciales incorrectas');
       triggerShake();
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!email || !password) { setError('Completa todos los campos'); triggerShake(); return; }
+    setCuentas(null);
+    entrar();
   };
 
   return (
@@ -136,6 +156,23 @@ const LoginPage = () => {
               </button>
             </div>
           </div>
+
+          {cuentas && (
+            <div className="lp-cuentas">
+              <p className="lp-cuentas-title">Este correo tiene varias cuentas. ¿Con cuál quieres entrar?</p>
+              {cuentas.map(c => (
+                <button
+                  key={c.tipo_usuario}
+                  type="button"
+                  className="lp-cuenta-btn"
+                  disabled={loading}
+                  onClick={() => entrar(c.tipo_usuario)}
+                >
+                  {ETIQUETA_ROL[c.tipo_usuario] || c.tipo_usuario}
+                </button>
+              ))}
+            </div>
+          )}
 
           <button type="submit" className="lp-submit" disabled={loading}>
             {loading ? <ZLoader size="sm" inverted /> : <><span>Iniciar sesión</span><span className="lp-arrow">→</span></>}

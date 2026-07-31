@@ -364,6 +364,9 @@ class DireccionResponse(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    # Opcional. Solo lo manda el front cuando el correo tiene varias cuentas y
+    # la persona ya eligio con cual entrar.
+    tipo_usuario: Optional[str] = None
 
 class LoginResponse(BaseModel):
     access_token: str

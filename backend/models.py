@@ -4,7 +4,7 @@
 
 from sqlalchemy import (
     Column, String, Integer, Float, DateTime, Boolean, Text, 
-    ForeignKey, Numeric, Time, JSON, CheckConstraint,
+    ForeignKey, Numeric, Time, JSON, CheckConstraint, UniqueConstraint,
     DECIMAL, Enum as SQLEnum
 )
 from sqlalchemy.dialects.postgresql import INET
@@ -78,8 +78,16 @@ class TipoTransaccion(str, enum.Enum):
 class Usuario(Base):
     __tablename__ = "usuarios"
 
+    # El correo NO es unico por si solo: una misma persona puede tener cuenta de
+    # cliente y de vendedor con el mismo correo. Lo unico es la pareja
+    # (email, tipo_usuario). Tenerlo como unique=True en la columna era lo que
+    # contradecia al resto del codigo, que si asume varias cuentas por correo.
+    __table_args__ = (
+        UniqueConstraint("email", "tipo_usuario", name="uq_usuarios_email_tipo"),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email = Column(String(255), unique=True, nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     nombre = Column(String(150), nullable=False)
     apellido = Column(String(150), nullable=False)

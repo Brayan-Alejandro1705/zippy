@@ -434,3 +434,36 @@
   .lp-card { padding: 36px 28px 32px; }
   .lp-title { font-size: 22px; }
 }
+
+/* Selector de cuenta cuando un correo tiene varias (cliente + vendedor, etc.) */
+.lp-cuentas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  margin-bottom: 4px;
+  border: 1.5px solid #FFD9B3;
+  border-radius: 12px;
+  background: #FFF7EF;
+}
+.lp-cuentas-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #7A4A12;
+  line-height: 1.35;
+}
+.lp-cuenta-btn {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #FF7A00;
+  border-radius: 10px;
+  background: #fff;
+  color: #FF7A00;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lp-cuenta-btn:hover:not(:disabled) { background: #FF7A00; color: #fff; }
+.lp-cuenta-btn:disabled { opacity: 0.6; cursor: default; }

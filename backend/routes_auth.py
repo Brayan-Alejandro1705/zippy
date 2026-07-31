@@ -157,17 +157,30 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     - **password**: Contraseña (mín 8 caracteres, 1 mayúscula, 1 número)
     """
     
-    # Verificar si el usuario ya existe
+    # Validar tipo de usuario ANTES de buscar duplicados: la busqueda de
+    # duplicados depende del tipo, asi que no puede ir despues.
+    tipos_validos = ["cliente", "vendedor", "domiciliario", "admin"]
+    if usuario.tipo_usuario not in tipos_validos:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tipo de usuario inválido. Válidos: {tipos_validos}"
+        )
+
+    # Un correo puede repetirse mientras el ROL sea distinto. Antes esto
+    # filtraba solo por email, asi que un cliente ya verificado nunca podia
+    # registrarse tambien como vendedor: le salia "El email ya esta registrado".
+    # Eso mataba el multi-cuenta en la puerta de entrada.
     usuario_existente = db.query(Usuario).filter(
-        Usuario.email == usuario.email
+        Usuario.email == usuario.email,
+        Usuario.tipo_usuario == usuario.tipo_usuario
     ).first()
 
     if usuario_existente:
         if usuario_existente.es_verificado:
-            # Cuenta real y confirmada: no se puede reusar el correo
+            # Ya tiene una cuenta de ESTE rol con ese correo
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El email ya está registrado"
+                detail="Ya tienes una cuenta de este tipo con ese correo"
             )
 
         # Cuenta nunca verificada: solo se libera el correo si el código ya expiró.
@@ -190,14 +203,6 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         db.delete(usuario_existente)
         db.commit()
 
-    
-    # Validar tipo de usuario
-    tipos_validos = ["cliente", "vendedor", "domiciliario", "admin"]
-    if usuario.tipo_usuario not in tipos_validos:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Tipo de usuario inválido. Válidos: {tipos_validos}"
-        )
     
     codigo = generar_codigo()
 
@@ -275,19 +280,39 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
     - **password**: Contraseña del usuario
     """
     
-    # Un mismo correo puede tener varias cuentas (una por rol: cliente,
-    # vendedor, domiciliario...). Antes esto tomaba solo la primera que
-    # encontraba con ese correo (.first()), lo que a veces autenticaba a la
-    # persona contra la cuenta equivocada. Ahora se prueba la contraseña
-    # contra cada cuenta de ese correo hasta encontrar la que coincide.
+    # Un mismo correo puede tener varias cuentas (una por rol). Se prueba la
+    # contrasena contra todas y se recogen TODAS las que coinciden, no la
+    # primera: si la persona usa la misma clave para su cuenta de cliente y la
+    # de vendedor (lo normal), quedarse con la primera entraba a un rol u otro
+    # al azar, porque Postgres no garantiza el orden de un SELECT sin ORDER BY.
     candidatos = db.query(Usuario).filter(Usuario.email == credenciales.email).all()
-    usuario = next((u for u in candidatos if verify_password(credenciales.password, u.password_hash)), None)
+    coincidencias = [u for u in candidatos if verify_password(credenciales.password, u.password_hash)]
 
-    if not usuario:
+    # Si el front ya sabe a que rol quiere entrar, se filtra por el
+    if credenciales.tipo_usuario:
+        coincidencias = [u for u in coincidencias if u.tipo_usuario == credenciales.tipo_usuario]
+
+    if not coincidencias:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos"
         )
+
+    # Varias cuentas con ese correo y esa clave: no se adivina, se le pregunta.
+    if len(coincidencias) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "MULTIPLE_CUENTAS",
+                "mensaje": "Este correo tiene varias cuentas. Elige con cuál quieres entrar.",
+                "cuentas": [
+                    {"tipo_usuario": u.tipo_usuario, "nombre": u.nombre}
+                    for u in coincidencias
+                ],
+            }
+        )
+
+    usuario = coincidencias[0]
 
     if not usuario.es_verificado:
         raise HTTPException(
@@ -338,7 +363,10 @@ async def verificar_codigo(datos: dict, db: Session = Depends(get_db)):
     if tipo_usuario:
         query = query.filter(Usuario.tipo_usuario == tipo_usuario)
     usuario = query.order_by(Usuario.fecha_creacion.desc()).first()
-    if not usuario:
+    # El fallback solo aplica cuando NO se indico rol. Si el front dijo
+    # "vendedor" y no hay vendedor pendiente, caer a cualquier cuenta del correo
+    # significaba verificar o reenviarle el codigo a la cuenta equivocada.
+    if not usuario and not tipo_usuario:
         usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if not usuario:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
@@ -382,7 +410,10 @@ async def reenviar_codigo(datos: dict, db: Session = Depends(get_db)):
     if tipo_usuario:
         query = query.filter(Usuario.tipo_usuario == tipo_usuario)
     usuario = query.order_by(Usuario.fecha_creacion.desc()).first()
-    if not usuario:
+    # El fallback solo aplica cuando NO se indico rol. Si el front dijo
+    # "vendedor" y no hay vendedor pendiente, caer a cualquier cuenta del correo
+    # significaba verificar o reenviarle el codigo a la cuenta equivocada.
+    if not usuario and not tipo_usuario:
         usuario = db.query(Usuario).filter(Usuario.email == email).first()
     if not usuario:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
