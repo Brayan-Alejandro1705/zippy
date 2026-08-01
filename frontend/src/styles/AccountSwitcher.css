@@ -128,6 +128,31 @@
   padding: 6px;
 }
 
+/* Variante inline: la lista va dentro de una tarjeta de Configuracion, asi
+   que no lleva fondo ni sombra propios (la tarjeta ya los pone). */
+.acsw-inline-list {
+  background: transparent;
+  border-radius: 8px;
+}
+.acsw-inline-list .acsw-current { padding-top: 0; }
+.acsw-inline-list .acsw-list { max-height: none; }
+.acsw-inline-list .acsw-item {
+  border: 1px solid #eef0f3;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+.acsw-inline-list .acsw-add {
+  margin-top: 10px;
+  border: 1px dashed #ffb877;
+  border-radius: 10px;
+  color: #FF7A00;
+  font-weight: 700;
+}
+.acsw-inline-list .acsw-add:hover { border-radius: 10px; }
+
+.dark-theme .acsw-inline-list .acsw-item { border-color: #334155; }
+.dark-theme .acsw-inline-list .acsw-add  { border-color: #7c4a1e; }
+
 /* ── Modo oscuro ─────────────────────────────────────────────────────────── */
 .dark-theme .acsw-dropdown {
   background: #1e293b;

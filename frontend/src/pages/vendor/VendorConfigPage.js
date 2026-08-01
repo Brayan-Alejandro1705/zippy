@@ -6,6 +6,7 @@ import { negociosService, usuariosService, authService } from '../../config/api'
 import '../../styles/VendorConfig.css';
 import Icon from '../../components/Icons';
 import CentroAyuda from '../../components/CentroAyuda';
+import AccountSwitcher from '../../components/AccountSwitcher';
 import { opcionesCategoria } from '../../constants/categorias';
 import { useNavigate } from 'react-router-dom';
 
@@ -353,6 +354,14 @@ const SeccionCuenta = () => {
           </div>
         </CardBlock>
       </form>
+
+      <CardBlock
+        icon={<Icon name="perfil" size={20} />} iconBg="linear-gradient(135deg,#fff3e8,#ffd9b3)"
+        title="Cambiar de cuenta"
+        desc="Salta entre tus cuentas sin escribir la contraseña otra vez"
+      >
+        <AccountSwitcher variant="inline" />
+      </CardBlock>
 
       <CardBlock
         icon={<Icon name="salir" size={20} />} iconBg="linear-gradient(135deg,#fee2e2,#fecaca)"

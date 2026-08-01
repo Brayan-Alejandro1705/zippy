@@ -7,6 +7,8 @@
 //   "header" → botón con el nombre del usuario (admin, vendedor)
 //   "icon"   → botón redondo de solo ícono (cliente, repartidor)
 //   "drawer" → ítem de menú con la lista inline (drawer móvil del admin)
+//   "inline" → solo la lista, sin botón ni dropdown (va dentro de una tarjeta
+//              de Configuración; el vendedor lo usa así)
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -65,8 +67,11 @@ const AccountSwitcher = ({ variant = 'header', className = '' }) => {
     navigate('/login?agregar=1');
   };
 
-  const Lista = ({ enDrawer = false }) => (
-    <div className={enDrawer ? 'acsw-drawer-list' : 'acsw-dropdown'} onClick={e => e.stopPropagation()}>
+  const Lista = ({ enDrawer = false, enLinea = false }) => (
+    <div
+      className={enLinea ? 'acsw-inline-list' : (enDrawer ? 'acsw-drawer-list' : 'acsw-dropdown')}
+      onClick={e => e.stopPropagation()}
+    >
       <div className="acsw-current">
         <strong>{usuario.nombre} {usuario.apellido}</strong>
         <span>{usuario.email}{enDrawer ? ' (actual)' : ''}</span>
@@ -95,6 +100,11 @@ const AccountSwitcher = ({ variant = 'header', className = '' }) => {
       <button className="acsw-add" onClick={irAAgregarCuenta}>+ Agregar otra cuenta</button>
     </div>
   );
+
+  // ── Variante inline: la lista suelta, para incrustarla en una tarjeta ────
+  if (variant === 'inline') {
+    return <Lista enLinea />;
+  }
 
   // ── Variante drawer: ítem del menú móvil con lista inline ────────────────
   if (variant === 'drawer') {

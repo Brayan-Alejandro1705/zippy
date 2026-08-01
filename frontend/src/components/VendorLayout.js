@@ -1,81 +1,81 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
 import '../styles/UserLayout.css';
+import '../styles/VendorLayout.css';
 import Icon from './Icons';
-import AccountSwitcher from './AccountSwitcher';
 
-const fmt = n => `$${n.toLocaleString('es-CO')}`;
-
+// Secciones del panel de vendedor. Ojo: estas rutas son /vendor/*, NO /tienda/*.
+// Antes este archivo era una copia literal de UserLayout, asi que el vendedor
+// veia la barra del cliente y las paginas de ordenes, ventas, pagos, reportes,
+// perfil y configuracion no tenian NINGUN enlace que llevara a ellas.
 const NAV_ITEMS = [
-  { path: '/tienda',                 icon: 'inicio',       label: 'Inicio'    },
-  { path: '/tienda/servicios',       icon: 'herramientas', label: 'Servicios' },
-  { path: '/tienda/pedido-especial', icon: 'solicitudes',  label: 'Pedido'    },
-  { path: '/tienda/perfil',          icon: 'perfil',       label: 'Perfil'    },
+  { path: '/vendor/productos', icon: 'paquete',     label: 'Productos' },
+  { path: '/vendor/ordenes',   icon: 'solicitudes', label: 'Órdenes'   },
+  { path: '/vendor/ventas',    icon: 'dinero',      label: 'Ventas'    },
+  { path: '/vendor/pagos',     icon: 'billete',     label: 'Pagos'     },
+  { path: '/vendor/reportes',  icon: 'reportes',    label: 'Reportes'  },
 ];
 
-const UserLayout = ({ children, onSearch }) => {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const { totalItems, subtotal } = useCart();
+const VendorLayout = ({ children, onSearch, searchPlaceholder = 'Buscar...' }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState('');
 
-  const isCart    = location.pathname === '/tienda/carrito' || location.pathname === '/tienda/checkout';
-  const activeNav = NAV_ITEMS.find(n => location.pathname === n.path)?.path || '/tienda';
-
+  // startsWith para que /vendor/productos/nuevo siga marcando "Productos"
+  const activeNav =
+    NAV_ITEMS.find(n => location.pathname.startsWith(n.path))?.path || '/vendor/productos';
 
   return (
-    <div className="ulo-container">
+    <div className="ulo-container vlo-container">
       {/* ── Header ─────────────────────────────────────── */}
       <header className="ulo-header">
-        <button className="ulo-brand" onClick={() => navigate('/tienda')}>
+        <button className="ulo-brand" onClick={() => navigate('/vendor/productos')}>
           <img src="/logo-zippy.jpeg" alt="Zippy Go" className="ulo-brand-logo" />
         </button>
 
-        <div className="ulo-search-wrap">
-          <svg className="ulo-search-icon" viewBox="0 0 20 20" fill="none">
-            <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <input
-            className="ulo-search"
-            placeholder="Buscar productos..."
-            value={query}
-            onChange={e => { setQuery(e.target.value); onSearch?.(e.target.value); }}
-          />
-        </div>
+        {/* La barra de busqueda solo se muestra si la pagina realmente la usa.
+            Antes salia en todas, pero solo Productos escucha onSearch, asi que
+            en el resto era un campo muerto. */}
+        {onSearch ? (
+          <div className="ulo-search-wrap">
+            <svg className="ulo-search-icon" viewBox="0 0 20 20" fill="none">
+              <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <input
+              className="ulo-search"
+              placeholder={searchPlaceholder}
+              value={query}
+              onChange={e => { setQuery(e.target.value); onSearch(e.target.value); }}
+            />
+          </div>
+        ) : (
+          <div className="vlo-spacer" />
+        )}
 
-        <button className="ulo-profile-btn" onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos" aria-label="Mi perfil">
+        <button
+          className="vlo-icon-btn"
+          onClick={() => navigate('/vendor/config')}
+          title="Configuración"
+          aria-label="Configuración"
+        >
+          <Icon name="config" size={20} />
+        </button>
+
+        <button
+          className="vlo-icon-btn"
+          onClick={() => navigate('/vendor/perfil')}
+          title="Perfil de mi negocio"
+          aria-label="Perfil de mi negocio"
+        >
           <Icon name="perfil" size={20} />
         </button>
-
-        <AccountSwitcher variant="icon" />
-
-        <button className="ulo-cart-btn" onClick={() => navigate('/tienda/carrito')} aria-label="Carrito">
-          <Icon name="carrito" size={20} />
-          {totalItems > 0 && <span className="ulo-cart-badge">{totalItems}</span>}
-        </button>
-
       </header>
 
       {/* ── Contenido ──────────────────────────────────── */}
-      <main className="ulo-main" style={{ paddingBottom: totalItems > 0 && !isCart ? 140 : 80 }}>
+      <main className="ulo-main" style={{ paddingBottom: 80 }}>
         {children}
       </main>
-
-      {/* ── Barra flotante del carrito ─────────────────── */}
-      {totalItems > 0 && !isCart && (
-        <button className="ulo-cart-bar" onClick={() => navigate('/tienda/carrito')}>
-          <div className="ulo-cart-bar-l">
-            <span className="ulo-cart-bar-badge">{totalItems}</span>
-            <span className="ulo-cart-bar-label">Ver mi carrito</span>
-          </div>
-          <div className="ulo-cart-bar-r">
-            <span className="ulo-cart-bar-total">{fmt(subtotal)}</span>
-            <span className="ulo-cart-bar-arrow">→</span>
-          </div>
-        </button>
-      )}
 
       {/* ── Navegación inferior ────────────────────────── */}
       <nav className="ulo-bottom-nav">
@@ -94,4 +94,4 @@ const UserLayout = ({ children, onSearch }) => {
   );
 };
 
-export default UserLayout;
+export default VendorLayout;
