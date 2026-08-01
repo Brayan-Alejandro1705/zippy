@@ -8,10 +8,15 @@ from datetime import datetime, timedelta
 import bcrypt
 from jose import JWTError, jwt
 from config import get_db, settings
-from models import Usuario, Negocio
+from models import (
+    Usuario, Negocio, EstadoUsuario, EstadoNegocio,
+    Direccion, Favorito, Notificacion,
+)
+import uuid as uuid_lib
 from schemas import (
     UsuarioCreate, UsuarioResponse, LoginRequest,
-    LoginResponse, MensajeResponse,TokenRefresh
+    LoginResponse, MensajeResponse, TokenRefresh, EliminarCuentaRequest
+
 )
 from notificaciones import generar_codigo, enviar_codigo
 
@@ -132,7 +137,17 @@ def get_current_user(
             detail="Usuario no encontrado",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    
+
+    # Una cuenta eliminada conserva su fila (las ordenes la referencian), pero
+    # ya no puede usarse. Sin esto, un token emitido antes del borrado seguiria
+    # funcionando hasta expirar.
+    if user.estado == EstadoUsuario.ELIMINADO:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Esta cuenta fue eliminada",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
     return user
 
 # ============================================================================
@@ -285,7 +300,10 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
     # primera: si la persona usa la misma clave para su cuenta de cliente y la
     # de vendedor (lo normal), quedarse con la primera entraba a un rol u otro
     # al azar, porque Postgres no garantiza el orden de un SELECT sin ORDER BY.
-    candidatos = db.query(Usuario).filter(Usuario.email == credenciales.email).all()
+    candidatos = db.query(Usuario).filter(
+        Usuario.email == credenciales.email,
+        Usuario.estado != EstadoUsuario.ELIMINADO
+    ).all()
     coincidencias = [u for u in candidatos if verify_password(credenciales.password, u.password_hash)]
 
     # Si el front ya sabe a que rol quiere entrar, se filtra por el
@@ -534,3 +552,80 @@ async def logout(current_user: Usuario = Depends(get_current_user)):
 async def test():
     """Test endpoint - Verifica que la API está online"""
     return MensajeResponse(mensaje="✅ TOUTAIN Auth API está funcionando")
+
+# ============================================================================
+# ELIMINACION DE CUENTA
+#
+# Google Play exige que toda app que permita crear cuentas ofrezca una via
+# para eliminarlas, dentro y fuera de la app.
+#
+# No se borra la fila: las ordenes, transacciones y facturas la referencian y
+# la ley obliga a conservar ese soporte contable. Lo que se hace es anonimizar
+# los datos personales y marcar la cuenta como ELIMINADO, que es exactamente
+# lo que declara la politica publicada ("se conservan disociados de la cuenta").
+# ============================================================================
+
+@router.post(
+    "/eliminar-cuenta",
+    response_model=MensajeResponse,
+    summary="Eliminar la cuenta del usuario autenticado",
+    description="Anonimiza los datos personales y desactiva la cuenta. Es irreversible."
+)
+async def eliminar_cuenta(
+    datos: EliminarCuentaRequest,
+    usuario: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Se pide la contrasena para que un telefono desbloqueado ajeno no pueda
+    # borrar la cuenta con dos toques.
+    if not verify_password(datos.password, usuario.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Contraseña incorrecta"
+        )
+
+    if usuario.es_super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Las cuentas de administración no pueden eliminarse desde la app"
+        )
+
+    marca = datetime.utcnow()
+    # El email se reemplaza por uno irrepetible para liberar la pareja
+    # (email, tipo_usuario) y que la persona pueda volver a registrarse.
+    anonimo = f"eliminado+{usuario.id}@zippygo.invalid"
+
+    usuario.email = anonimo
+    usuario.nombre = "Cuenta"
+    usuario.apellido = "eliminada"
+    usuario.telefono = None
+    usuario.documento = None
+    usuario.foto_perfil = None
+    usuario.latitud = None
+    usuario.longitud = None
+    usuario.vehiculo = None
+    usuario.placa = None
+    usuario.codigo_verificacion = None
+    usuario.codigo_verificacion_expira = None
+    # Contrasena imposible de acertar: deja la fila inutilizable para login.
+    usuario.password_hash = hash_password(uuid_lib.uuid4().hex + uuid_lib.uuid4().hex)
+    usuario.estado = EstadoUsuario.ELIMINADO
+    usuario.es_verificado = False
+    usuario.fecha_eliminacion = marca
+
+    # Si era vendedor, su negocio deja de estar visible en la tienda.
+    negocio = db.query(Negocio).filter(Negocio.vendedor_id == usuario.id).first()
+    if negocio:
+        negocio.estado = EstadoNegocio.INACTIVO
+
+    # Datos accesorios que no son soporte contable: se borran de verdad.
+    # Ojo: Favorito referencia al usuario por cliente_id, no por usuario_id.
+    db.query(Direccion).filter(Direccion.usuario_id == usuario.id).delete(synchronize_session=False)
+    db.query(Notificacion).filter(Notificacion.usuario_id == usuario.id).delete(synchronize_session=False)
+    db.query(Favorito).filter(Favorito.cliente_id == usuario.id).delete(synchronize_session=False)
+
+    db.commit()
+
+    return MensajeResponse(
+        mensaje="Tu cuenta fue eliminada. Los registros de pedidos se conservan por obligación legal, sin tus datos personales."
+    )

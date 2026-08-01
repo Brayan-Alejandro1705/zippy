@@ -7,6 +7,7 @@ import '../../styles/VendorConfig.css';
 import Icon from '../../components/Icons';
 import CentroAyuda from '../../components/CentroAyuda';
 import AccountSwitcher from '../../components/AccountSwitcher';
+import EliminarCuenta from '../../components/EliminarCuenta';
 import { opcionesCategoria } from '../../constants/categorias';
 import { useNavigate } from 'react-router-dom';
 
@@ -361,6 +362,14 @@ const SeccionCuenta = () => {
         desc="Salta entre tus cuentas sin escribir la contraseña otra vez"
       >
         <AccountSwitcher variant="inline" />
+      </CardBlock>
+
+      <CardBlock
+        icon={<Icon name="cerrar" size={20} />} iconBg="linear-gradient(135deg,#fee2e2,#fecaca)"
+        title="Eliminar mi cuenta"
+        desc="Borra tus datos personales de la plataforma"
+      >
+        <EliminarCuenta />
       </CardBlock>
 
       <CardBlock

@@ -361,6 +361,11 @@ class DireccionResponse(BaseModel):
 # SCHEMAS: AUTENTICACIÓN
 # ============================================================================
 
+class EliminarCuentaRequest(BaseModel):
+    # Se exige la contrasena actual: eliminar la cuenta es irreversible.
+    password: str
+
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str

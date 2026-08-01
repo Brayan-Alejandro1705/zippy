@@ -104,6 +104,7 @@ export default api;
 
 export const authService = {
   login:    (email, password, tipo_usuario) => api.post('/auth/login', { email, password, tipo_usuario }),
+  eliminarCuenta: (password) => api.post('/auth/eliminar-cuenta', { password }),
   registro: (datos) => api.post('/auth/registro', datos),
   me:       () => api.get('/auth/me'),
   logout:   () => api.post('/auth/logout'),
