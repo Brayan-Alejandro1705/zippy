@@ -1,4 +1,4 @@
-package com.zippy.app;
+package com.zippygo.app;
 
 import com.getcapacitor.BridgeActivity;
 

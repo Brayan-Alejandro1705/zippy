@@ -1,5 +1,5 @@
 {
-  "appId": "com.zippy.app",
+  "appId": "com.zippygo.app",
   "appName": "Zippy",
   "webDir": "build",
   "bundledWebRuntime": false

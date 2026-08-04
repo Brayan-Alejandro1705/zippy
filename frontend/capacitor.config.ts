@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.zippy.app',
+  appId: 'com.zippygo.app',
   appName: 'Zippy',
   webDir: 'build'
 };
