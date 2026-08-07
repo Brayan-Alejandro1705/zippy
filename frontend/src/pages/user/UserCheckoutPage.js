@@ -13,7 +13,7 @@ const UserCheckoutPage = () => {
   const { items, subtotal, clearCart } = useCart();
   const { addToast } = useToast();
 
-  const [pago, setPago]       = useState('tarjeta');
+  const [pago]                = useState('efectivo');
   const [nota, setNota]       = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -188,19 +188,8 @@ const UserCheckoutPage = () => {
         {/* Payment method */}
         <div className="ucho-section">
           <p className="ucho-section-label">Método de pago</p>
-          <div className="ucho-pay-tabs">
-            <button
-              className={`ucho-pay-tab ${pago === 'tarjeta' ? 'ucho-pay-tab--active' : ''}`}
-              onClick={() => setPago('tarjeta')}
-            >
-              🏧 Tarjeta
-            </button>
-            <button
-              className={`ucho-pay-tab ${pago === 'efectivo' ? 'ucho-pay-tab--active' : ''}`}
-              onClick={() => setPago('efectivo')}
-            >
-              👤 Efectivo
-            </button>
+          <div className="ucho-pay-fixed">
+            👤 Efectivo contra entrega
           </div>
         </div>
 

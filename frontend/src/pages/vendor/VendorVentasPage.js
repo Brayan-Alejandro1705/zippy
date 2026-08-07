@@ -239,7 +239,7 @@ const VendorVentasPage = () => {
         const chart = dias.map(d => {
           const ventasDia = mapeadas
             .filter(o => o.estado === 'Completada' && new Date(o.fechaRaw).toDateString() === d.toDateString())
-            .reduce((s, o) => s + o.total, 0);
+            .reduce((s, o) => s + o.subtotal, 0);
           return { dia: DIA_CORTO[d.getDay()], diaLargo: DIA_LARGO[d.getDay()], ventas: ventasDia };
         });
 
@@ -267,7 +267,7 @@ const VendorVentasPage = () => {
   inicioMes.setDate(1);
   inicioMes.setHours(0, 0, 0, 0);
   const completadasEsteMes = completadas.filter(o => new Date(o.fechaRaw) >= inicioMes);
-  const ingresosEsteMes = completadasEsteMes.reduce((s, o) => s + o.total, 0);
+  const ingresosEsteMes = completadasEsteMes.reduce((s, o) => s + o.subtotal, 0);
   const porOrden = completadasEsteMes.length > 0 ? ingresosEsteMes / completadasEsteMes.length : 0;
 
   const mejorDia = chartData.reduce((mejor, d) => (!mejor || d.ventas > mejor.ventas) ? d : mejor, null);

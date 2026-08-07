@@ -28,17 +28,6 @@ const CATEGORIAS_NEGOCIO = [
   'Supermercado', 'Droguería', 'Ropa', 'Electrónica', 'Mascotas', 'General',
 ];
 
-const CATEGORIAS_SERVICIO = [
-  'Aseo del hogar', 'Lavado y planchado', 'Jardinería y poda', 'Pintura',
-  'Albañilería', 'Carpintería', 'Cerrajería', 'Fumigación', 'Niñera',
-  'Cuidado de adultos mayores', 'Entrenador personal', 'Peluquería / barbería',
-  'Manicure y pedicure', 'Maquillaje', 'Repostería por pedido',
-  'Comida casera / catering', 'Fotografía y video', 'DJ / sonido', 'Decoración',
-  'Meseros', 'Lavado de motos y carros', 'Mecánica a domicilio',
-  'Modistería / arreglos de ropa', 'Mensajería y mandados', 'Soporte técnico',
-  'Clases particulares',
-];
-
 const getPasswordStrength = (pass) => {
   if (!pass) return 0;
   let score = 0;
@@ -69,6 +58,7 @@ const RegisterPage = () => {
     // Campos vendedor
     nombre_negocio: '', categoria_negocio: 'General', ciudad: CIUDADES[0], es_servicio: false,
     vehiculo: 'moto', placa: '',
+    aceptaTerminos: false, aceptaPrivacidad: false, aceptaComercios: false,
   });
   const [showPass, setShowPass]       = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -140,11 +130,17 @@ const RegisterPage = () => {
     if (form.password !== form.confirmPassword) {
       setError('Las contraseñas no coinciden'); triggerShake(); return;
     }
+    if (!form.aceptaTerminos || !form.aceptaPrivacidad) {
+      setError('Debes aceptar los Términos y Condiciones y la Política de Privacidad para continuar'); triggerShake(); return;
+    }
+    if (isVendedor && !form.aceptaComercios) {
+      setError('Debes aceptar las Condiciones para Comercios Aliados para continuar'); triggerShake(); return;
+    }
 
     setLoading(true);
     setError('');
     try {
-      const { confirmPassword, ...datos } = form;
+      const { confirmPassword, aceptaTerminos, aceptaPrivacidad, aceptaComercios, ...datos } = form;
 
       // Enviar solo los campos que aplican al rol elegido
       const payload = { ...datos };
@@ -213,43 +209,15 @@ const RegisterPage = () => {
           {/* Campos extra para vendedor */}
           {isVendedor && (
             <>
-              <div className="reg-section-label">¿Qué vas a ofrecer?</div>
-              <div className="reg-modalidad-toggle">
-                <button
-                  type="button"
-                  className={`reg-modalidad-btn ${!form.es_servicio ? 'reg-modalidad-btn--active' : ''}`}
-                  onClick={() => setForm(prev => ({ ...prev, es_servicio: false, categoria_negocio: CATEGORIAS_NEGOCIO[0] }))}
-                >
-                  <span className="reg-modalidad-icon"><Icon name="vendedores" size={22} /></span>
-                  <span>
-                    <span className="reg-modalidad-title">Negocio</span>
-                    <span className="reg-modalidad-desc">Tengo un local o tienda</span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={`reg-modalidad-btn ${form.es_servicio ? 'reg-modalidad-btn--active' : ''}`}
-                  onClick={() => setForm(prev => ({ ...prev, es_servicio: true, categoria_negocio: CATEGORIAS_SERVICIO[0] }))}
-                >
-                  <span className="reg-modalidad-icon"><Icon name="herramientas" size={22} /></span>
-                  <span>
-                    <span className="reg-modalidad-title">Servicio</span>
-                    <span className="reg-modalidad-desc">Sin local fijo</span>
-                  </span>
-                </button>
-              </div>
-
-              <div className="reg-section-label">
-                {form.es_servicio ? 'Información del servicio' : 'Información del negocio'}
-              </div>
+              <div className="reg-section-label">Información del negocio</div>
               <div className="reg-field">
-                <label>{form.es_servicio ? 'Nombre del servicio' : 'Nombre del negocio'} <span className="reg-req">*</span></label>
+                <label>Nombre del negocio <span className="reg-req">*</span></label>
                 <div className="reg-input-wrap">
-                  <span className="reg-input-icon"><Icon name={form.es_servicio ? 'herramientas' : 'vendedores'} size={18} /></span>
+                  <span className="reg-input-icon"><Icon name="vendedores" size={18} /></span>
                   <input
                     name="nombre_negocio" value={form.nombre_negocio}
                     onChange={handleChange} onBlur={handleBlur}
-                    placeholder={form.es_servicio ? 'Ej: Plomería Juan Pérez' : 'Ej: Restaurante El Buen Sabor'}
+                    placeholder="Ej: Restaurante El Buen Sabor"
                     className={fieldError('nombre_negocio') ? 'reg-input--err' : ''}
                   />
                 </div>
@@ -263,7 +231,7 @@ const RegisterPage = () => {
                     name="categoria_negocio"
                     value={form.categoria_negocio}
                     onChange={(val) => setForm(prev => ({ ...prev, categoria_negocio: val }))}
-                    options={form.es_servicio ? CATEGORIAS_SERVICIO : CATEGORIAS_NEGOCIO}
+                    options={CATEGORIAS_NEGOCIO}
                     placeholder="Selecciona una categoría"
                   />
                 </div>
@@ -439,6 +407,37 @@ const RegisterPage = () => {
                 <span className="reg-match">✓ Las contraseñas coinciden</span>
               )}
             </div>
+          </div>
+
+          <div className="reg-legal">
+            <label className="reg-terms">
+              <input
+                type="checkbox"
+                checked={form.aceptaTerminos}
+                onChange={e => { setForm(prev => ({ ...prev, aceptaTerminos: e.target.checked })); setError(''); }}
+              />
+              <span>Acepto los <a href="https://brayan-alejandro1705.github.io/zippy/terminos.html" target="_blank" rel="noopener noreferrer">Términos y Condiciones Generales</a> de ZIPPYgo SAS.</span>
+            </label>
+
+            {isVendedor && (
+              <label className="reg-terms">
+                <input
+                  type="checkbox"
+                  checked={form.aceptaComercios}
+                  onChange={e => { setForm(prev => ({ ...prev, aceptaComercios: e.target.checked })); setError(''); }}
+                />
+                <span>Acepto las <strong>Condiciones para Comercios Aliados</strong>.</span>
+              </label>
+            )}
+
+            <label className="reg-terms">
+              <input
+                type="checkbox"
+                checked={form.aceptaPrivacidad}
+                onChange={e => { setForm(prev => ({ ...prev, aceptaPrivacidad: e.target.checked })); setError(''); }}
+              />
+              <span>Autorizo el tratamiento de mis datos personales conforme a la <a href="https://brayan-alejandro1705.github.io/zippy/privacidad.html" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.</span>
+            </label>
           </div>
 
           <button type="submit" className="reg-submit" disabled={loading}>

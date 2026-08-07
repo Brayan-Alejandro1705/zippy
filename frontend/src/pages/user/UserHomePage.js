@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import UserLayout from '../../components/UserLayout';
 import UserProductModal from '../../components/UserProductModal';
 import { useCart } from '../../context/CartContext';
@@ -56,7 +55,6 @@ const esNuevo = (fechaIso) => (Date.now() - new Date(fechaIso).getTime()) < 7 * 
 
 /* ── Componente ─────────────────────────────────────────── */
 const UserHomePage = () => {
-  const navigate           = useNavigate();
   const { addItem, items } = useCart();
   const { addToast }       = useToast();
   const countdown          = useCountdown();
@@ -292,7 +290,7 @@ const UserHomePage = () => {
         </div>
       )}
 
-      {/* ── Banners: Oferta + Servicios ──────────────────── */}
+      {/* ── Banner: Oferta del día ──────────────────── */}
       <div className="uh-banners">
         {/* Oferta del día */}
         {oferta && (
@@ -321,21 +319,6 @@ const UserHomePage = () => {
             <div className="uh-oferta-deco"><Icon name="regalo" size={46} strokeWidth={1.3} /></div>
           </div>
         )}
-
-        {/* Servicios locales */}
-        <div className="uh-servicios-banner" onClick={() => navigate('/tienda/servicios')}>
-          <div className="uh-servicios-grid">
-            {['taxi', 'camion', 'llave_inglesa', 'rayo', 'paquete', 'ducha'].map((ic, i) => (
-              <span key={i} className="uh-servicios-grid-item"><Icon name={ic} size={22} /></span>
-            ))}
-          </div>
-          <div className="uh-servicios-body">
-            <span className="uh-servicios-tag">DIRECTORIO</span>
-            <p className="uh-servicios-title">Servicios locales</p>
-            <p className="uh-servicios-sub">Taxi · Acarreos · Mecánico · Electricista y más</p>
-          </div>
-          <button className="uh-servicios-cta">Ver todos →</button>
-        </div>
       </div>
 
       {/* ── Tiendas ──────────────────────────────────────── */}

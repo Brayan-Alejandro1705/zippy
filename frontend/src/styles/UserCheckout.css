@@ -87,25 +87,15 @@
 }
 .ucho-address-change:hover { text-decoration: underline; }
 
-/* Payment tabs */
-.ucho-pay-tabs { display: flex; gap: 10px; }
-.ucho-pay-tab {
-  flex: 1;
-  padding: 11px;
+/* Payment method (fijo: solo efectivo) */
+.ucho-pay-fixed {
+  padding: 12px 14px;
   border: 2px solid #e2e8f0;
   border-radius: 10px;
-  background: white;
+  background: #f8fafc;
   font-size: 14px;
   font-weight: 600;
-  color: #555;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.ucho-pay-tab:hover { border-color: #FF7A00; color: #FF7A00; }
-.ucho-pay-tab--active {
-  border-color: #3b82f6;
-  background: #eff6ff;
-  color: #1d4ed8;
+  color: #334155;
 }
 
 /* Notes */
@@ -181,8 +171,6 @@
 
   .ucho-address       { padding: 10px 12px; }
   .ucho-address-text  { font-size: 13px; }
-
-  .ucho-pay-tab       { padding: 10px 8px; font-size: 13px; }
 
   .ucho-total-box     { padding: 14px 16px; }
   .ucho-total-val     { font-size: 24px; }

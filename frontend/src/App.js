@@ -8,7 +8,7 @@ import UserCartPage from './pages/user/UserCartPage';
 import UserCheckoutPage from './pages/user/UserCheckoutPage';
 import UserPanelPage from './pages/user/UserPanelPage';
 import PedidoEspecialPage from './pages/user/PedidoEspecialPage';
-import ServiciosPage from './pages/user/ServiciosPage';
+// ServiciosPage pausado — ver frontend/src/pages/user/ServiciosPage.js (queda el archivo, solo se desconectó del router)
 import RepartidorPage from './pages/repartidor/RepartidorPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -119,7 +119,6 @@ const App = () => (
           <Route path="/tienda/checkout" element={<UserCheckoutPage />} />
           <Route path="/tienda/perfil"          element={<UserPanelPage />} />
           <Route path="/tienda/pedido-especial" element={<PedidoEspecialPage />} />
-          <Route path="/tienda/servicios"       element={<ServiciosPage />} />
           <Route path="/repartidor"             element={<RepartidorPage />} />
           <Route path="/" element={<RootRedirect />} />
         </Routes>
