@@ -10,6 +10,7 @@ import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
 import AccountSwitcher from '../../components/AccountSwitcher';
+import { registrarPush } from '../../utils/push';
 
 const MAP_OPTIONS = {
   disableDefaultUI: false,
@@ -694,6 +695,9 @@ const RepartidorPage = () => {
 
   const sheetRef  = useRef(null);
   const dragState = useRef(null);
+
+  /* Notificaciones push: pedido nuevo por entregar */
+  useEffect(() => { registrarPush(); }, []);
 
   /* Geolocalización del repartidor */
   useEffect(() => {

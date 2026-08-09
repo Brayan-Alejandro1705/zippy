@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '../styles/UserLayout.css';
 import '../styles/VendorLayout.css';
 import Icon from './Icons';
+import { registrarPush } from '../utils/push';
 
 // Secciones del panel de vendedor. Ojo: estas rutas son /vendor/*, NO /tienda/*.
 // Antes este archivo era una copia literal de UserLayout, asi que el vendedor
@@ -20,6 +21,8 @@ const VendorLayout = ({ children, onSearch, searchPlaceholder = 'Buscar...' }) =
   const navigate = useNavigate();
   const location = useLocation();
   const [query, setQuery] = useState('');
+
+  useEffect(() => { registrarPush(); }, []);
 
   // startsWith para que /vendor/productos/nuevo siga marcando "Productos"
   const activeNav =

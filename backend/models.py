@@ -111,6 +111,9 @@ class Usuario(Base):
     vehiculo = Column(String(20))   # moto, bicicleta, carro
     placa = Column(String(10))
 
+    # Token de FCM para notificaciones push (se sobreescribe con el último dispositivo que inició sesión)
+    fcm_token = Column(String(255))
+
     # Relaciones
     negocio = relationship("Negocio", back_populates="vendedor", uselist=False)
     ordenes_cliente = relationship("Orden", foreign_keys="Orden.cliente_id", back_populates="cliente")

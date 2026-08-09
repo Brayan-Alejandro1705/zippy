@@ -99,6 +99,12 @@ class Settings:
     TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
     TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "")
 
+    # Firebase Cloud Messaging (notificaciones push). Pega el JSON completo
+    # de la clave de cuenta de servicio (Firebase > Configuración del proyecto
+    # > Cuentas de servicio > Generar nueva clave privada) como variable de
+    # entorno en Render, tal cual, sin recortar.
+    FIREBASE_SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+
     # Verificación de cuenta
     CODIGO_VERIFICACION_MINUTOS = int(os.getenv("CODIGO_VERIFICACION_MINUTOS", 15))
 

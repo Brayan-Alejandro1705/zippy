@@ -75,6 +75,7 @@ class UsuarioUpdate(BaseModel):
     longitud: Optional[Decimal] = None
     vehiculo: Optional[str] = None
     placa: Optional[str] = None
+    fcm_token: Optional[str] = None
 
     @validator('telefono')
     def validate_telefono_formato(cls, v):

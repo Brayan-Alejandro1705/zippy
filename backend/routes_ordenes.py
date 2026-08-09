@@ -12,11 +12,12 @@ from decimal import Decimal
 
 from config import get_db, settings
 from models import (
-    Orden, ItemOrden, Producto, Negocio, Usuario,
+    Orden, ItemOrden, Producto, Negocio, Usuario, EstadoUsuario,
     Transaccion, SeguimientoOrden, Carrito, ItemCarrito, MensajeOrden
 )
 from schemas import OrdenCreate, OrdenUpdate, OrdenResponse
 from routes_auth import get_current_user
+from push import notificar_usuario, notificar_usuarios
 
 router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 
@@ -166,7 +167,17 @@ async def crear_orden(
     )
     
     db.add(seguimiento)
-    
+
+    # Avisar al vendedor: pedido nuevo por hacer
+    notificar_usuario(
+        db, negocio.vendedor,
+        tipo="pedido_nuevo",
+        titulo="Nuevo pedido",
+        mensaje=f"Pedido nuevo en {negocio.nombre_negocio} por ${total:,.0f}",
+        relacionado_tabla="ordenes",
+        relacionado_id=nueva_orden.id,
+    )
+
     db.commit()
     db.refresh(nueva_orden)
     
@@ -363,6 +374,22 @@ async def actualizar_orden(
             fecha_creacion=datetime.utcnow()
         )
         db.add(seguimiento)
+
+        # Avisar a los domiciliarios disponibles: pedido nuevo por entregar
+        if orden_actualizada.estado == "lista_para_retirar" and orden.domiciliario_id is None:
+            domiciliarios_disponibles = db.query(Usuario).filter(
+                Usuario.tipo_usuario == "domiciliario",
+                Usuario.estado == EstadoUsuario.ACTIVO,
+                Usuario.fcm_token.isnot(None),
+            ).all()
+            notificar_usuarios(
+                db, domiciliarios_disponibles,
+                tipo="pedido_por_entregar",
+                titulo="Pedido por entregar",
+                mensaje=f"Hay un pedido listo para recoger en {orden.negocio.nombre_negocio}" if orden.negocio else "Hay un pedido nuevo listo para recoger",
+                relacionado_tabla="ordenes",
+                relacionado_id=orden.id,
+            )
     
     # Actualizar otros campos
     if orden_actualizada.notas_vendedor:
