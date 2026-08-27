@@ -426,7 +426,7 @@ const RegisterPage = () => {
                   checked={form.aceptaComercios}
                   onChange={e => { setForm(prev => ({ ...prev, aceptaComercios: e.target.checked })); setError(''); }}
                 />
-                <span>Acepto las <strong>Condiciones para Comercios Aliados</strong>.</span>
+                <span>Acepto las <a href="https://brayan-alejandro1705.github.io/zippy/comercios-aliados.html" target="_blank" rel="noopener noreferrer">Condiciones para Comercios Aliados</a>.</span>
               </label>
             )}
 

@@ -29,3 +29,5 @@ frontend/android/local.properties
 *.log
 .idea/
 .vscode/
+# IDE
+.idea/
