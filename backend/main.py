@@ -8,11 +8,16 @@ import sys
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from rate_limit import limiter
 
 from config import settings, test_db_connection, init_db
 
@@ -31,6 +36,14 @@ app = FastAPI(
 )
 
 # ============================================================================
+# MIDDLEWARE: RATE LIMITING (protege login/registro de fuerza bruta y abuso)
+# ============================================================================
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# ============================================================================
 # MIDDLEWARE: CORS (Permitir requests desde frontend)
 # ============================================================================
 
@@ -41,6 +54,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================================================
+# MIDDLEWARE: HEADERS DE SEGURIDAD
+# ============================================================================
+# No usamos una CSP estricta porque romperia el Swagger UI (/docs, /redoc)
+# que carga JS/CSS desde CDNs externos. El resto de headers si se aplican
+# siempre.
+
+@app.middleware("http")
+async def agregar_headers_seguridad(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()"
+    # HSTS: solo tiene sentido cuando la conexion ya es HTTPS (Render la
+    # sirve por HTTPS, pero en local/dev es HTTP y el header se ignora).
+    if request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
 
 # ============================================================================
 # ARCHIVOS ESTÁTICOS (imágenes subidas)

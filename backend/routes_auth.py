@@ -2,7 +2,7 @@
 # routes/auth.py - Rutas de Autenticación
 # ============================================================================
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import bcrypt
@@ -19,6 +19,7 @@ from schemas import (
 
 )
 from notificaciones import generar_codigo, enviar_codigo
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Autenticación"])
 
@@ -161,7 +162,8 @@ def get_current_user(
     summary="Registrar nuevo usuario",
     description="Crea una nueva cuenta de usuario"
 )
-async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/hour")
+async def registro(request: Request, usuario: UsuarioCreate, db: Session = Depends(get_db)):
     """
     Registra un nuevo usuario en TOUTAIN
     
@@ -287,7 +289,8 @@ async def registro(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     summary="Iniciar sesión",
     description="Inicia sesión con email y contraseña"
 )
-async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("8/minute")
+async def login(request: Request, credenciales: LoginRequest, db: Session = Depends(get_db)):
     """
     Inicia sesión y retorna JWT tokens
     
@@ -367,7 +370,8 @@ async def login(credenciales: LoginRequest, db: Session = Depends(get_db)):
     summary="Verificar cuenta con el código enviado",
     description="Confirma el código de verificación (email o SMS) y activa la sesión"
 )
-async def verificar_codigo(datos: dict, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def verificar_codigo(request: Request, datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
     codigo = (datos.get("codigo") or "").strip()
     tipo_usuario = (datos.get("tipo_usuario") or "").strip()
@@ -420,7 +424,8 @@ async def verificar_codigo(datos: dict, db: Session = Depends(get_db)):
     summary="Reenviar código de verificación",
     description="Genera y reenvía un nuevo código de verificación por el mismo canal"
 )
-async def reenviar_codigo(datos: dict, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+async def reenviar_codigo(request: Request, datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
     tipo_usuario = (datos.get("tipo_usuario") or "").strip()
 

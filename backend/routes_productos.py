@@ -22,6 +22,7 @@ router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
 
 UPLOAD_DIR = "uploads/productos"
 EXTENSIONES_PERMITIDAS = {".jpg", ".jpeg", ".png", ".webp"}
+TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024  # 5 MB
 
 # ============================================================================
 # HELPER: REVERTIR OFERTAS VENCIDAS
@@ -69,6 +70,12 @@ async def subir_imagen_producto(
     nombre_archivo = f"{uuid.uuid4()}{extension}"
 
     contenido = await file.read()
+
+    if len(contenido) > TAMANO_MAXIMO_IMAGEN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La imagen supera el tamaño máximo permitido (5 MB)"
+        )
 
     content_type_map = {
         ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
