@@ -66,6 +66,11 @@ const RegisterPage = () => {
   const [error, setError]             = useState('');
   const [shake, setShake]             = useState(false);
   const [touched, setTouched]         = useState({});
+  // Foto/logo del negocio: opcional, se sube despues de crear la cuenta
+  // (el endpoint de subida requiere estar logueado, y en el registro
+  // todavia no existe el token).
+  const [logoFile, setLogoFile]       = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
 
   const isVendedor = form.tipo_usuario === 'vendedor';
   const isDomiciliario = form.tipo_usuario === 'domiciliario';
@@ -160,6 +165,8 @@ const RegisterPage = () => {
           metodo: response.data.metodo_verificacion,
           tipo_usuario: form.tipo_usuario,
           envioOk: response.data.envio_ok,
+          // Se sube despues de verificar, cuando ya hay token de sesion.
+          logoFile: isVendedor ? logoFile : null,
         },
       });
     } catch (err) {
@@ -222,6 +229,34 @@ const RegisterPage = () => {
                   />
                 </div>
                 {fieldError('nombre_negocio') && <span className="reg-field-err">{fieldError('nombre_negocio')}</span>}
+              </div>
+
+              <div className="reg-field">
+                <label>Foto o logo del negocio <span className="reg-optional">(opcional)</span></label>
+                <div className="reg-logo-upload">
+                  <div className="reg-logo-preview">
+                    {logoPreview
+                      ? <img src={logoPreview} alt="Logo del negocio" />
+                      : <span className="reg-logo-placeholder"><Icon name="vendedores" size={22} /></span>}
+                  </div>
+                  <div>
+                    <label className="reg-logo-btn">
+                      Elegir foto
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setLogoFile(file);
+                          setLogoPreview(URL.createObjectURL(file));
+                        }}
+                      />
+                    </label>
+                    <p className="reg-logo-hint">Puedes agregarla ahora o después desde tu perfil.</p>
+                  </div>
+                </div>
               </div>
 
               <div className="reg-grid-2">

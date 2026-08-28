@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { authService } from '../config/api';
+import { authService, productosService, negociosService } from '../config/api';
 import ZLoader from '../components/ZLoader';
 import '../styles/VerificarCuentaPage.css';
 
@@ -21,6 +21,7 @@ const VerificarCuentaPage = () => {
   const [email]  = useState(state.email || '');
   const [metodo] = useState(state.metodo || 'email');
   const [tipoUsuario] = useState(state.tipo_usuario || '');
+  const [logoFile]    = useState(state.logoFile || null);
   const [codigo, setCodigo] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -59,6 +60,19 @@ const VerificarCuentaPage = () => {
       localStorage.setItem('access_token',  data.access_token);
       localStorage.setItem('refresh_token', data.refresh_token);
       localStorage.setItem('usuario',       JSON.stringify(data.usuario));
+
+      if (logoFile && data.usuario.tipo_usuario === 'vendedor') {
+        try {
+          const { data: imagen } = await productosService.subirImagen(logoFile);
+          const { data: negocio } = await negociosService.miNegocio();
+          await negociosService.actualizar(negocio.id, { logo: imagen.url });
+        } catch (e) {
+          // No es critico: el vendedor puede agregar la foto despues
+          // desde su perfil. No bloqueamos el login por esto.
+          console.warn('No se pudo subir la foto del negocio:', e);
+        }
+      }
+
       redirectByTipo(navigate, data.usuario.tipo_usuario);
     } catch (err) {
       setError(err.response?.data?.detail || 'No se pudo verificar el código');
