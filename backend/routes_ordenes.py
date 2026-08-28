@@ -390,6 +390,32 @@ async def actualizar_orden(
                 relacionado_tabla="ordenes",
                 relacionado_id=orden.id,
             )
+
+        # Avisar al cliente segun el nuevo estado del pedido
+        MENSAJES_CLIENTE = {
+            "confirmada": ("pedido_confirmado", "Pedido confirmado",
+                lambda n: f"{n} confirmo tu pedido y lo esta preparando"),
+            "en_preparacion": ("pedido_en_preparacion", "Tu pedido esta en preparacion",
+                lambda n: f"{n} ya esta preparando tu pedido"),
+            "en_domicilio": ("pedido_en_camino", "Tu pedido va en camino",
+                lambda n: "El domiciliario ya recogio tu pedido y va en camino"),
+            "entregada": ("pedido_entregado", "Pedido entregado",
+                lambda n: f"Tu pedido de {n} fue entregado. Buen provecho!"),
+            "cancelada": ("pedido_cancelado", "Pedido cancelado",
+                lambda n: f"{n} cancelo tu pedido"),
+        }
+        info_cliente = MENSAJES_CLIENTE.get(orden_actualizada.estado)
+        if info_cliente and orden.cliente:
+            tipo_notif, titulo_notif, generar_mensaje = info_cliente
+            nombre_negocio = orden.negocio.nombre_negocio if orden.negocio else "El negocio"
+            notificar_usuario(
+                db, orden.cliente,
+                tipo=tipo_notif,
+                titulo=titulo_notif,
+                mensaje=generar_mensaje(nombre_negocio),
+                relacionado_tabla="ordenes",
+                relacionado_id=orden.id,
+            )
     
     # Actualizar otros campos
     if orden_actualizada.notas_vendedor:
@@ -516,7 +542,18 @@ async def cancelar_orden(
     
     if transaccion:
         transaccion.estado = "reembolsado"
-    
+
+    # Avisar al vendedor que el cliente cancelo el pedido
+    if orden.negocio and orden.negocio.vendedor:
+        notificar_usuario(
+            db, orden.negocio.vendedor,
+            tipo="pedido_cancelado_cliente",
+            titulo="Pedido cancelado por el cliente",
+            mensaje="Un cliente cancelo un pedido en tu negocio",
+            relacionado_tabla="ordenes",
+            relacionado_id=orden.id,
+        )
+
     db.commit()
 
 # ============================================================================

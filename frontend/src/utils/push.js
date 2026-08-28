@@ -5,8 +5,7 @@ let yaRegistrado = false;
 
 /**
  * Pide permiso de notificaciones y registra el token de este dispositivo en
- * el backend (PUT /usuarios/me/, campo fcm_token). Se usa en las pantallas
- * de vendedor y repartidor, que son las que reciben avisos de pedidos.
+ * el backend (PUT /usuarios/me/, campo fcm_token). Se usa en las pantallas de cliente, vendedor y repartidor, que son las que reciben avisos de pedidos.
  *
  * No hace nada en web (Capacitor.isNativePlatform() = false) ni si ya se
  * registró una vez en esta sesión de la app.

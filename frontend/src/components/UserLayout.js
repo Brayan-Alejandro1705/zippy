@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import '../styles/UserLayout.css';
 import Icon from './Icons';
 import AccountSwitcher from './AccountSwitcher';
+import { registrarPush } from '../utils/push';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
@@ -18,6 +19,8 @@ const UserLayout = ({ children, onSearch }) => {
   const location  = useLocation();
   const { totalItems, subtotal } = useCart();
   const [query, setQuery] = useState('');
+
+  useEffect(() => { registrarPush(); }, []);
 
   const isCart    = location.pathname === '/tienda/carrito' || location.pathname === '/tienda/checkout';
   const activeNav = NAV_ITEMS.find(n => location.pathname === n.path)?.path || '/tienda';
