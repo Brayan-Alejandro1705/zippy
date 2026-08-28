@@ -146,15 +146,29 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
   const mapRef      = useRef(null);
   const [infoOpen,  setInfoOpen]  = useState(null);
   const [directions, setDirections] = useState(null);
+  /* Modo "seguir": mientras esta activo, el mapa se recentra solo en el
+     repartidor. Se apaga en cuanto el repartidor arrastra el mapa con el
+     dedo, para que pueda explorarlo libremente sin que se lo quitemos de
+     las manos; un boton flotante lo reactiva. */
+  const [siguiendo, setSiguiendo] = useState(true);
 
-  const onLoad = useCallback(map => { mapRef.current = map; }, []);
+  const onLoad = useCallback(map => {
+    mapRef.current = map;
+    if (driverPos) map.panTo(driverPos);
+  }, [driverPos]);
 
-  /* Centrar mapa en el repartidor cuando cambia posición */
+  /* Centrar mapa en el repartidor cuando cambia posicion, solo si sigue
+     activo el modo "seguir" (no si el repartidor ya movio el mapa) */
   useEffect(() => {
-    if (mapRef.current && driverPos) {
+    if (mapRef.current && driverPos && siguiendo) {
       mapRef.current.panTo(driverPos);
     }
-  }, [driverPos]);
+  }, [driverPos, siguiendo]);
+
+  const recentrar = () => {
+    setSiguiendo(true);
+    if (mapRef.current && driverPos) mapRef.current.panTo(driverPos);
+  };
 
   /* Trazar ruta sugerida por todas las órdenes activas */
   useEffect(() => {
@@ -189,12 +203,14 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
   }, [ordenes, driverPos]);
 
   return (
+    <>
     <GoogleMap
       mapContainerClassName="rp-gmap"
-      center={driverPos || GARZON}
+      center={GARZON}
       zoom={15}
       options={MAP_OPTIONS}
       onLoad={onLoad}
+      onDragStart={() => setSiguiendo(false)}
     >
       {/* Marcador del repartidor */}
       {driverPos && (
@@ -243,6 +259,17 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
         />
       )}
     </GoogleMap>
+    {!siguiendo && (
+      <button
+        type="button"
+        className="rp-map-recenter"
+        onClick={recentrar}
+        title="Centrar en mi ubicacion"
+      >
+        <Icon name="ubicacion" size={18} />
+      </button>
+    )}
+    </>
   );
 };
 
