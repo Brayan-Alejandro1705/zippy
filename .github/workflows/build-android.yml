@@ -57,6 +57,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: '1.1'
 
       - name: Compilar el APK firmado (para probar en fisico)
         working-directory: frontend/android
@@ -66,6 +67,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: '1.1'
 
       - name: Borrar el keystore del runner
         if: always()
