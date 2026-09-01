@@ -1,4 +1,5 @@
 import { PushNotifications } from '@capacitor/push-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { usuariosService } from '../config/api';
 
 let yaRegistrado = false;
@@ -32,6 +33,26 @@ export const registrarPush = async () => {
 
     PushNotifications.addListener('registrationError', (err) => {
       console.warn('Error registrando push:', err);
+    });
+
+    // Con la app en primer plano, Android/iOS NO muestran la notificacion
+    // sola en la barra -- hay que mostrarla nosotros con una notificacion
+    // local. En segundo plano o con la app cerrada, el sistema ya la
+    // muestra automatico y este listener no se dispara.
+    PushNotifications.addListener('pushNotificationReceived', async (notification) => {
+      try {
+        await LocalNotifications.schedule({
+          notifications: [{
+            id: Date.now() % 2147483647,
+            title: notification.title || 'Zippy',
+            body: notification.body || '',
+            smallIcon: 'ic_launcher',
+            sound: 'default',
+          }],
+        });
+      } catch (e) {
+        console.warn('No se pudo mostrar la notificacion en primer plano:', e);
+      }
     });
 
     await PushNotifications.register();
