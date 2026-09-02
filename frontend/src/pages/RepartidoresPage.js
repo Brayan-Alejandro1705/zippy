@@ -14,6 +14,10 @@ const RepartidoresPage = () => {
   const [repartidores, setRepartidores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState(null);
+  const esSuperAdmin = (() => {
+    try { return !!JSON.parse(localStorage.getItem('usuario') || '{}').es_super_admin; }
+    catch { return false; }
+  })();
 
   const cargarRepartidores = useCallback(async () => {
     setLoading(true);
@@ -48,6 +52,9 @@ const RepartidoresPage = () => {
           <h1 className="us-title"><Icon name="repartidores" size={26} style={{ verticalAlign: '-5px', marginRight: 8 }} />Repartidores</h1>
           <p className="us-subtitle">Gestiona los repartidores de la plataforma</p>
         </div>
+        {esSuperAdmin && (
+          <a href="/repartidores/nuevo" className="btn-create">➕ Nuevo repartidor</a>
+        )}
       </div>
 
       <div className="us-stats-strip">

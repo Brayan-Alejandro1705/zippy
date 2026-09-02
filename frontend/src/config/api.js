@@ -110,6 +110,10 @@ export const authService = {
   logout:   () => api.post('/auth/logout'),
   verificarCodigo: (email, codigo, tipo_usuario) => api.post('/auth/verificar-codigo', { email, codigo, tipo_usuario }),
   reenviarCodigo:  (email, metodo_verificacion, tipo_usuario) => api.post('/auth/reenviar-codigo', { email, metodo_verificacion, tipo_usuario }),
+  olvidePassword:      (email, tipo_usuario, metodo_verificacion) =>
+    api.post('/auth/olvide-password', { email, tipo_usuario, metodo_verificacion }),
+  restablecerPassword: (email, tipo_usuario, codigo, nueva_password) =>
+    api.post('/auth/restablecer-password', { email, tipo_usuario, codigo, nueva_password }),
 };
 
 export const pedidosEspecialesService = {
@@ -155,6 +159,11 @@ export const usuariosService = {
   actualizarPerfil: (datos) => api.put('/usuarios/me/', datos),
   cambiarPassword: (passwordActual, passwordNueva) =>
     api.post('/usuarios/me/password/', { password_actual: passwordActual, password_nueva: passwordNueva }),
+};
+
+export const repartidoresService = {
+  // Solo un súper admin puede llamar esto (ver _requiere_super_admin en el backend).
+  crear: (datos) => api.post('/usuarios/repartidor/', datos),
 };
 
 export const vendedoresService = {

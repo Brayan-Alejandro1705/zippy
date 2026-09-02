@@ -176,7 +176,9 @@ async def registro(request: Request, usuario: UsuarioCreate, db: Session = Depen
     
     # Validar tipo de usuario ANTES de buscar duplicados: la busqueda de
     # duplicados depende del tipo, asi que no puede ir despues.
-    tipos_validos = ["cliente", "vendedor", "domiciliario", "admin"]
+    # "domiciliario" ya no es un tipo auto-registrable: solo un super
+    # admin puede crear cuentas de repartidor (ver /api/v1/usuarios/repartidor/).
+    tipos_validos = ["cliente", "vendedor", "admin"]
     if usuario.tipo_usuario not in tipos_validos:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -464,6 +466,89 @@ async def reenviar_codigo(request: Request, datos: dict, db: Session = Depends(g
         )
 
     return MensajeResponse(mensaje=f"Código reenviado por {'SMS' if metodo == 'sms' else 'correo'}")
+
+@router.post(
+    "/olvide-password",
+    response_model=MensajeResponse,
+    summary="Solicitar restablecer contraseña",
+    description="Envía un código de 6 dígitos (por el mismo canal de verificación) para restablecer la contraseña"
+)
+@limiter.limit("3/hour")
+async def olvide_password(request: Request, datos: dict, db: Session = Depends(get_db)):
+    email = (datos.get("email") or "").strip()
+    tipo_usuario = (datos.get("tipo_usuario") or "").strip()
+
+    # Igual que en verificar/reenviar código: si no se indica rol, se usa la
+    # cuenta verificada más reciente con ese correo.
+    query = db.query(Usuario).filter(Usuario.email == email, Usuario.es_verificado == True)
+    if tipo_usuario:
+        query = query.filter(Usuario.tipo_usuario == tipo_usuario)
+    usuario = query.order_by(Usuario.fecha_creacion.desc()).first()
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No encontramos una cuenta verificada con ese correo")
+
+    metodo = datos.get("metodo_verificacion") or usuario.metodo_verificacion or "email"
+    if metodo not in ("email", "sms"):
+        metodo = "email"
+
+    # Se reutilizan las mismas columnas del código de verificación: en una
+    # cuenta ya verificada quedan libres, así que no hace falta una tabla ni
+    # columnas nuevas para esto.
+    codigo = generar_codigo()
+    usuario.codigo_verificacion = codigo
+    usuario.codigo_verificacion_expira = datetime.utcnow() + timedelta(minutes=settings.CODIGO_VERIFICACION_MINUTOS)
+    db.commit()
+
+    try:
+        enviar_codigo(metodo, usuario.email, usuario.telefono, usuario.nombre, codigo)
+    except Exception as e:
+        print(f"⚠️ No se pudo enviar el código de restablecimiento a {usuario.email}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No se pudo enviar el código. Intenta de nuevo en unos minutos."
+        )
+
+    return MensajeResponse(mensaje=f"Código enviado por {'SMS' if metodo == 'sms' else 'correo'}")
+
+@router.post(
+    "/restablecer-password",
+    response_model=MensajeResponse,
+    summary="Restablecer contraseña con código",
+    description="Confirma el código recibido y establece una nueva contraseña"
+)
+@limiter.limit("5/hour")
+async def restablecer_password(request: Request, datos: dict, db: Session = Depends(get_db)):
+    email = (datos.get("email") or "").strip()
+    tipo_usuario = (datos.get("tipo_usuario") or "").strip()
+    codigo = (datos.get("codigo") or "").strip()
+    nueva_password = datos.get("nueva_password") or ""
+
+    query = db.query(Usuario).filter(Usuario.email == email, Usuario.es_verificado == True)
+    if tipo_usuario:
+        query = query.filter(Usuario.tipo_usuario == tipo_usuario)
+    usuario = query.order_by(Usuario.fecha_creacion.desc()).first()
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    if not usuario.codigo_verificacion or not codigo or usuario.codigo_verificacion != codigo:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Código incorrecto")
+
+    if not usuario.codigo_verificacion_expira or usuario.codigo_verificacion_expira < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El código venció, solicita uno nuevo")
+
+    if len(nueva_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe tener al menos 8 caracteres")
+    if not any(c.isupper() for c in nueva_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe incluir al menos una mayúscula")
+    if not any(c.isdigit() for c in nueva_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe incluir al menos un número")
+
+    usuario.password_hash = hash_password(nueva_password)
+    usuario.codigo_verificacion = None
+    usuario.codigo_verificacion_expira = None
+    db.commit()
+
+    return MensajeResponse(mensaje="Contraseña actualizada correctamente")
 
 @router.post(
     "/refresh",

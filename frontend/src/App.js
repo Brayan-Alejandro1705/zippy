@@ -21,6 +21,8 @@ import ConfigPage from './pages/ConfigPage';
 import VendedoresPage from './pages/VendedoresPage';
 import SolicitudesPage from './pages/SolicitudesPage';
 import RepartidoresPage from './pages/RepartidoresPage';
+import NuevoRepartidorPage from './pages/NuevoRepartidorPage';
+import RecuperarPasswordPage from './pages/RecuperarPasswordPage';
 import RolesPermisosPage from './pages/RolesPermisosPage';
 import LogsActividadPage from './pages/LogsActividadPage';
 import NegociosPage from './pages/NegociosPage';
@@ -93,6 +95,7 @@ const App = () => (
           <Route path="/login"    element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
           <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
           <Route path="/verificar" element={<VerificarCuentaPage />} />
+          <Route path="/recuperar" element={<RecuperarPasswordPage />} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/usuarios/:id" element={<ProtectedRoute><UsuarioDetallePage /></ProtectedRoute>} />
           <Route path="/usuarios"     element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
@@ -101,6 +104,7 @@ const App = () => (
           <Route path="/solicitudes" element={<ProtectedRoute><SolicitudesPage /></ProtectedRoute>} />
           <Route path="/negocios"    element={<ProtectedRoute><NegociosPage /></ProtectedRoute>} />
           <Route path="/repartidores" element={<ProtectedRoute><RepartidoresPage /></ProtectedRoute>} />
+          <Route path="/repartidores/nuevo" element={<ProtectedRoute><NuevoRepartidorPage /></ProtectedRoute>} />
           <Route path="/roles" element={<ProtectedRoute><RolesPermisosPage /></ProtectedRoute>} />
           <Route path="/logs" element={<ProtectedRoute><LogsActividadPage /></ProtectedRoute>} />
           <Route path="/config" element={<ProtectedRoute><ConfigPage /></ProtectedRoute>} />

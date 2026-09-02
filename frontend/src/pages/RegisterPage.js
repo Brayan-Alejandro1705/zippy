@@ -6,10 +6,12 @@ import '../styles/RegisterPage.css';
 import Icon from '../components/Icons';
 import SelectPro from '../components/SelectPro';
 
+// El registro público de "domiciliario" quedó deshabilitado: ahora solo un
+// súper admin puede crear el acceso de un repartidor (panel admin ->
+// Repartidores -> Nuevo repartidor).
 const ROLES = [
   { value: 'cliente',      icon: 'carrito',      label: 'Cliente',      desc: 'Compra en la plataforma' },
   { value: 'vendedor',     icon: 'vendedores',   label: 'Vendedor',     desc: 'Vende tus productos'      },
-  { value: 'domiciliario', icon: 'repartidores', label: 'Domiciliario', desc: 'Entrega pedidos'          },
 ];
 
 // Zippy opera únicamente en Garzón por ahora.

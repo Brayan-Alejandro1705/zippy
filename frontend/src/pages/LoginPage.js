@@ -125,7 +125,7 @@ const LoginPage = () => {
           <div className="lp-field">
             <div className="lp-label-row">
               <label htmlFor="lp-pass">Contraseña</label>
-              <a href="#" className="lp-forgot">¿Olvidaste tu contraseña?</a>
+              <a href="/recuperar" className="lp-forgot">¿Olvidaste tu contraseña?</a>
             </div>
             <div className="lp-input-wrap">
               <svg className="lp-icon" viewBox="0 0 20 20" fill="none">

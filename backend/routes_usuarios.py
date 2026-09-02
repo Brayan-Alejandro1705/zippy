@@ -31,6 +31,19 @@ def _requiere_admin(current_user: Usuario):
             detail="Solo un administrador puede realizar esta acción"
         )
 
+def _requiere_super_admin(current_user: Usuario):
+    """Corta la petición si quien llama no es súper administrador.
+
+    Se usa para crear cuentas de repartidor: ya no existe el auto-registro
+    como domiciliario, así que solo un súper admin puede dar de alta ese
+    acceso (a diferencia de _requiere_admin, un admin normal no basta).
+    """
+    if not getattr(current_user, "es_super_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo un súper administrador puede realizar esta acción"
+        )
+
 # ============================================================================
 # ENDPOINTS: MI PERFIL (usuario autenticado)
 # ============================================================================
@@ -187,6 +200,112 @@ async def crear_vendedor(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al crear vendedor: {str(e)}"
+        )
+
+# ============================================================================
+# ENDPOINTS: CREAR REPARTIDOR (desde admin -- solo súper admin)
+# ============================================================================
+
+@router.post(
+    "/repartidor/",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear nuevo repartidor (Súper Admin)",
+    description="Crea un nuevo usuario tipo domiciliario. Ya no existe el auto-registro público como repartidor."
+)
+async def crear_repartidor(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea un repartidor desde el panel de administración.
+
+    Body:
+    - **nombre**: Nombre del repartidor
+    - **apellido**: Apellido (opcional)
+    - **email**: Email único
+    - **telefono**: Teléfono de contacto
+    - **documento**: Número de identificación (opcional)
+    - **vehiculo**: moto, bicicleta o carro
+    - **placa**: obligatoria salvo para bicicleta
+    - **password**: Contraseña temporal
+    """
+
+    _requiere_super_admin(current_user)
+
+    try:
+        campos_requeridos = ['nombre', 'email', 'telefono', 'vehiculo', 'password']
+        for campo in campos_requeridos:
+            if campo not in datos or not datos[campo]:
+                raise ValueError(f"Campo requerido: {campo}")
+
+        vehiculo = datos['vehiculo']
+        if vehiculo not in ('moto', 'bicicleta', 'carro'):
+            raise ValueError("Vehículo inválido. Válidos: moto, bicicleta, carro")
+
+        placa = (datos.get('placa') or '').upper().replace(' ', '')[:10]
+        if vehiculo != 'bicicleta' and not placa:
+            raise ValueError("La placa es obligatoria para moto o carro")
+
+        if len(datos['password']) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+
+        usuario_existente = db.query(Usuario).filter(
+            Usuario.email == datos['email'],
+            Usuario.tipo_usuario == "domiciliario"
+        ).first()
+        if usuario_existente:
+            raise ValueError("Ya existe un repartidor registrado con ese correo")
+
+        nuevo_usuario = Usuario(
+            email=datos['email'],
+            nombre=datos['nombre'],
+            apellido=datos.get('apellido', ''),
+            telefono=datos.get('telefono', ''),
+            documento=datos.get('documento') or None,
+            tipo_usuario='domiciliario',
+            vehiculo=vehiculo,
+            placa=placa or None,
+            password_hash=hash_password(datos['password']),
+            estado='activo',
+            es_verificado=True,  # lo crea un súper admin, no pasa por el flujo de verificación pública
+            fecha_creacion=datetime.utcnow()
+        )
+
+        db.add(nuevo_usuario)
+        db.commit()
+        db.refresh(nuevo_usuario)
+
+        registrar_log(
+            db,
+            usuario_id=current_user.id,
+            accion="Creación",
+            tabla_afectada="usuarios",
+            registro_id=nuevo_usuario.id,
+            detalle=f"Repartidor {nuevo_usuario.nombre} {nuevo_usuario.apellido} ({nuevo_usuario.email}) creado por súper admin",
+        )
+
+        return {
+            "mensaje": "Repartidor creado exitosamente",
+            "repartidor": {
+                "id": str(nuevo_usuario.id),
+                "nombre": nuevo_usuario.nombre,
+                "email": nuevo_usuario.email,
+                "vehiculo": nuevo_usuario.vehiculo,
+            }
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear repartidor: {str(e)}"
         )
 
 # ============================================================================
