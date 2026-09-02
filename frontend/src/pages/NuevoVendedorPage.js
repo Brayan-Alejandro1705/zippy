@@ -6,7 +6,10 @@ import Layout from '../components/Layout';
 import '../styles/NuevoVendedor.css';
 
 const CIUDADES = ['Garzón', 'Neiva', 'Pitalito', 'La Plata', 'Campoalegre'];
-const ROLES = ['Vendedor', 'Repartidor', 'Admin'];
+// El backend de este endpoint (crear_vendedor) solo acepta 'Vendedor':
+// 'Repartidor' y 'Admin' nunca funcionaron aquí (tiraban error al enviar).
+// Para crear un repartidor usa Repartidores -> Nuevo repartidor (solo súper admin).
+const ROLES = ['Vendedor'];
 
 const initialForm = { nombre: '', email: '', telefono: '', documento: '', negocio: '', ciudad: '', direccion: '', rol: 'Vendedor', descripcion: '', password: '' };
 
