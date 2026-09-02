@@ -796,7 +796,15 @@ const RepartidorPage = () => {
     }
   }, []);
 
-  useEffect(() => { cargarOrdenes(); }, [cargarOrdenes]);
+  // Antes solo cargaba una vez al montar: si el repartidor ya estaba
+  // parado en la pantalla, un pedido nuevo (o uno que otro repartidor
+  // libero) nunca aparecia sin cerrar y volver a abrir la app. Ahora
+  // refresca cada 15s, igual que ya hacia cargarEspeciales.
+  useEffect(() => {
+    cargarOrdenes();
+    const t = setInterval(cargarOrdenes, 15000);
+    return () => clearInterval(t);
+  }, [cargarOrdenes]);
 
   /* Pedidos especiales reales: disponibles + los que este repartidor tomó */
   const cargarEspeciales = useCallback(async () => {
