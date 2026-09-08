@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import UserLayout from '../../components/UserLayout';
 import '../../styles/UserCart.css';
+import { ENVIO_POR_TIENDA } from '../../constants/envio';
+import { domicilioService } from '../../config/api';
 
-const ENVIO_POR_TIENDA = 3000;
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
 const UserCartPage = () => {
@@ -14,9 +15,24 @@ const UserCartPage = () => {
   const [descuento, setDescuento] = useState(0);
   const [cuponMsg, setCuponMsg] = useState('');
 
+  // El costo lo decide el servidor: el administrador puede cambiarlo desde el
+  // panel sin que haya que reconstruir la app. El valor del archivo queda
+  // como respaldo mientras carga o si la red falla.
+  const [envioUnitario, setEnvioUnitario] = useState(ENVIO_POR_TIENDA);
+
+  useEffect(() => {
+    domicilioService.obtener()
+      .then(({ data }) => {
+        if (typeof data?.costo_domicilio === 'number') {
+          setEnvioUnitario(data.costo_domicilio);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const tiendas = [...new Set(items.map(i => i.tienda))];
   const numTiendas = tiendas.length;
-  const envioTotal = numTiendas * ENVIO_POR_TIENDA;
+  const envioTotal = numTiendas * envioUnitario;
   const total = subtotal + envioTotal - descuento;
 
   const aplicarCupon = () => {
@@ -63,7 +79,7 @@ const UserCartPage = () => {
               <div key={tienda} className="uc-store-block">
                 <div className="uc-store-header">
                   <span>🏪 {tienda}</span>
-                  <span className="uc-store-envio">Envío: {fmt(ENVIO_POR_TIENDA)}</span>
+                  <span className="uc-store-envio">Envío: {fmt(envioUnitario)}</span>
                 </div>
 
                 {tiendaItems.map(item => (

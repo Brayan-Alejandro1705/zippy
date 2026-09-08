@@ -14,8 +14,14 @@ from logs_utils import registrar_log
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
-# Clave con la que se guarda el número en la tabla configuracion_sistema
+# Claves con las que se guardan los valores en configuracion_sistema
 CLAVE_WHATSAPP = "whatsapp_soporte"
+CLAVE_DOMICILIO = "costo_domicilio"
+
+# Topes de cordura: un domicilio de cero seria gratis por error, y uno de
+# cien mil casi seguro es un dedazo (un cero de mas).
+DOMICILIO_MINIMO = 0
+DOMICILIO_MAXIMO = 50000
 
 
 # ============================================================================
@@ -167,4 +173,90 @@ async def actualizar_whatsapp_soporte(
         "whatsapp": numero,
         "configurado": True,
         "mensaje": "Número de WhatsApp actualizado correctamente",
+    }
+
+
+# ============================================================================
+# COSTO DEL DOMICILIO
+# ============================================================================
+
+@router.get(
+    "/configuracion/domicilio",
+    summary="Obtener el costo del domicilio",
+    description="Devuelve el costo fijo por domicilio. Lo consulta el frontend "
+                "para mostrar el mismo valor que cobra el servidor.",
+)
+async def obtener_costo_domicilio(db: Session = Depends(get_db)):
+    from config import settings
+
+    # Sin configurar todavia: se usa el respaldo de config.py.
+    valor = _obtener_valor(db, CLAVE_DOMICILIO, "")
+    if not valor:
+        return {
+            "costo_domicilio": float(settings.COSTO_DOMICILIO_BASE),
+            "configurado": False,
+        }
+
+    try:
+        return {"costo_domicilio": float(valor), "configurado": True}
+    except ValueError:
+        # Alguien guardo basura: no se rompe el checkout por eso.
+        return {
+            "costo_domicilio": float(settings.COSTO_DOMICILIO_BASE),
+            "configurado": False,
+        }
+
+
+@router.put(
+    "/configuracion/domicilio",
+    summary="Actualizar el costo del domicilio",
+    description="Solo administradores. Cambia el costo fijo por domicilio.",
+)
+async def actualizar_costo_domicilio(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _es_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo un administrador puede cambiar el costo del domicilio",
+        )
+
+    crudo = datos.get("costo_domicilio", datos.get("valor"))
+    try:
+        costo = float(str(crudo).replace(".", "").replace(",", "."))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El costo debe ser un numero",
+        )
+
+    if not DOMICILIO_MINIMO <= costo <= DOMICILIO_MAXIMO:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El costo debe estar entre {DOMICILIO_MINIMO} y {DOMICILIO_MAXIMO}",
+        )
+
+    anterior = _obtener_valor(db, CLAVE_DOMICILIO, "sin definir")
+
+    _guardar_valor(
+        db,
+        CLAVE_DOMICILIO,
+        str(int(costo)),
+        "Costo fijo que se cobra por domicilio en cada orden",
+    )
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        accion="Configuración",
+        tabla_afectada="configuracion_sistema",
+        detalle=f"Costo de domicilio cambiado de {anterior} a {int(costo)}",
+    )
+
+    return {
+        "costo_domicilio": costo,
+        "configurado": True,
+        "mensaje": f"El domicilio quedo en ${int(costo):,}".replace(",", "."),
     }

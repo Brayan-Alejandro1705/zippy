@@ -14,6 +14,7 @@ from config import get_db, settings
 from models import Carrito, ItemCarrito, Producto, Usuario, Negocio
 from schemas import ItemCarritoCreate, ItemCarritoResponse, CarritoResponse
 from routes_auth import get_current_user
+import calculos
 
 router = APIRouter(prefix="/api/v1/carrito", tags=["Carrito"])
 
@@ -48,23 +49,28 @@ def obtener_o_crear_carrito(
     
     return carrito
 
-def calcular_totales_carrito(carrito: Carrito) -> Dict[str, Any]:
-    """Calcula los totales del carrito"""
+def calcular_totales_carrito(carrito: Carrito, db: Session) -> Dict[str, Any]:
+    """Calcula los totales del carrito.
+
+    Incluye el domicilio. Antes no lo hacia, y el cliente veia un total en el
+    carrito y otro distinto al pagar. Usa el mismo modulo que las ordenes para
+    que las dos cuentas no se puedan separar nunca mas.
+    """
     subtotal = Decimal(0)
     cantidad_items = 0
-    
+
     for item in carrito.items:
         precio = item.producto.precio
         subtotal += precio * item.cantidad
         cantidad_items += item.cantidad
-    
-    impuesto = subtotal * (Decimal(settings.IMPUESTO_IVA) / 100)
-    total = subtotal + impuesto
-    
+
+    cuentas = calculos.desglose(subtotal, db)
+
     return {
-        "subtotal": float(subtotal),
-        "impuesto": float(impuesto),
-        "total": float(total),
+        "subtotal": float(cuentas["subtotal"]),
+        "impuesto": float(cuentas["impuesto"]),
+        "costo_domicilio": float(cuentas["costo_domicilio"]),
+        "total": float(cuentas["total"]),
         "cantidad_items": cantidad_items
     }
 
@@ -169,7 +175,7 @@ async def agregar_al_carrito(
     db.commit()
     db.refresh(carrito)
     
-    totales = calcular_totales_carrito(carrito)
+    totales = calcular_totales_carrito(carrito, db)
     
     return {
         "mensaje": "Producto agregado al carrito",
@@ -229,7 +235,7 @@ async def obtener_carrito(
             "especificaciones": item.especificaciones
         })
     
-    totales = calcular_totales_carrito(carrito)
+    totales = calcular_totales_carrito(carrito, db)
     
     return {
         "carrito_id": str(carrito.id),
@@ -290,7 +296,7 @@ async def actualizar_cantidad_carrito(
     db.commit()
     db.refresh(item.carrito)
     
-    totales = calcular_totales_carrito(item.carrito)
+    totales = calcular_totales_carrito(item.carrito, db)
     
     return {
         "mensaje": "Cantidad actualizada",
@@ -439,7 +445,7 @@ async def resumen_carrito(
             "especificaciones": item.especificaciones
         })
     
-    totales = calcular_totales_carrito(carrito)
+    totales = calcular_totales_carrito(carrito, db)
     
     return {
         "carrito_id": str(carrito.id),

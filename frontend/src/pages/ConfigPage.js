@@ -14,6 +14,7 @@ const TABS = [
   { id: 'notificaciones',  icon: 'notificaciones',  label: 'Notificaciones' },
   { id: 'apariencia',      icon: 'apariencia',      label: 'Apariencia' },
   { id: 'soporte',         icon: 'soporte',         label: 'Soporte', soloSuperAdmin: true },
+  { id: 'precios',         icon: 'vendedores',      label: 'Precios', soloSuperAdmin: true },
   { id: 'ayuda',           icon: 'interrogacion',   label: 'Ayuda' },
 ];
 
@@ -374,6 +375,107 @@ const SeccionApariencia = () => {
 
 
 // ── Soporte (solo super admin) ────────────────────────────────────────────────
+// ── Precios ───────────────────────────────────────────────────────────────────
+// El costo del domicilio vive en la base de datos, no en el codigo. Antes
+// cambiarlo obligaba a editar dos archivos, reconstruir y volver a desplegar.
+const SeccionPrecios = () => {
+  const { addToast } = useToast();
+  const [costo, setCosto]         = useState('');
+  const [original, setOriginal]   = useState('');
+  const [configurado, setConfig]  = useState(false);
+  const [cargando, setCargando]   = useState(true);
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    adminService.obtenerDomicilio()
+      .then(({ data }) => {
+        const valor = String(Math.round(data.costo_domicilio ?? 0));
+        setCosto(valor);
+        setOriginal(valor);
+        setConfig(Boolean(data.configurado));
+      })
+      .catch(() => addToast('No se pudo cargar el costo del domicilio', 'error'))
+      .finally(() => setCargando(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const guardar = async (e) => {
+    e.preventDefault();
+    const numero = Number(String(costo).replace(/[^\d]/g, ''));
+
+    if (!numero && numero !== 0) {
+      addToast('Escribe un valor válido', 'error');
+      return;
+    }
+    if (numero > 50000) {
+      addToast('Ese valor parece un error. El máximo es $50.000', 'error');
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const { data } = await adminService.actualizarDomicilio(numero);
+      const valor = String(Math.round(data.costo_domicilio));
+      setCosto(valor);
+      setOriginal(valor);
+      setConfig(true);
+      addToast(data.mensaje || 'Costo actualizado', 'success');
+    } catch (err) {
+      const detalle = err?.response?.data?.detail;
+      addToast(typeof detalle === 'string' ? detalle : 'No se pudo guardar', 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const fmt = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
+  const cambio = costo !== original;
+
+  return (
+    <div className="cfg-sections">
+      <form className="cfg-card" onSubmit={guardar}>
+        <div className="cfg-card-title">Costo del domicilio</div>
+        <p className="cfg-notif-desc" style={{ marginBottom: 16 }}>
+          Se cobra una vez por cada tienda del pedido. Si un cliente compra en
+          dos negocios distintos, paga dos domicilios porque son dos recogidas.
+          El cambio aplica de inmediato a los pedidos nuevos.
+        </p>
+
+        <div className="cfg-field" style={{ maxWidth: 240 }}>
+          <label>Valor por domicilio (COP)</label>
+          <input
+            type="number"
+            min="0"
+            max="50000"
+            step="500"
+            value={costo}
+            disabled={cargando || guardando}
+            onChange={(e) => setCosto(e.target.value)}
+            placeholder="4000"
+          />
+        </div>
+
+        {!cargando && (
+          <p className="cfg-notif-desc" style={{ marginTop: 12 }}>
+            Actualmente se cobra <strong>{fmt(original)}</strong> por domicilio.
+            {!configurado && ' (valor por defecto, aún no configurado)'}
+          </p>
+        )}
+
+        <div className="cfg-actions" style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+          <button
+            type="submit"
+            className="cfg-btn-save"
+            disabled={cargando || guardando || !cambio}
+          >
+            {guardando ? 'Guardando…' : 'Guardar precio'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 const SeccionSoporte = () => {
   const { addToast } = useToast();
   const [whatsapp, setWhatsapp]   = useState('');
@@ -472,6 +574,7 @@ const SECTION_MAP = {
   notificaciones: <SeccionNotificaciones />,
   apariencia:     <SeccionApariencia />,
   soporte:        <SeccionSoporte />,
+  precios:        <SeccionPrecios />,
   ayuda:          <CentroAyuda perfil="admin" />,
 };
 

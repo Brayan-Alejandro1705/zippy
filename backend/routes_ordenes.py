@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from config import get_db, settings
+import calculos
 from models import (
     Orden, ItemOrden, Producto, Negocio, Usuario, EstadoUsuario,
     Transaccion, SeguimientoOrden, Carrito, ItemCarrito, MensajeOrden
@@ -27,8 +28,13 @@ router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 
 def calcular_total_orden(items_data: List[dict], db: Session) -> tuple:
     """
-    Calcula subtotal, impuesto y total de una orden
-    Retorna: (subtotal, impuesto, total)
+    Calcula subtotal, impuesto, domicilio y total de una orden.
+
+    Retorna: (subtotal, impuesto, costo_domicilio, total)
+
+    El domicilio se suma AQUI y no se recibe del frontend: un precio que
+    llega desde el navegador lo puede modificar cualquiera con las
+    herramientas de desarrollador.
     """
     subtotal = Decimal(0)
     
@@ -52,9 +58,10 @@ def calcular_total_orden(items_data: List[dict], db: Session) -> tuple:
         subtotal += producto.precio * item['cantidad']
     
     impuesto = subtotal * (Decimal(settings.IMPUESTO_IVA) / 100)
-    total = subtotal + impuesto
-    
-    return subtotal, impuesto, total
+    costo_domicilio = calculos.costo_domicilio(db)
+    total = subtotal + impuesto + costo_domicilio
+
+    return subtotal, impuesto, costo_domicilio, total
 
 # ============================================================================
 # ENDPOINTS: CRUD DE ÓRDENES
@@ -101,7 +108,7 @@ async def crear_orden(
     
     # Calcular totales
     items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad} for item in orden.items]
-    subtotal, impuesto, total = calcular_total_orden(items_list, db)
+    subtotal, impuesto, costo_domicilio, total = calcular_total_orden(items_list, db)
     
     # Crear orden
     nueva_orden = Orden(
@@ -110,6 +117,7 @@ async def crear_orden(
         estado="pendiente",
         subtotal=subtotal,
         impuesto=impuesto,
+        costo_domicilio=costo_domicilio,
         total=total,
         metodo_pago=orden.metodo_pago,
         estado_pago="pendiente",

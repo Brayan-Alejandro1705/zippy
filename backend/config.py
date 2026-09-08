@@ -79,7 +79,11 @@ class Settings:
     # Configuración de negocio
     COMISION_TOUTAIN = float(os.getenv("COMISION_TOUTAIN", 5))  # Porcentaje
     IMPUESTO_IVA = float(os.getenv("IMPUESTO_IVA", 19))  # Porcentaje
-    COSTO_DOMICILIO_BASE = float(os.getenv("COSTO_DOMICILIO_BASE", 5000))  # COP
+    # Costo fijo del domicilio por orden. Cada orden es de un solo negocio,
+    # asi que si el cliente pide de dos tiendas se generan dos ordenes y se
+    # cobran dos domicilios. Debe coincidir con ENVIO_POR_TIENDA del frontend
+    # (frontend/src/constants/envio.js).
+    COSTO_DOMICILIO_BASE = float(os.getenv("COSTO_DOMICILIO_BASE", 4000))  # COP
     COSTO_DOMICILIO_KM = float(os.getenv("COSTO_DOMICILIO_KM", 1000))  # COP por km
     
     # Email vía API HTTP de Brevo (Render bloquea SMTP saliente en el plan free,

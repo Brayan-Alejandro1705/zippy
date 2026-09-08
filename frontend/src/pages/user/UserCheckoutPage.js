@@ -2,16 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { ordenesService, clienteService } from '../../config/api';
+import { ordenesService, clienteService, domicilioService } from '../../config/api';
 import '../../styles/UserCheckout.css';
+import { ENVIO_POR_TIENDA } from '../../constants/envio';
 
-const ENVIO_POR_TIENDA = 3000;
 const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
 const UserCheckoutPage = () => {
   const navigate = useNavigate();
   const { items, subtotal, clearCart } = useCart();
   const { addToast } = useToast();
+
+  // Mismo criterio que el carrito: manda el servidor, el archivo es respaldo.
+  const [envioUnitario, setEnvioUnitario] = useState(ENVIO_POR_TIENDA);
+
+  useEffect(() => {
+    domicilioService.obtener()
+      .then(({ data }) => {
+        if (typeof data?.costo_domicilio === 'number') {
+          setEnvioUnitario(data.costo_domicilio);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const [pago]                = useState('efectivo');
   const [nota, setNota]       = useState('');
@@ -42,7 +55,7 @@ const UserCheckoutPage = () => {
   const dirElegida = direcciones.find(d => d.id === dirId) || null;
 
   const tiendas    = [...new Set(items.map(i => i.tienda))];
-  const envioTotal = tiendas.length * ENVIO_POR_TIENDA;
+  const envioTotal = tiendas.length * envioUnitario;
   const total      = subtotal + envioTotal;
 
   // Si el carrito queda vacio (p.ej. tras confirmar), volver a la tienda.

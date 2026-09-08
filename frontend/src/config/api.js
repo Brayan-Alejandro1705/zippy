@@ -144,12 +144,21 @@ export const adminService = {
   estadisticas: () => api.get('/admin/estadisticas/'),
   obtenerSoporte:    () => api.get('/admin/configuracion/soporte'),
   actualizarSoporte: (whatsapp) => api.put('/admin/configuracion/soporte', { whatsapp }),
+  obtenerDomicilio:    () => api.get('/admin/configuracion/domicilio'),
+  actualizarDomicilio: (costo) =>
+    api.put('/admin/configuracion/domicilio', { costo_domicilio: costo }),
 };
 
 // Lectura del WhatsApp de soporte. El endpoint es público, lo usa el centro
 // de ayuda de todos los perfiles (cliente, vendedor, repartidor y admin).
 export const soporteService = {
   obtener: () => api.get('/admin/configuracion/soporte'),
+};
+
+// Costo del domicilio. Lo consultan el carrito y el checkout para mostrar el
+// MISMO valor que el servidor va a cobrar. El endpoint de lectura es publico.
+export const domicilioService = {
+  obtener: () => api.get('/admin/configuracion/domicilio'),
 };
 
 export const usuariosService = {
