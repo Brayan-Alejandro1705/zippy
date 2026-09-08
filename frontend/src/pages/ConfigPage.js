@@ -15,6 +15,7 @@ const TABS = [
   { id: 'apariencia',      icon: 'apariencia',      label: 'Apariencia' },
   { id: 'soporte',         icon: 'soporte',         label: 'Soporte', soloSuperAdmin: true },
   { id: 'precios',         icon: 'vendedores',      label: 'Precios', soloSuperAdmin: true },
+  { id: 'actualizacion',   icon: 'descargar',       label: 'Actualización', soloSuperAdmin: true },
   { id: 'ayuda',           icon: 'interrogacion',   label: 'Ayuda' },
 ];
 
@@ -567,6 +568,126 @@ const SeccionSoporte = () => {
   );
 };
 
+const SeccionActualizacion = () => {
+  const { addToast } = useToast();
+  const [versionMinima, setVersionMinima] = useState('');
+  const [obligatoria, setObligatoria]     = useState(false);
+  const [mensaje, setMensaje]             = useState('');
+  const [original, setOriginal]           = useState(null);
+  const [cargando, setCargando]           = useState(true);
+  const [guardando, setGuardando]         = useState(false);
+
+  useEffect(() => {
+    adminService.obtenerActualizacion()
+      .then(({ data }) => {
+        setVersionMinima(String(data.version_minima ?? 0));
+        setObligatoria(Boolean(data.obligatoria));
+        setMensaje(data.mensaje || '');
+        setOriginal(data);
+      })
+      .catch(() => addToast('No se pudo cargar la configuración de actualización', 'error'))
+      .finally(() => setCargando(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const guardar = async (e) => {
+    e.preventDefault();
+    const numero = Number(String(versionMinima).replace(/[^\d]/g, ''));
+    if (!numero) {
+      addToast('Escribe el versionCode (número de build de Android)', 'error');
+      return;
+    }
+    setGuardando(true);
+    try {
+      const { data } = await adminService.actualizarActualizacion(numero, obligatoria, mensaje.trim());
+      setVersionMinima(String(data.version_minima));
+      setObligatoria(data.obligatoria);
+      setMensaje(data.mensaje);
+      setOriginal(data);
+      addToast('Configuración de actualización guardada', 'success');
+    } catch (err) {
+      const detalle = err?.response?.data?.detail;
+      addToast(typeof detalle === 'string' ? detalle : 'No se pudo guardar', 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const cambio = original && (
+    versionMinima !== String(original.version_minima ?? 0) ||
+    obligatoria !== Boolean(original.obligatoria) ||
+    mensaje !== (original.mensaje || '')
+  );
+
+  return (
+    <div className="cfg-sections">
+      <form className="cfg-card" onSubmit={guardar}>
+        <div className="cfg-card-title">Actualización obligatoria (Android)</div>
+        <p className="cfg-notif-desc" style={{ marginBottom: 16 }}>
+          Úsala solo cuando subas una versión nueva a Play Store que sea importante
+          (ej. un arreglo que necesita todo el mundo). Mientras esté activada, a
+          cualquiera con una versión instalada por debajo de la mínima se le bloquea
+          la pantalla con un botón para ir a Play Store — no puede seguir usando la
+          app hasta actualizar. El número de versión (versionCode) es el mismo que el
+          "run number" del build en GitHub Actions.
+        </p>
+
+        <div className="cfg-field" style={{ maxWidth: 240 }}>
+          <label>Versión mínima requerida (versionCode)</label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={versionMinima}
+            disabled={cargando || guardando}
+            onChange={(e) => setVersionMinima(e.target.value)}
+            placeholder="66"
+          />
+        </div>
+
+        <div className="cfg-field" style={{ maxWidth: 480, marginTop: 14 }}>
+          <label>Mensaje que ve el usuario</label>
+          <textarea
+            rows={3}
+            value={mensaje}
+            disabled={cargando || guardando}
+            onChange={(e) => setMensaje(e.target.value)}
+            placeholder="Hay una actualización importante disponible. Actualiza para seguir usando Zippy."
+          />
+        </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={obligatoria}
+            disabled={cargando || guardando}
+            onChange={(e) => setObligatoria(e.target.checked)}
+          />
+          <span>Forzar la actualización ahora mismo</span>
+        </label>
+
+        {!cargando && obligatoria && (
+          <p className="cfg-notif-desc" style={{ marginTop: 12, color: '#c0392b' }}>
+            ⚠ Está ACTIVA: cualquiera con una versión por debajo de {versionMinima || '—'} va a
+            quedar bloqueado hasta que actualice. Actívala solo cuando la versión nueva ya
+            esté aprobada y disponible en Play Store.
+          </p>
+        )}
+
+        <div className="cfg-actions" style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+          <button
+            type="submit"
+            className="cfg-btn-save"
+            disabled={cargando || guardando || !cambio}
+          >
+            {guardando ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 const SECTION_MAP = {
   perfil:         <SeccionPerfil />,
@@ -575,6 +696,7 @@ const SECTION_MAP = {
   apariencia:     <SeccionApariencia />,
   soporte:        <SeccionSoporte />,
   precios:        <SeccionPrecios />,
+  actualizacion:  <SeccionActualizacion />,
   ayuda:          <CentroAyuda perfil="admin" />,
 };
 

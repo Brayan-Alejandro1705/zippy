@@ -147,6 +147,9 @@ export const adminService = {
   obtenerDomicilio:    () => api.get('/admin/configuracion/domicilio'),
   actualizarDomicilio: (costo) =>
     api.put('/admin/configuracion/domicilio', { costo_domicilio: costo }),
+  obtenerActualizacion:    () => api.get('/admin/configuracion/actualizacion'),
+  actualizarActualizacion: (version_minima, obligatoria, mensaje) =>
+    api.put('/admin/configuracion/actualizacion', { version_minima, obligatoria, mensaje }),
 };
 
 // Lectura del WhatsApp de soporte. El endpoint es público, lo usa el centro

@@ -17,6 +17,9 @@ router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 # Claves con las que se guardan los valores en configuracion_sistema
 CLAVE_WHATSAPP = "whatsapp_soporte"
 CLAVE_DOMICILIO = "costo_domicilio"
+CLAVE_VERSION_MINIMA = "version_minima_android"
+CLAVE_ACTUALIZACION_OBLIGATORIA = "actualizacion_obligatoria"
+CLAVE_MENSAJE_ACTUALIZACION = "mensaje_actualizacion_app"
 
 # Topes de cordura: un domicilio de cero seria gratis por error, y uno de
 # cien mil casi seguro es un dedazo (un cero de mas).
@@ -259,4 +262,91 @@ async def actualizar_costo_domicilio(
         "costo_domicilio": costo,
         "configurado": True,
         "mensaje": f"El domicilio quedo en ${int(costo):,}".replace(",", "."),
+    }
+# ============================================================================
+# ACTUALIZACION OBLIGATORIA DE LA APP (Android)
+# ============================================================================
+# Como el frontend ahora se carga desde Render (ver capacitor.config), un
+# cambio de pantallas normal no necesita esto: le llega solo a todo el mundo.
+# Esto es solo para el caso donde SI hace falta una version nueva del .apk
+# (por ejemplo, un plugin nativo nuevo) y se quiere obligar a la gente a que
+# actualice desde Play Store en vez de seguir usando una version vieja.
+
+@router.get(
+    "/configuracion/actualizacion",
+    summary="Obtener el estado de actualizacion obligatoria",
+    description="Publico: lo consulta la app en cada apertura para saber si "
+                "debe forzar al usuario a actualizar desde Play Store.",
+)
+async def obtener_actualizacion(db: Session = Depends(get_db)):
+    version_minima = _obtener_valor(db, CLAVE_VERSION_MINIMA, "0")
+    obligatoria = _obtener_valor(db, CLAVE_ACTUALIZACION_OBLIGATORIA, "false")
+    mensaje = _obtener_valor(
+        db, CLAVE_MENSAJE_ACTUALIZACION,
+        "Hay una actualizacion importante disponible. Actualiza para seguir usando Zippy.",
+    )
+
+    try:
+        version_minima_int = int(version_minima)
+    except ValueError:
+        version_minima_int = 0
+
+    return {
+        "version_minima": version_minima_int,
+        "obligatoria": obligatoria.lower() == "true",
+        "mensaje": mensaje,
+    }
+
+
+@router.put(
+    "/configuracion/actualizacion",
+    summary="Configurar la actualizacion obligatoria",
+    description="Solo super administradores. Define desde que versionCode de "
+                "Android se debe forzar la actualizacion.",
+)
+async def actualizar_actualizacion(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not getattr(current_user, "es_super_admin", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo un super administrador puede configurar la actualizacion obligatoria",
+        )
+
+    try:
+        version_minima = int(datos.get("version_minima", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="version_minima debe ser un numero entero (el versionCode de Android)",
+        )
+    if version_minima < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="version_minima no puede ser negativo",
+        )
+
+    obligatoria = bool(datos.get("obligatoria", False))
+    mensaje = str(datos.get("mensaje") or "").strip() or (
+        "Hay una actualizacion importante disponible. Actualiza para seguir usando Zippy."
+    )
+
+    _guardar_valor(db, CLAVE_VERSION_MINIMA, str(version_minima), "versionCode minimo de Android requerido")
+    _guardar_valor(db, CLAVE_ACTUALIZACION_OBLIGATORIA, "true" if obligatoria else "false", "Si se debe forzar la actualizacion")
+    _guardar_valor(db, CLAVE_MENSAJE_ACTUALIZACION, mensaje, "Mensaje que ve el usuario cuando debe actualizar")
+
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        accion="Configuración",
+        tabla_afectada="configuracion_sistema",
+        detalle=f"Actualizacion obligatoria configurada: version_minima={version_minima}, obligatoria={obligatoria}",
+    )
+
+    return {
+        "version_minima": version_minima,
+        "obligatoria": obligatoria,
+        "mensaje": mensaje,
     }
