@@ -37,6 +37,7 @@ import VendorPagosPage from './pages/vendor/VendorPagosPage';
 import VendorConfigPage from './pages/vendor/VendorConfigPage';
 import './App.css';
 import './styles/dark-theme.css';
+import BackButtonHandler from './components/BackButtonHandler';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('access_token');
@@ -88,6 +89,7 @@ const PublicOnlyRoute = ({ children }) => {
 
 const App = () => (
   <ThemeProvider>
+    <BackButtonHandler />
     <ToastProvider>
       <CartProvider>
       <BrowserRouter>
