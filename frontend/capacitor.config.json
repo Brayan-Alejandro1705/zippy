@@ -2,5 +2,9 @@
   "appId": "com.zippygo.app",
   "appName": "ZIPPYGO",
   "webDir": "build",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://zippygo-app.onrender.com",
+    "cleartext": false
+  }
 }
