@@ -75,6 +75,8 @@ class Settings:
         "http://localhost",
         "https://localhost",
         "capacitor://localhost",
+        # ── Frontend servido desde Render (ver frontend/capacitor.config.ts) ──
+        "https://zippygo-app.onrender.com",
     ]
     # Configuración de negocio
     COMISION_TOUTAIN = float(os.getenv("COMISION_TOUTAIN", 5))  # Porcentaje
