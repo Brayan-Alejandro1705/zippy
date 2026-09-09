@@ -16,6 +16,7 @@ const TABS = [
   { id: 'cuenta',         icon: 'perfil',         label: 'Cuenta'         },
   { id: 'notificaciones', icon: 'notificaciones', label: 'Notificaciones' },
   { id: 'apariencia',     icon: 'apariencia',     label: 'Apariencia'     },
+  { id: 'ayuda',          icon: 'interrogacion',  label: 'Ayuda'          },
 ];
 
 // ── Field helper ──────────────────────────────────────────────────────────────
