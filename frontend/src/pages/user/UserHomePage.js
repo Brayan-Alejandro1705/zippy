@@ -8,6 +8,7 @@ import ZLoader from '../../components/ZLoader';
 import '../../styles/UserHome.css';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
+import { estaAbierto, textoCerrado } from '../../utils/horario';
 
 /* ── Countdown ──────────────────────────────────────────── */
 const useCountdown = () => {
@@ -100,6 +101,9 @@ const UserHomePage = () => {
             text: STORE_COLORS[i % STORE_COLORS.length].text,
             count: conteoPorNegocio[n.id] || 0,
             rating: Number(n.calificacion_promedio) || 0,
+            hora_apertura: n.hora_apertura,
+            hora_cierre: n.hora_cierre,
+            dias_operacion: n.dias_operacion,
           }));
 
         const categoriasReales = [...new Set(productosRaw.map(p => p.categoria).filter(Boolean))]
@@ -122,6 +126,9 @@ const UserHomePage = () => {
           foto: p.imagenes?.[0] || null,
           totalVendidos: p.total_vendidos || 0,
           gradIdx: i,
+          hora_apertura: negociosMap[p.negocio_id]?.hora_apertura,
+          hora_cierre: negociosMap[p.negocio_id]?.hora_cierre,
+          dias_operacion: negociosMap[p.negocio_id]?.dias_operacion,
         }));
 
         setProductos(productosMapeados);
@@ -175,7 +182,14 @@ const UserHomePage = () => {
       return 0;
     });
 
-  const handleAdd = p => { addItem(p); addToast(`${p.nombre} agregado al carrito`, 'success'); };
+  const handleAdd = p => {
+    if (!estaAbierto(p)) {
+      addToast(`${p.tienda} está cerrada ahora · ${textoCerrado(p)}`, 'error');
+      return;
+    }
+    addItem(p);
+    addToast(`${p.nombre} agregado al carrito`, 'success');
+  };
   const toggleSave = (id) => {
     const yaGuardado = saved.has(id);
     // Actualizacion optimista: refleja el cambio ya mismo en la UI...
@@ -340,7 +354,9 @@ const UserHomePage = () => {
                 <div className="uh-store-avatar" style={{ background: t.color, color: t.text }}><Icon name={t.icon} size={22} /></div>
                 <div className="uh-store-info">
                   <p className="uh-store-name">{t.nombre}</p>
-                  <p className="uh-store-count">{t.count} producto{t.count !== 1 ? 's' : ''}</p>
+                  {estaAbierto(t)
+                    ? <p className="uh-store-count">{t.count} producto{t.count !== 1 ? 's' : ''}</p>
+                    : <p className="uh-store-count uh-store-count--cerrada">{textoCerrado(t)}</p>}
                 </div>
                 {tiendaFiltro === t.nombre && <span className="uh-store-check">✓</span>}
               </button>
@@ -459,6 +475,7 @@ const UserHomePage = () => {
                       {p.rating >= 4.7 && <span className="uh-badge-top"><Icon name="estrella" size={12} style={{ verticalAlign: '-2px', marginRight: 3 }} />Top</span>}
                       {p.rating > 0 && <span className="uh-rating"><Icon name="estrella" size={12} style={{ verticalAlign: '-2px', marginRight: 3 }} />{p.rating.toFixed(1)}</span>}
                       {inCart(p.id) && <span className="uh-cart-qty">{cartQty(p.id)}</span>}
+                      {!estaAbierto(p) && <span className="uh-badge-cerrado">Cerrado</span>}
                     </div>
                     <div className="uh-info">
                       <p className="uh-nombre">{p.nombre}</p>
@@ -476,14 +493,17 @@ const UserHomePage = () => {
                             onClick={() => toggleSave(p.id)}
                           ><Icon name="corazon" size={18} filled={saved.has(p.id)} /></button>
                           <button
-                            className={`uh-btn-cart ${inCart(p.id) ? 'uh-btn-cart--added' : ''}`}
+                            className={`uh-btn-cart ${inCart(p.id) ? 'uh-btn-cart--added' : ''} ${!estaAbierto(p) ? 'uh-btn-cart--disabled' : ''}`}
                             onClick={() => handleAdd(p)}
+                            disabled={!estaAbierto(p)}
                           >
-                            {inCart(p.id) ? `✓ ${cartQty(p.id)}` : '+ Agregar'}
+                            {!estaAbierto(p) ? 'Cerrado' : (inCart(p.id) ? `✓ ${cartQty(p.id)}` : '+ Agregar')}
                           </button>
                         </div>
                       </div>
-                      {p.stock <= 10 && <span className="uh-stock-low">¡Solo {p.stock} disponibles!</span>}
+                      {!estaAbierto(p)
+                        ? <p className="uh-cerrado-txt">{textoCerrado(p)}</p>
+                        : (p.stock <= 10 && <span className="uh-stock-low">¡Solo {p.stock} disponibles!</span>)}
                     </div>
                   </div>
                 ))}

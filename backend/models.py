@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import INET
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from config import Base
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 import enum
 
@@ -182,6 +182,48 @@ class Negocio(Base):
 
     def __repr__(self):
         return f"<Negocio {self.nombre_negocio}>"
+
+    _DIAS_SEMANA_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']  # weekday(): 0=Lunes
+
+    def esta_abierto(self, ahora_utc=None):
+        """
+        True si el negocio esta dentro de su horario configurado
+        (hora_apertura, hora_cierre, dias_operacion). Si el vendedor nunca
+        configuro horario, se asume que esta abierto siempre.
+
+        La comparacion se hace en hora de Colombia (UTC-5, sin horario de
+        verano) porque hora_apertura/hora_cierre se guardan como el vendedor
+        las ve en su pantalla (hora local), pero el servidor trabaja en UTC.
+        """
+        if not self.hora_apertura or not self.hora_cierre:
+            return True
+
+        ahora_utc = ahora_utc or datetime.utcnow()
+        ahora_co = ahora_utc - timedelta(hours=5)
+
+        if self.dias_operacion:
+            dias = [d.strip() for d in self.dias_operacion.split(',') if d.strip()]
+            if dias and self._DIAS_SEMANA_ES[ahora_co.weekday()] not in dias:
+                return False
+
+        minutos_ahora = ahora_co.hour * 60 + ahora_co.minute
+        min_apertura = self.hora_apertura.hour * 60 + self.hora_apertura.minute
+        min_cierre = self.hora_cierre.hour * 60 + self.hora_cierre.minute
+
+        if min_cierre > min_apertura:
+            return min_apertura <= minutos_ahora < min_cierre
+        # Horario que cruza medianoche (ej: 8:00 p.m. - 2:00 a.m.)
+        return minutos_ahora >= min_apertura or minutos_ahora < min_cierre
+
+    def proxima_apertura_texto(self):
+        """Texto corto tipo 'Abre a las 8:00 a.m.' para mostrarle al cliente."""
+        if not self.hora_apertura:
+            return None
+        h = self.hora_apertura.hour
+        m = self.hora_apertura.minute
+        ampm = 'p.m.' if h >= 12 else 'a.m.'
+        h12 = h % 12 or 12
+        return f"Abre a las {h12}:{m:02d} {ampm}"
 
 # ============================================================================
 # TABLA: PRODUCTOS

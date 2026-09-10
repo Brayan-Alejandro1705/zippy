@@ -66,6 +66,7 @@
 .ucho-item:last-child { margin-bottom: 0; }
 .ucho-item-name { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
 .ucho-item-meta { font-size: 12px; color: #94a3b8; }
+.ucho-item-cerrado { font-size: 11px; font-weight: 700; color: #b91c1c; margin-top: 4px; }
 .ucho-item-total { font-size: 14px; font-weight: 800; color: #FF7A00; white-space: nowrap; }
 
 /* Address */

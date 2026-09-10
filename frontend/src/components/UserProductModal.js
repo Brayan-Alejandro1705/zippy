@@ -3,6 +3,7 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import Icon from './Icons';
 import { urlImagen } from '../utils/media';
+import { estaAbierto, textoCerrado } from '../utils/horario';
 import '../styles/UserProductModal.css';
 
 const Stars = ({ n, size = 14 }) => (
@@ -22,7 +23,13 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
 
   if (!producto) return null;
 
+  const abierto = estaAbierto(producto);
+
   const handleAdd = () => {
+    if (!abierto) {
+      addToast(`${producto.tienda} está cerrada ahora · ${textoCerrado(producto)}`, 'error');
+      return;
+    }
     for (let i = 0; i < qty; i++) addItem(producto);
     addToast(`${producto.nombre} agregado al carrito`, 'success');
     onClose();
@@ -63,7 +70,11 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
           <h2 className="upm-name">{producto.nombre}</h2>
           <p className="upm-tienda">🏪 {producto.tienda}</p>
 
-          {producto.stock <= 10 && (
+          {!abierto && (
+            <p className="upm-cerrado-banner">🕒 {textoCerrado(producto)}</p>
+          )}
+
+          {abierto && producto.stock <= 10 && (
             <p className="upm-stock-warn">⚠️ ¡Solo quedan {producto.stock} unidades!</p>
           )}
 
@@ -78,8 +89,8 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
             <span>{qty}</span>
             <button onClick={() => setQty(q => q + 1)}>+</button>
           </div>
-          <button className="upm-add-btn" onClick={handleAdd}>
-            Agregar · {fmt(producto.precio * qty)}
+          <button className={`upm-add-btn ${!abierto ? 'upm-add-btn--disabled' : ''}`} onClick={handleAdd} disabled={!abierto}>
+            {abierto ? `Agregar · ${fmt(producto.precio * qty)}` : 'Tienda cerrada'}
           </button>
         </div>
 

@@ -105,7 +105,18 @@ async def crear_orden(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Negocio no encontrado"
         )
-    
+
+    # No dejar crear ordenes si la tienda esta fuera de su horario configurado
+    if not negocio.esta_abierto():
+        detalle = f"{negocio.nombre_negocio} esta cerrado en este momento."
+        apertura = negocio.proxima_apertura_texto()
+        if apertura:
+            detalle += f" {apertura}."
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detalle
+        )
+
     # Calcular totales
     items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad} for item in orden.items]
     subtotal, impuesto, costo_domicilio, total = calcular_total_orden(items_list, db)

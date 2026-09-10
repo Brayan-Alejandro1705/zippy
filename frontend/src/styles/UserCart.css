@@ -106,6 +106,7 @@
   color: #555;
 }
 .uc-store-subtotal strong { color: #10b981; font-size: 14px; }
+.uc-store-cerrada { font-size: 12px; font-weight: 700; color: #b91c1c; background: #fef2f2; padding: 8px 12px; border-radius: 8px; margin: 0 0 6px; }
 
 /* Summary panel */
 .uc-summary {
@@ -180,6 +181,8 @@
   cursor: pointer; transition: background 0.2s; margin-bottom: 10px;
 }
 .uc-btn-pago:hover { background: #e56e00; }
+.uc-btn-pago:disabled, .uc-btn-pago:disabled:hover { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
+.uc-cerrada-aviso { font-size: 12px; font-weight: 700; color: #b91c1c; background: #fef2f2; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; text-align: center; }
 
 .uc-btn-seguir {
   width: 100%; padding: 11px;

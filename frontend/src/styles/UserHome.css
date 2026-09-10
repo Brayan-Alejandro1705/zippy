@@ -588,6 +588,15 @@
 .uh-nombre { font-size: 14px; font-weight: 700; color: #1e293b; line-height: 1.3; }
 .uh-tienda { font-size: 12px; color: #94a3b8; }
 .uh-stock-low { font-size: 11px; font-weight: 700; color: #ef4444; background: #fef2f2; padding: 3px 8px; border-radius: 6px; align-self: flex-start; margin-top: 4px; }
+.uh-cerrado-txt { font-size: 11px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 3px 8px; border-radius: 6px; align-self: flex-start; margin-top: 4px; }
+.uh-store-count--cerrada { color: #64748b; font-weight: 700; }
+.uh-badge-cerrado {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(15, 23, 42, 0.85); color: white;
+  font-size: 9px; font-weight: 800;
+  padding: 3px 8px; border-radius: 5px; letter-spacing: 0.3px;
+}
+
 
 .uh-card-footer {
   display: flex;
@@ -622,6 +631,7 @@
 .uh-btn-cart:hover  { background: #e56e00; }
 .uh-btn-cart--added { background: #10b981; }
 .uh-btn-cart--added:hover { background: #059669; }
+.uh-btn-cart--disabled, .uh-btn-cart--disabled:hover { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
 
 /* Vacío */
 .uh-empty {

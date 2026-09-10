@@ -5,6 +5,7 @@ import { useToast } from '../../context/ToastContext';
 import { ordenesService, clienteService, domicilioService } from '../../config/api';
 import '../../styles/UserCheckout.css';
 import { ENVIO_POR_TIENDA } from '../../constants/envio';
+import { estaAbierto, textoCerrado } from '../../utils/horario';
 
 const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
@@ -57,6 +58,7 @@ const UserCheckoutPage = () => {
   const tiendas    = [...new Set(items.map(i => i.tienda))];
   const envioTotal = tiendas.length * envioUnitario;
   const total      = subtotal + envioTotal;
+  const itemsCerrados = items.filter(i => !estaAbierto(i));
 
   // Si el carrito queda vacio (p.ej. tras confirmar), volver a la tienda.
   // OJO: navigate() no puede llamarse durante el render -> pantalla en blanco.
@@ -70,6 +72,10 @@ const UserCheckoutPage = () => {
   const handleConfirmar = async () => {
     if (!dirElegida) {
       addToast('Agrega una direccion de entrega antes de confirmar.', 'error');
+      return;
+    }
+    if (itemsCerrados.length > 0) {
+      addToast(`Producto no disponible: ${itemsCerrados[0].tienda} está cerrada · ${textoCerrado(itemsCerrados[0])}`, 'error');
       return;
     }
     setLoading(true);
@@ -143,17 +149,23 @@ const UserCheckoutPage = () => {
       <div className="ucho-card">
         {/* Items summary */}
         <div className="ucho-section">
-          {items.map(item => (
-            <div key={item.id} className="ucho-item">
-              <div>
-                <p className="ucho-item-name">{item.nombre}</p>
-                <p className="ucho-item-meta">
-                  Cantidad: {item.qty} · Precio: {fmt(item.precio)} c/u
-                </p>
+          {items.map(item => {
+            const cerrado = !estaAbierto(item);
+            return (
+              <div key={item.id} className="ucho-item">
+                <div>
+                  <p className="ucho-item-name">{item.nombre}</p>
+                  <p className="ucho-item-meta">
+                    Cantidad: {item.qty} · Precio: {fmt(item.precio)} c/u
+                  </p>
+                  {cerrado && (
+                    <p className="ucho-item-cerrado">🕒 Producto no disponible · tienda cerrada · {textoCerrado(item)}</p>
+                  )}
+                </div>
+                <span className="ucho-item-total">{fmt(item.precio * item.qty)}</span>
               </div>
-              <span className="ucho-item-total">{fmt(item.precio * item.qty)}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Delivery address */}
@@ -227,9 +239,13 @@ const UserCheckoutPage = () => {
         <button
           className="ucho-btn-confirm"
           onClick={handleConfirmar}
-          disabled={loading || !dirElegida}
+          disabled={loading || !dirElegida || itemsCerrados.length > 0}
         >
-          {loading ? 'Procesando...' : (!dirElegida ? 'Agrega una direccion' : 'Confirmar Orden')}
+          {loading
+            ? 'Procesando...'
+            : itemsCerrados.length > 0
+              ? 'Hay productos no disponibles'
+              : (!dirElegida ? 'Agrega una direccion' : 'Confirmar Orden')}
         </button>
         <p className="ucho-confirm-note">Recibirás confirmación en tu correo</p>
       </div>

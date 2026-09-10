@@ -5,6 +5,7 @@ import UserLayout from '../../components/UserLayout';
 import '../../styles/UserCart.css';
 import { ENVIO_POR_TIENDA } from '../../constants/envio';
 import { domicilioService } from '../../config/api';
+import { estaAbierto, textoCerrado } from '../../utils/horario';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
@@ -34,6 +35,7 @@ const UserCartPage = () => {
   const numTiendas = tiendas.length;
   const envioTotal = numTiendas * envioUnitario;
   const total = subtotal + envioTotal - descuento;
+  const hayTiendaCerrada = items.some(i => !estaAbierto(i));
 
   const aplicarCupon = () => {
     if (cupon.trim().toUpperCase() === 'SAVE10') {
@@ -75,12 +77,17 @@ const UserCartPage = () => {
           {tiendas.map(tienda => {
             const tiendaItems = items.filter(i => i.tienda === tienda);
             const tiendaSubtotal = tiendaItems.reduce((s, i) => s + i.precio * i.qty, 0);
+            const tiendaCerrada = tiendaItems.length > 0 && !estaAbierto(tiendaItems[0]);
             return (
               <div key={tienda} className="uc-store-block">
                 <div className="uc-store-header">
                   <span>🏪 {tienda}</span>
                   <span className="uc-store-envio">Envío: {fmt(envioUnitario)}</span>
                 </div>
+
+                {tiendaCerrada && (
+                  <p className="uc-store-cerrada">🕒 Producto no disponible: tienda cerrada · {textoCerrado(tiendaItems[0])}</p>
+                )}
 
                 {tiendaItems.map(item => (
                   <div key={item.id} className="uc-item">
@@ -104,7 +111,7 @@ const UserCartPage = () => {
                   Subtotal tienda: <strong>{fmt(tiendaSubtotal)}</strong>
                 </div>
               </div>
-            );
+              );
           })}
         </div>
 
@@ -146,8 +153,11 @@ const UserCartPage = () => {
             <span className="uc-total-val">{fmt(total).replace('$', '')}</span>
           </div>
 
-          <button className="uc-btn-pago" onClick={() => navigate('/tienda/checkout')}>
-            Proceder al Pago
+          {hayTiendaCerrada && (
+            <p className="uc-cerrada-aviso">⚠️ Tienes productos de una tienda cerrada. Quítalos del carrito para continuar.</p>
+          )}
+          <button className="uc-btn-pago" onClick={() => navigate('/tienda/checkout')} disabled={hayTiendaCerrada}>
+            {hayTiendaCerrada ? 'Hay tiendas cerradas' : 'Proceder al Pago'}
           </button>
           <button className="uc-btn-seguir" onClick={() => navigate('/tienda')}>
             Seguir Comprando

@@ -175,4 +175,5 @@
   white-space: nowrap; font-family: inherit;
   box-shadow: 0 4px 14px rgba(255,122,0,0.35);
 }
-.upm-add-btn:hover { opacity: 0.92; }
+.upm-add-btn:hover { opacity: 0.92; }.upm-cerrado-banner { font-size: 12px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; margin: 8px 0; }
+.upm-add-btn--disabled, .upm-add-btn--disabled:hover { background: #cbd5e1; color: #64748b; cursor: not-allowed; box-shadow: none; opacity: 1; }
