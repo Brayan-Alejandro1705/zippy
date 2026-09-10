@@ -198,7 +198,7 @@ const VendorReportesPage = () => {
               <ResponsiveContainer width="100%" height={210}>
                 <BarChart data={chartData} barSize={34} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
                   <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 13 }} />
-                  <YAxis hide />
+                  <YAxis hide domain={[0, maxVal > 0 ? 'auto' : 10]} />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
                   <Bar dataKey="ventas" radius={[6, 6, 0, 0]} minPointSize={4}>
                     {chartData.map((entry, i) => (
