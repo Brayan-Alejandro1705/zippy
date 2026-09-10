@@ -81,7 +81,9 @@ class Settings:
     # Configuración de negocio
     # Ago 2026: lanzamiento gratis, sin comision, para conseguir volumen antes de monetizar
     COMISION_TOUTAIN = float(os.getenv("COMISION_TOUTAIN", 0))  # Porcentaje
-    IMPUESTO_IVA = float(os.getenv("IMPUESTO_IVA", 19))  # Porcentaje
+    # Sep 2026: el negocio no factura IVA, asi que no se cobra ningun impuesto
+    # sobre las ordenes (antes quedaba en 19% por defecto sin que nadie lo pidiera).
+    IMPUESTO_IVA = float(os.getenv("IMPUESTO_IVA", 0))  # Porcentaje
     # Costo fijo del domicilio por orden. Cada orden es de un solo negocio,
     # asi que si el cliente pide de dos tiendas se generan dos ordenes y se
     # cobran dos domicilios. Debe coincidir con ENVIO_POR_TIENDA del frontend

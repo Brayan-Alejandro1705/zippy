@@ -103,7 +103,6 @@ const descargarFactura = (orden) => {
         </table>
         <table class="totales">
           <tr><td colspan="3" style="text-align:right">Subtotal</td><td style="text-align:right">$${orden.subtotal.toLocaleString('es-CO')}</td></tr>
-          <tr><td colspan="3" style="text-align:right">IVA</td><td style="text-align:right">$${orden.impuesto.toLocaleString('es-CO')}</td></tr>
           <tr class="total-final"><td colspan="3" style="text-align:right">Total</td><td style="text-align:right">$${orden.total.toLocaleString('es-CO')}</td></tr>
         </table>
       </body>
