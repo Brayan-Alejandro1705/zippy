@@ -200,7 +200,7 @@ const VendorReportesPage = () => {
                   <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 13 }} />
                   <YAxis hide />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-                  <Bar dataKey="ventas" radius={[6, 6, 0, 0]}>
+                  <Bar dataKey="ventas" radius={[6, 6, 0, 0]} minPointSize={4}>
                     {chartData.map((entry, i) => (
                       <Cell key={i} fill={entry.ventas === maxVal && maxVal > 0 ? '#7c3aed' : '#FF7A00'} />
                     ))}
