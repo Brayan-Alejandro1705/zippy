@@ -79,7 +79,8 @@ class Settings:
         "https://zippygo-app.onrender.com",
     ]
     # Configuración de negocio
-    COMISION_TOUTAIN = float(os.getenv("COMISION_TOUTAIN", 5))  # Porcentaje
+    # Ago 2026: lanzamiento gratis, sin comision, para conseguir volumen antes de monetizar
+    COMISION_TOUTAIN = float(os.getenv("COMISION_TOUTAIN", 0))  # Porcentaje
     IMPUESTO_IVA = float(os.getenv("IMPUESTO_IVA", 19))  # Porcentaje
     # Costo fijo del domicilio por orden. Cada orden es de un solo negocio,
     # asi que si el cliente pide de dos tiendas se generan dos ordenes y se
