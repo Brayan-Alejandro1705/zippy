@@ -14,7 +14,6 @@ const VendorPagosPage = () => {
 
   const [loading, setLoading]   = useState(true);
   const [negocio, setNegocio]   = useState(null);
-  const [comision, setComision] = useState(0);
   const [ordenes, setOrdenes]   = useState([]);
 
   const [modalCuenta, setModalCuenta] = useState(false);
@@ -26,13 +25,9 @@ const VendorPagosPage = () => {
     (async () => {
       try {
         const { data: negocioData } = await negociosService.miNegocio();
-        const [{ data: stats }, { data: ordenesRaw }] = await Promise.all([
-          negociosService.estadisticas(negocioData.id),
-          ordenesService.listar(),
-        ]);
+        const { data: ordenesRaw } = await ordenesService.listar();
         if (!activo) return;
         setNegocio(negocioData);
-        setComision(stats.comision_porcentaje);
         setOrdenes(ordenesRaw);
         setCuentaForm({
           banco:         negocioData.banco         || '',
@@ -56,7 +51,6 @@ const VendorPagosPage = () => {
   const completadasEsteMes = completadas.filter(o => new Date(o.fecha_creacion) >= inicioMes);
 
   const brutoEsteMes    = completadasEsteMes.reduce((s, o) => s + Number(o.total), 0);
-  const retenidoEsteMes = brutoEsteMes * (comision / 100);
   const totalHistorico  = completadas.reduce((s, o) => s + Number(o.total), 0);
 
   const guardarCuenta = async () => {
@@ -88,17 +82,7 @@ const VendorPagosPage = () => {
             <div className="vpg-stat vpg-stat--green">
               <span className="vpg-stat-label">Ganado este mes</span>
               <span className="vpg-stat-val">{fmt(brutoEsteMes)}</span>
-              <span className="vpg-stat-sub">Bruto antes de comisión</span>
-            </div>
-            <div className="vpg-stat vpg-stat--orange">
-              <span className="vpg-stat-label">Comisión de la plataforma</span>
-              <span className="vpg-stat-val">{comision}%</span>
-              <span className="vpg-stat-sub">{fmt(retenidoEsteMes)} retenidos este mes</span>
-            </div>
-            <div className="vpg-stat vpg-stat--blue">
-              <span className="vpg-stat-label">Liquidaciones</span>
-              <span className="vpg-stat-val">Próximamente</span>
-              <span className="vpg-stat-sub">Aún no hay ciclo de pagos configurado</span>
+              <span className="vpg-stat-sub">Sin comisión por ahora</span>
             </div>
             <div className="vpg-stat vpg-stat--purple">
               <span className="vpg-stat-label">Total histórico</span>
