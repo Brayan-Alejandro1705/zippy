@@ -622,18 +622,19 @@ const SeccionActualizacion = () => {
   return (
     <div className="cfg-sections">
       <form className="cfg-card" onSubmit={guardar}>
-        <div className="cfg-card-title">Actualización obligatoria (Android)</div>
+        <div className="cfg-card-title">Actualización de la app (Android)</div>
         <p className="cfg-notif-desc" style={{ marginBottom: 16 }}>
-          Úsala solo cuando subas una versión nueva a Play Store que sea importante
-          (ej. un arreglo que necesita todo el mundo). Mientras esté activada, a
-          cualquiera con una versión instalada por debajo de la mínima se le bloquea
-          la pantalla con un botón para ir a Play Store — no puede seguir usando la
-          app hasta actualizar. El número de versión (versionCode) es el mismo que el
-          "run number" del build en GitHub Actions.
+          Cada vez que subas una versión nueva a Play Store, escribe aquí su versionCode.
+          Todo el que tenga una versión más vieja va a ver un botón de "Actualizar app"
+          al entrar (no bloquea nada, se puede cerrar). Si además activas "Forzar la
+          actualización ahora mismo", a esas mismas personas se les bloquea la pantalla
+          con un botón para ir a Play Store hasta que actualicen — úsalo solo para una
+          versión importante (ej. un arreglo que necesita todo el mundo). El número de
+          versión (versionCode) es el mismo que el "run number" del build en GitHub Actions.
         </p>
 
         <div className="cfg-field" style={{ maxWidth: 240 }}>
-          <label>Versión mínima requerida (versionCode)</label>
+          <label>Última versión publicada (versionCode)</label>
           <input
             type="number"
             min="0"
