@@ -248,7 +248,7 @@ class OrdenUpdate(BaseModel):
     domiciliario_id: Optional[uuid.UUID] = None
 
 class ConfirmarRecogidaRequest(BaseModel):
-    codigo: str = Field(..., min_length=1, description="Codigo de recogida (ZP-0000) que el repartidor le muestra al vendedor")
+    codigo: Optional[str] = Field(None, description="Codigo de recogida (ZP-0000) que el repartidor le muestra al vendedor; vacio en pedidos viejos sin codigo")
 
 class OrdenResponse(BaseModel):
     id: uuid.UUID

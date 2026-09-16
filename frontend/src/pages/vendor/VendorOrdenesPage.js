@@ -42,6 +42,7 @@ const ordenDeApi = (o, negocioNombre, productosMap, clienteNombre, clienteTelefo
   estado: ESTADO_UI[o.estado] || 'Pendiente',
   estadoReal: o.estado,
   domiciliarioId: o.domiciliario_id,
+  codigoRecogida: o.codigo_recogida || null,
   minutos: null,
   items: o.items.map(it => ({
     nombre: productosMap[it.producto_id] || 'Producto',
@@ -131,42 +132,27 @@ const stepIndex = (estado) => {
 };
 
 const ConfirmarRecogidaBox = ({ orden, onConfirmar }) => {
-  const [codigo, setCodigo] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
 
-  const enviar = async () => {
-    if (!codigo.trim()) return;
+  const entregar = async () => {
     setEnviando(true);
     setError('');
     try {
-      await onConfirmar(orden, codigo.trim());
+      await onConfirmar(orden, orden.codigoRecogida || '');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Código de recogida incorrecto');
+      setError(err.response?.data?.detail || 'No se pudo confirmar la entrega al repartidor');
       setEnviando(false);
     }
   };
 
   return (
     <div className="vo-delivery">
-      <p>🛵 Un repartidor tomó este pedido — pídele el código y confírmalo aquí antes de entregárselo</p>
-      <div className="vo-codigo-form">
-        <input
-          type="text"
-          placeholder="Código ZP-0000"
-          value={codigo}
-          onChange={e => { setCodigo(e.target.value); setError(''); }}
-          maxLength={10}
-          className="vo-codigo-input"
-        />
-        <button
-          className="vo-btn-contact"
-          disabled={enviando || !codigo.trim()}
-          onClick={enviar}
-        >
-          {enviando ? 'Verificando…' : 'Confirmar recogida'}
-        </button>
-      </div>
+      <p>🛵 Un repartidor viene por este pedido. Debe decirte este código:</p>
+      <p className="vo-codigo-grande">{orden.codigoRecogida || 'Sin código'}</p>
+      <button className="vo-btn-contact" disabled={enviando} onClick={entregar}>
+        {enviando ? 'Confirmando…' : '✓ Coincide, ya se lo entregué'}
+      </button>
       {error && <p className="vo-codigo-error">{error}</p>}
     </div>
   );
@@ -357,6 +343,9 @@ const VendorOrdenesPage = () => {
                     </div>
                     <p className="vo-negocio">📦 {o.negocio}</p>
                     <p className="vo-dir">📍 {o.dir}</p>
+                    {o.codigoRecogida && o.domiciliarioId && o.estadoReal === 'lista_para_retirar' && (
+                      <p className="vo-codigo-card">🔑 Código de recogida: <strong>{o.codigoRecogida}</strong></p>
+                    )}
                   </div>
                   <div className="vo-card-right">
                     <p className="vo-card-total">{fmtFull(o.total)}</p>

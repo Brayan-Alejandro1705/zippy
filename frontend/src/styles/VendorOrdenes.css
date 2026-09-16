@@ -137,11 +137,12 @@
 }
 .vo-delivery-name { font-weight:600; color:#1e293b; }
 
-.vo-codigo-form { display:flex; gap:8px; margin-top:4px; }
-.vo-codigo-input {
-  flex:1; padding:9px 12px; border:1.5px solid #e2e8f0; border-radius:8px;
-  font-size:14px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase;
+.vo-codigo-grande {
+  font-size:30px; font-weight:800; letter-spacing:3px; color:#b45309;
+  background:#fef3c7; border:2px dashed #f59e0b; border-radius:10px;
+  padding:14px; text-align:center; margin:6px 0 10px;
 }
+.vo-codigo-card { font-size:12px; font-weight:700; color:#b45309; margin:2px 0 0; }
 .vo-codigo-error { color:#dc2626; font-weight:600; margin:4px 0 0; }
 
 /* Actions */

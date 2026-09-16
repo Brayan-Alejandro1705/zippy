@@ -490,9 +490,11 @@ async def confirmar_recogida(
             detail="Este pedido no esta listo para ser recogido por un domiciliario"
         )
 
-    codigo_ingresado = (datos.codigo or "").strip().upper()
+    # Los pedidos creados antes de que existiera el codigo no tienen uno; en
+    # ese caso el vendedor confirma la entrega sin nada que comparar.
     codigo_real = (orden.codigo_recogida or "").strip().upper()
-    if not codigo_real or codigo_ingresado != codigo_real:
+    codigo_ingresado = (datos.codigo or "").strip().upper()
+    if codigo_real and codigo_ingresado != codigo_real:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Codigo de recogida incorrecto"
