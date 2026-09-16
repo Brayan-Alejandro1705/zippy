@@ -247,12 +247,16 @@ class OrdenUpdate(BaseModel):
     notas_vendedor: Optional[str] = None
     domiciliario_id: Optional[uuid.UUID] = None
 
+class ConfirmarRecogidaRequest(BaseModel):
+    codigo: str = Field(..., min_length=1, description="Codigo de recogida (ZP-0000) que el repartidor le muestra al vendedor")
+
 class OrdenResponse(BaseModel):
     id: uuid.UUID
     cliente_id: uuid.UUID
     negocio_id: uuid.UUID
     domiciliario_id: Optional[uuid.UUID] = None
     estado: str
+    codigo_recogida: Optional[str] = None
     subtotal: Decimal
     descuento: Decimal
     costo_domicilio: Decimal

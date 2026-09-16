@@ -285,6 +285,15 @@
   padding: 5px 8px; margin-bottom: 8px;
 }
 
+.rp-order-codigo {
+  font-size: 13px; font-weight: 700; color: #92400e;
+  background: #fef3c7; border: 1.5px dashed #f59e0b; border-radius: 8px;
+  padding: 8px 10px; margin-bottom: 8px;
+}
+.rp-order-codigo strong {
+  font-size: 15px; letter-spacing: 0.5px;
+}
+
 .rp-order-client {
   display: flex; align-items: center; gap: 12px;
   margin-bottom: 6px; flex-wrap: wrap;

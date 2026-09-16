@@ -319,6 +319,9 @@ class Orden(Base):
     
     # Seguimiento
     numero_rastreo = Column(String(100))
+    # Codigo corto (formato ZP-0000) que el repartidor le muestra al vendedor
+    # al recoger el pedido; el vendedor lo valida antes de entregarselo.
+    codigo_recogida = Column(String(10), index=True)
     
     fecha_ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

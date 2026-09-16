@@ -222,6 +222,7 @@ export const ordenesService = {
   estadoChat:    (id) => api.get(`/ordenes/${id}/chat-estado`),
   mensajes:      (id) => api.get(`/ordenes/${id}/mensajes`),
   enviarMensaje: (id, contenido) => api.post(`/ordenes/${id}/mensajes`, { contenido }),
+  confirmarRecogida: (id, codigo) => api.post(`/ordenes/${id}/confirmar-recogida`, { codigo }),
 };
 
 export const logsService = {

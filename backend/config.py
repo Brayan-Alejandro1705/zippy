@@ -165,6 +165,20 @@ def get_db():
 def init_db():
     """Crea todas las tablas en la BD (si no existen)"""
     Base.metadata.create_all(bind=engine)
+
+    # create_all no altera tablas que ya existen en produccion, asi que las
+    # columnas nuevas de un modelo existente se agregan a mano aqui. Sep 2026:
+    # codigo_recogida (codigo ZP-0000 que el repartidor le muestra al vendedor).
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text(
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS codigo_recogida VARCHAR(10)"
+            ))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ No se pudo verificar/agregar codigo_recogida: {e}")
+
     print("✅ Base de datos inicializada correctamente")
 
 # ============================================================================

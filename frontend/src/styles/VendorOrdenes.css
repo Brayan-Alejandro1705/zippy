@@ -137,6 +137,13 @@
 }
 .vo-delivery-name { font-weight:600; color:#1e293b; }
 
+.vo-codigo-form { display:flex; gap:8px; margin-top:4px; }
+.vo-codigo-input {
+  flex:1; padding:9px 12px; border:1.5px solid #e2e8f0; border-radius:8px;
+  font-size:14px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase;
+}
+.vo-codigo-error { color:#dc2626; font-weight:600; margin:4px 0 0; }
+
 /* Actions */
 .vo-modal-actions {
   display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;

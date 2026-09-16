@@ -9,6 +9,7 @@ from typing import List
 from uuid import UUID
 from datetime import datetime, timedelta
 from decimal import Decimal
+import secrets
 
 from config import get_db, settings
 import calculos
@@ -16,7 +17,7 @@ from models import (
     Orden, ItemOrden, Producto, Negocio, Usuario, EstadoUsuario,
     Transaccion, SeguimientoOrden, Carrito, ItemCarrito, MensajeOrden
 )
-from schemas import OrdenCreate, OrdenUpdate, OrdenResponse
+from schemas import OrdenCreate, OrdenUpdate, OrdenResponse, ConfirmarRecogidaRequest
 from routes_auth import get_current_user
 from push import notificar_usuario, notificar_usuarios
 
@@ -139,7 +140,10 @@ async def crear_orden(
     
     db.add(nueva_orden)
     db.flush()  # Para obtener el ID
-    
+
+    # Codigo corto que el repartidor le muestra al vendedor al recoger el pedido
+    nueva_orden.codigo_recogida = f"ZP-{secrets.randbelow(10000):04d}"
+
     # Agregar items a la orden
     for item_data in orden.items:
         producto = db.query(Producto).filter(
@@ -367,11 +371,12 @@ async def actualizar_orden(
                 detail="Solo puedes cambiar a estos estados: confirmada, en_preparacion, lista_para_retirar, cancelada"
             )
 
-        # Domiciliario puede: en_domicilio, entregada
-        if es_domiciliario and orden_actualizada.estado not in ["en_domicilio", "entregada"]:
+        # Domiciliario puede: entregada (pasar a en_domicilio ahora requiere
+        # confirmar el codigo de recogida con el vendedor, ver /confirmar-recogida)
+        if es_domiciliario and orden_actualizada.estado not in ["entregada"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Solo puedes cambiar a: en_domicilio, entregada"
+                detail="Solo puedes cambiar a: entregada"
             )
 
         # Cliente puede: cancelada
@@ -444,7 +449,82 @@ async def actualizar_orden(
     
     db.commit()
     db.refresh(orden)
-    
+
+    return OrdenResponse.from_orm(orden)
+
+@router.post(
+    "/{orden_id}/confirmar-recogida",
+    response_model=OrdenResponse,
+    summary="Confirmar recogida del pedido",
+    description="El vendedor valida el codigo que le muestra el repartidor y marca el pedido como recogido (pasa a en_domicilio)"
+)
+async def confirmar_recogida(
+    orden_id: UUID,
+    datos: ConfirmarRecogidaRequest,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    El vendedor confirma que el repartidor le mostro el codigo correcto
+    (formato ZP-0000) antes de entregarle el pedido fisicamente.
+    """
+
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+
+    if not orden:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Orden no encontrada"
+        )
+
+    es_vendedor = orden.negocio.vendedor_id == current_user.id if orden.negocio else False
+    if not es_vendedor:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo el vendedor puede confirmar la recogida de este pedido"
+        )
+
+    if orden.estado != "lista_para_retirar" or not orden.domiciliario_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este pedido no esta listo para ser recogido por un domiciliario"
+        )
+
+    codigo_ingresado = (datos.codigo or "").strip().upper()
+    codigo_real = (orden.codigo_recogida or "").strip().upper()
+    if not codigo_real or codigo_ingresado != codigo_real:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Codigo de recogida incorrecto"
+        )
+
+    estado_anterior = orden.estado
+    orden.estado = "en_domicilio"
+    orden.fecha_ultima_actualizacion = datetime.utcnow()
+
+    seguimiento = SeguimientoOrden(
+        orden_id=orden.id,
+        estado_anterior=estado_anterior,
+        estado_nuevo="en_domicilio",
+        descripcion="Recogida confirmada por el vendedor",
+        fecha_creacion=datetime.utcnow()
+    )
+    db.add(seguimiento)
+
+    if orden.cliente:
+        nombre_negocio = orden.negocio.nombre_negocio if orden.negocio else "El negocio"
+        notificar_usuario(
+            db, orden.cliente,
+            tipo="pedido_en_camino",
+            titulo="Tu pedido va en camino",
+            mensaje="El domiciliario ya recogio tu pedido y va en camino",
+            relacionado_tabla="ordenes",
+            relacionado_id=orden.id,
+        )
+
+    db.commit()
+    db.refresh(orden)
+
     return OrdenResponse.from_orm(orden)
 
 @router.post(

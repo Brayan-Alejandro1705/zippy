@@ -130,7 +130,49 @@ const stepIndex = (estado) => {
   return 0;
 };
 
-const OrderDetailModal = ({ orden, onClose, onAvanzar }) => {
+const ConfirmarRecogidaBox = ({ orden, onConfirmar }) => {
+  const [codigo, setCodigo] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState('');
+
+  const enviar = async () => {
+    if (!codigo.trim()) return;
+    setEnviando(true);
+    setError('');
+    try {
+      await onConfirmar(orden, codigo.trim());
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Código de recogida incorrecto');
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <div className="vo-delivery">
+      <p>🛵 Un repartidor tomó este pedido — pídele el código y confírmalo aquí antes de entregárselo</p>
+      <div className="vo-codigo-form">
+        <input
+          type="text"
+          placeholder="Código ZP-0000"
+          value={codigo}
+          onChange={e => { setCodigo(e.target.value); setError(''); }}
+          maxLength={10}
+          className="vo-codigo-input"
+        />
+        <button
+          className="vo-btn-contact"
+          disabled={enviando || !codigo.trim()}
+          onClick={enviar}
+        >
+          {enviando ? 'Verificando…' : 'Confirmar recogida'}
+        </button>
+      </div>
+      {error && <p className="vo-codigo-error">{error}</p>}
+    </div>
+  );
+};
+
+const OrderDetailModal = ({ orden, onClose, onAvanzar, onConfirmarRecogida }) => {
   if (!orden) return null;
   const current = stepIndex(orden.estado);
   const siguientePaso = VENDEDOR_NEXT[orden.estadoReal];
@@ -183,6 +225,9 @@ const OrderDetailModal = ({ orden, onClose, onAvanzar }) => {
           <div className="vo-delivery">
             <p>🛵 Un repartidor ya tomó este pedido y va en camino</p>
           </div>
+        )}
+        {orden.domiciliarioId && orden.estadoReal === 'lista_para_retirar' && (
+          <ConfirmarRecogidaBox orden={orden} onConfirmar={onConfirmarRecogida} />
         )}
 
         {/* Actions */}
@@ -256,6 +301,12 @@ const VendorOrdenesPage = () => {
     } catch (err) {
       alert(err.response?.data?.detail || 'No se pudo actualizar el pedido.');
     }
+  };
+
+  const confirmarRecogida = async (orden, codigo) => {
+    await ordenesService.confirmarRecogida(orden.idCompleto, codigo);
+    setDetalle(null);
+    cargar();
   };
 
   const filtradas = tab === 'Todos' ? ordenes : ordenes.filter(o => o.estado === tab);
@@ -337,7 +388,7 @@ const VendorOrdenesPage = () => {
         </>
       )}
 
-      <OrderDetailModal orden={detalle} onClose={() => setDetalle(null)} onAvanzar={avanzarEstado} />
+      <OrderDetailModal orden={detalle} onClose={() => setDetalle(null)} onAvanzar={avanzarEstado} onConfirmarRecogida={confirmarRecogida} />
     </VendorLayout>
   );
 };

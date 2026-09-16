@@ -27,11 +27,12 @@ const MAP_OPTIONS = {
 
 const ESTADO_CFG = {
   disponible: { label: 'Disponible', bg: '#fef3c7', color: '#b45309', btnLabel: 'Aceptar →',          btnClass: 'rp-btn--orange' },
+  recogiendo:   { label: 'Recogiendo', bg: '#fef3c7', color: '#b45309', btnLabel: null,               btnClass: ''              },
   en_domicilio: { label: 'En camino',  bg: '#d1fae5', color: '#065f46', btnLabel: 'Marcar entregado', btnClass: 'rp-btn--green'  },
   en_camino:    { label: 'En camino',  bg: '#d1fae5', color: '#065f46', btnLabel: 'Marcar entregado', btnClass: 'rp-btn--green'  },
   entregada:    { label: 'Entregado',  bg: '#f0fdf4', color: '#15803d', btnLabel: null,               btnClass: ''              },
 };
-const ESTADO_COLOR = { disponible: '#f59e0b', en_domicilio: '#10b981', entregada: '#94a3b8' };
+const ESTADO_COLOR = { disponible: '#f59e0b', recogiendo: '#f59e0b', en_domicilio: '#10b981', entregada: '#94a3b8' };
 
 const PAGO_CFG = {
   efectivo:      { label: 'Efectivo',      icon: 'billete',  bg: '#fee2e2', color: '#b91c1c' },
@@ -178,8 +179,8 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
 
     /* La orden "en camino" siempre va primero (es la próxima parada) */
     const ordenadas = [...activas].sort((a, b) => {
-      if (a.estado === 'en_domicilio') return -1;
-      if (b.estado === 'en_domicilio') return 1;
+      if (a.estado === 'en_domicilio' || a.estado === 'recogiendo') return -1;
+      if (b.estado === 'en_domicilio' || b.estado === 'recogiendo') return 1;
       return a.distancia - b.distancia;
     });
 
@@ -224,7 +225,7 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
 
       {/* Marcadores de órdenes */}
       {ordenes.filter(o => o.position).map(o => {
-        const isActive = o.estado === 'en_domicilio';
+        const isActive = o.estado === 'en_domicilio' || o.estado === 'recogiendo';
         return (
           <Marker
             key={o.id}
@@ -565,6 +566,10 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
         )}
       </div>
 
+      {orden.estado === 'recogiendo' && orden.codigoRecogida && (
+        <p className="rp-order-codigo">🔑 Muéstrale este código al vendedor: <strong>{orden.codigoRecogida}</strong></p>
+      )}
+
       {orden.instrucciones && (
         <p className="rp-order-instructions"><Icon name="campana_aviso" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{orden.instrucciones}</p>
       )}
@@ -765,7 +770,7 @@ const RepartidorPage = () => {
         return {
           id: `#${o.id.slice(0, 8)}`,
           idCompleto: o.id,
-          estado: esDisponible ? 'disponible' : (o.estado === 'entregada' ? 'entregada' : 'en_domicilio'),
+          estado: esDisponible ? 'disponible' : (o.estado === 'entregada' ? 'entregada' : (o.estado === 'en_domicilio' ? 'en_domicilio' : 'recogiendo')),
           fechaCreacion: o.fecha_creacion,
           direccion: o.direccion_entrega,
           cliente: cliente?.nombre,
@@ -775,6 +780,7 @@ const RepartidorPage = () => {
           total: Number(o.total),
           pago: o.metodo_pago,
           instrucciones: o.notas_cliente || null,
+          codigoRecogida: o.codigo_recogida || null,
           position: null,
           distancia: null,
           eta: null,
@@ -867,7 +873,7 @@ const RepartidorPage = () => {
   const lastSentRef = useRef(0);
   useEffect(() => {
     if (!driverPos) return;
-    const tieneActiva = ordenes.some(o => o.estado === 'en_domicilio');
+    const tieneActiva = ordenes.some(o => o.estado === 'en_domicilio' || o.estado === 'recogiendo');
     if (!tieneActiva) return;
     const ahora = Date.now();
     if (ahora - lastSentRef.current < 15000) return;
@@ -877,7 +883,7 @@ const RepartidorPage = () => {
 
   const aceptar = async (orden) => {
     try {
-      await ordenesService.actualizar(orden.idCompleto, { domiciliario_id: usuario.id, estado: 'en_domicilio' });
+      await ordenesService.actualizar(orden.idCompleto, { domiciliario_id: usuario.id });
       cargarOrdenes();
     } catch (err) {
       alert(err.response?.data?.detail || 'No se pudo aceptar el pedido. Puede que ya lo haya tomado otro repartidor.');
@@ -966,7 +972,7 @@ const RepartidorPage = () => {
   };
 
   const disponibles = ordenes.filter(o => o.estado === 'disponible');
-  const enCamino     = ordenes.filter(o => o.estado === 'en_domicilio');
+  const enCamino     = ordenes.filter(o => o.estado === 'en_domicilio' || o.estado === 'recogiendo');
   const entregadasHoy = ordenes.filter(o => o.estado === 'entregada' && esHoy(o.fechaCreacion));
   const activeOrden  = enCamino[0];
   const ganado    = entregadasHoy.reduce((s, o) => s + o.total * COMISION_PCT, 0);
