@@ -10,7 +10,7 @@ const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
 const NAV_ITEMS = [
   { path: '/tienda',                 icon: 'inicio',       label: 'Inicio'    },
-  { path: '/tienda/pedido-especial', icon: 'solicitudes',  label: 'Pedido'    },
+  { path: '/tienda/pedido-especial', icon: 'solicitudes',  label: 'Mandado'   },
   { path: '/tienda/perfil',          icon: 'perfil',       label: 'Perfil'    },
 ];
 

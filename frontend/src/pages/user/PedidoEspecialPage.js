@@ -55,7 +55,7 @@ const PedidoEspecialPage = () => {
         telefono: telefono.trim(),
         notas: notas.trim(),
       });
-      addToast('¡Pedido especial enviado! Un domiciliario lo tomará pronto.', 'success');
+      addToast('¡Mandado enviado! Un domiciliario lo tomará pronto.', 'success');
       navigate('/tienda');
     } catch (err) {
       const detalle = err?.response?.data?.detail;
@@ -72,7 +72,7 @@ const PedidoEspecialPage = () => {
 <div className="pe-title-wrap">
             <span className="pe-icon"><Icon name="solicitudes" size={24} /></span>
             <div>
-              <h1 className="pe-title">Pedido Especial</h1>
+              <h1 className="pe-title">Mandado</h1>
               <p className="pe-subtitle">Describe exactamente lo que necesitas y el domiciliario lo consigue</p>
             </div>
           </div>
@@ -211,7 +211,7 @@ const PedidoEspecialPage = () => {
           )}
 
           <button type="submit" className={`pe-submit ${enviando ? 'pe-submit--loading' : ''}`} disabled={enviando}>
-            {enviando ? 'Enviando pedido…' : 'Enviar pedido especial'}
+            {enviando ? 'Enviando mandado…' : 'Enviar mandado'}
           </button>
         </form>
       </div>

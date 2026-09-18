@@ -629,7 +629,7 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
       <div className="rp-order-top">
         <div className="rp-order-left">
           <span className="rp-order-id">{pedido.id}</span>
-          <span className="rp-pago-badge" style={{ background: '#ede9fe', color: '#6d28d9' }}><Icon name="solicitudes" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Pedido especial</span>
+          <span className="rp-pago-badge" style={{ background: '#ede9fe', color: '#6d28d9' }}><Icon name="solicitudes" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Mandado</span>
           <span className="rp-order-badge" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
         </div>
         {pedido.fecha && (
@@ -671,7 +671,7 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
       )}
 
       <div className="rp-order-footer">
-        <span className="rp-order-total" style={{ color: '#8b5cf6' }}>Pedido especial</span>
+        <span className="rp-order-total" style={{ color: '#8b5cf6' }}>Mandado</span>
         <div className="rp-order-actions">
           {cfg.btnLabel && (
             <button
@@ -914,7 +914,7 @@ const RepartidorPage = () => {
       }
       await cargarEspeciales();
     } catch (err) {
-      alert(err?.response?.data?.detail || 'No se pudo actualizar el pedido especial.');
+      alert(err?.response?.data?.detail || 'No se pudo actualizar el mandado.');
       await cargarEspeciales();
     }
   };

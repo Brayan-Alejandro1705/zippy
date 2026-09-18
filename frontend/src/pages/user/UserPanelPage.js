@@ -709,9 +709,9 @@ const UserPanelPage = () => {
           fecha: fmtFecha(e.fecha_creacion),
           fechaRaw: e.fecha_creacion,
           estado: ESTADO_UI[e.estado] || 'Pendiente',
-          items: (e.items || []).map(it => `${it.descripcion}${it.cantidad ? ` x${it.cantidad}` : ''}`).join(', ') || 'Pedido especial',
+          items: (e.items || []).map(it => `${it.descripcion}${it.cantidad ? ` x${it.cantidad}` : ''}`).join(', ') || 'Mandado',
           total: null,               // los especiales no tienen precio fijo
-          tienda: 'Pedido especial',
+          tienda: 'Mandado',
           direccion: e.direccion,
           esEspecial: true,
         }));
