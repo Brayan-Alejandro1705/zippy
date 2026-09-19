@@ -82,6 +82,11 @@ jobs:
           poner NSLocationWhenInUseUsageDescription "ZIPPYGO usa tu ubicacion para mostrarte los negocios cerca y para que veas tu pedido en el mapa."
           poner NSCameraUsageDescription "ZIPPYGO usa la camara para que puedas tomarle foto a los productos de tu negocio."
           poner NSPhotoLibraryUsageDescription "ZIPPYGO accede a tus fotos para que elijas las imagenes de tus productos."
+          # La app solo usa el HTTPS estandar del sistema, que esta exento de las
+          # normas de exportacion de cifrado. Declararlo evita que App Store
+          # Connect pregunte por el "export compliance" en cada version.
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" Info.plist 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" Info.plist
           echo "--- Info.plist resultante ---"
           /usr/libexec/PlistBuddy -c "Print" Info.plist | head -40
 
