@@ -53,8 +53,20 @@ jobs:
         env:
           CAP_BUNDLED: '1'
         run: |
+          set -e
           npx cap add ios
           npx cap sync ios
+          cd ios/App
+          # Segun la version, Capacitor arma el proyecto con CocoaPods (deja un
+          # .xcworkspace) o con Swift Package Manager (solo .xcodeproj). Si hay
+          # Podfile pero no quedo el workspace, se corren los pods a mano.
+          if [ -f Podfile ] && [ ! -d App.xcworkspace ]; then
+            pod install
+          fi
+          echo "--- contenido de ios/App ---"
+          ls -la
+          echo "--- schemes disponibles ---"
+          xcodebuild -list -project App.xcodeproj || true
 
       # La app pide ubicacion (mapa y seguimiento del pedido) y fotos (imagenes
       # de los productos). En iOS, si el permiso no esta declarado con su
@@ -111,8 +123,13 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -e
-          xcodebuild archive \
-            -workspace App.xcworkspace \
+          if [ -d App.xcworkspace ]; then
+            CONTENEDOR=(-workspace App.xcworkspace)
+          else
+            CONTENEDOR=(-project App.xcodeproj)
+          fi
+          echo "Compilando con: ${CONTENEDOR[@]}"
+          xcodebuild archive "${CONTENEDOR[@]}" \
             -scheme App \
             -configuration Release \
             -destination 'generic/platform=iOS' \
