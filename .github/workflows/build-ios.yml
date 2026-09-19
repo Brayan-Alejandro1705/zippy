@@ -15,6 +15,8 @@ name: Build iOS
 #   APPSTORE_API_KEY_P8_BASE64     Llave .p8 de App Store Connect en base64
 #   APPSTORE_API_KEY_ID            Key ID de esa llave
 #   APPSTORE_API_ISSUER_ID         Issuer ID de App Store Connect
+#   GOOGLE_SERVICE_INFO_PLIST_BASE64
+#                                  GoogleService-Info.plist de Firebase en base64
 #   GOOGLE_MAPS_KEY                (ya existe, lo comparte con el build de Android)
 
 on:
@@ -89,6 +91,84 @@ jobs:
             || /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" Info.plist
           echo "--- Info.plist resultante ---"
           /usr/libexec/PlistBuddy -c "Print" Info.plist | head -40
+
+      # Las notificaciones push de iPhone necesitan tres cosas que Capacitor no
+      # pone solo, y como el proyecto de Xcode se genera en cada corrida, hay
+      # que ponerlas aqui:
+      #   1. el GoogleService-Info.plist dentro del .ipa (no basta dejarlo en la
+      #      carpeta: hay que registrarlo en el proyecto de Xcode),
+      #   2. el entitlement aps-environment, que es el permiso de recibir push,
+      #   3. que el AppDelegate le reenvie al plugin lo que APNs le entrega.
+      - name: Configurar las notificaciones push
+        working-directory: frontend/ios/App
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          set -e
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
+            echo "Falta el secret GOOGLE_SERVICE_INFO_PLIST_BASE64 (lo descarga uno de Firebase)" >&2
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > App/GoogleService-Info.plist
+          plutil -lint App/GoogleService-Info.plist
+
+          cat > App/App.entitlements <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>aps-environment</key>
+            <string>production</string>
+          </dict>
+          </plist>
+          PLIST
+
+          if grep -q 'didRegisterForRemoteNotificationsWithDeviceToken' App/AppDelegate.swift; then
+            echo "El AppDelegate ya reenvia las notificaciones, no se toca"
+          else
+            cat >> App/AppDelegate.swift <<'SWIFT'
+
+          // Notificaciones push: le reenvia al plugin de Firebase lo que iOS le
+          // entrega a la app (el token de APNs y los avisos que van llegando).
+          extension AppDelegate {
+              func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+                  NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+              }
+
+              func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+                  NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+              }
+
+              func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+                  NotificationCenter.default.post(name: Notification.Name.init("didReceiveRemoteNotification"), object: completionHandler, userInfo: userInfo)
+              }
+          }
+          SWIFT
+            echo "AppDelegate parchado"
+          fi
+
+          ruby -e "require 'xcodeproj'" 2>/dev/null || sudo gem install xcodeproj --no-document
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          proyecto = Xcodeproj::Project.open('App.xcodeproj')
+          destino  = proyecto.targets.find { |t| t.name == 'App' }
+          grupo    = proyecto.main_group['App']
+          raise 'no aparece el target App'  if destino.nil?
+          raise 'no aparece el grupo App'   if grupo.nil?
+
+          unless grupo.files.any? { |f| f.display_name == 'GoogleService-Info.plist' }
+            ref = grupo.new_file(File.expand_path('App/GoogleService-Info.plist'))
+            destino.add_resources([ref])
+            puts 'GoogleService-Info.plist agregado al proyecto'
+          end
+
+          destino.build_configurations.each do |c|
+            c.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
+          end
+
+          proyecto.save
+          puts 'Proyecto de Xcode actualizado'
+          RUBY
 
       - name: Preparar el certificado y el perfil de firma
         env:

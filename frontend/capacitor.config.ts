@@ -14,6 +14,26 @@ const config: CapacitorConfig = {
   appId: 'com.zippygo.app',
   appName: 'ZIPPYGO',
   webDir: 'build',
+  plugins: {
+    // Como se muestra una notificacion que llega con la app abierta en iPhone.
+    // En Android el sistema no la muestra solo: ahi la dibujamos nosotros con
+    // una notificacion local (ver src/utils/push.js).
+    FirebaseMessaging: {
+      presentationOptions: ['alert', 'badge', 'sound']
+    }
+  },
+  // En iOS el proyecto se arma con Swift Package Manager. Sin este symlink, el
+  // paquete de Firebase que trae el plugin choca por nombre con otro y el
+  // proyecto no compila.
+  experimental: {
+    ios: {
+      spm: {
+        packageOptions: {
+          '@capacitor-firebase/messaging': { symlink: true }
+        }
+      }
+    }
+  },
   ...(empaquetado ? {} : {
     server: {
       url: 'https://zippygo-app.onrender.com',

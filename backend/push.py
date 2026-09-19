@@ -72,6 +72,14 @@ def _enviar_fcm(token: str, titulo: str, cuerpo: str, data: dict = None) -> bool
                 priority="high",
                 notification=messaging.AndroidNotification(sound="default"),
             ),
+            # iPhone: sin este bloque la notificacion llega muda y sin
+            # prioridad alta, que es lo que la hace sonar de una.
+            apns=messaging.APNSConfig(
+                headers={"apns-priority": "10"},
+                payload=messaging.APNSPayload(
+                    aps=messaging.Aps(sound="default"),
+                ),
+            ),
         )
         messaging.send(mensaje, app=app)
         return True
