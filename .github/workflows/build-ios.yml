@@ -202,6 +202,39 @@ jobs:
           echo "PERFIL_NOMBRE=$NOMBRE" >> "$GITHUB_ENV"
           echo "Perfil instalado: $NOMBRE ($UUID)"
 
+      # La firma se escribe dentro del proyecto y solo en el target App. Hacerlo
+      # por la linea de comandos de xcodebuild se la aplicaria tambien a los
+      # paquetes de SPM que trae Firebase, que no admiten perfiles.
+      - name: Configurar la firma en el proyecto
+        working-directory: frontend/ios/App
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          VERSION_MARKETING: '1.1'
+          VERSION_BUILD: ${{ github.run_number }}
+        run: |
+          set -e
+          ruby -e "require 'xcodeproj'" 2>/dev/null || sudo gem install xcodeproj --no-document
+          ruby <<'RUBY'
+          require 'xcodeproj'
+          proyecto = Xcodeproj::Project.open('App.xcodeproj')
+          destino  = proyecto.targets.find { |t| t.name == 'App' }
+          raise 'no aparece el target App' if destino.nil?
+          raise 'falta PERFIL_NOMBRE'      if ENV['PERFIL_NOMBRE'].to_s.empty?
+
+          destino.build_configurations.each do |c|
+            c.build_settings['DEVELOPMENT_TEAM']                 = ENV['TEAM_ID']
+            c.build_settings['CODE_SIGN_STYLE']                  = 'Manual'
+            c.build_settings['CODE_SIGN_IDENTITY']               = 'Apple Distribution'
+            c.build_settings['CODE_SIGN_IDENTITY[sdk=iphoneos*]'] = 'Apple Distribution'
+            c.build_settings['PROVISIONING_PROFILE_SPECIFIER']   = ENV['PERFIL_NOMBRE']
+            c.build_settings['MARKETING_VERSION']                = ENV['VERSION_MARKETING']
+            c.build_settings['CURRENT_PROJECT_VERSION']          = ENV['VERSION_BUILD']
+          end
+
+          proyecto.save
+          puts "Firma configurada en el target App: equipo #{ENV['TEAM_ID']}, perfil #{ENV['PERFIL_NOMBRE']}"
+          RUBY
+
       - name: Compilar el archivo firmado
         working-directory: frontend/ios/App
         env:
@@ -214,18 +247,18 @@ jobs:
             CONTENEDOR=(-project App.xcodeproj)
           fi
           echo "Compilando con: ${CONTENEDOR[@]}"
+          # Los ajustes de firma NO se pasan aqui: en la linea de comandos
+          # xcodebuild se los aplica a TODOS los targets, incluidos los paquetes
+          # de Swift Package Manager (Firebase, GoogleUtilities, nanopb...), que
+          # no admiten perfiles de aprovisionamiento y tumban el build con
+          # "does not support provisioning profiles". Van puestos solo en el
+          # target App, en el paso anterior.
           xcodebuild archive "${CONTENEDOR[@]}" \
             -scheme App \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/ZIPPYGO.xcarchive" \
-            -allowProvisioningUpdates \
-            DEVELOPMENT_TEAM="$TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PERFIL_NOMBRE" \
-            MARKETING_VERSION=1.1 \
-            CURRENT_PROJECT_VERSION=${{ github.run_number }}
+            -allowProvisioningUpdates
 
       - name: Exportar el .ipa
         env:
