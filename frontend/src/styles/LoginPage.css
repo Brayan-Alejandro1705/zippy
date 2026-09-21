@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(-45deg, #0d0d1a, #1a0a2e, #0a1628, #0f0f1f);
   background-size: 400% 400%;
   animation: lp-bg-shift 12s ease infinite;

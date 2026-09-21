@@ -76,7 +76,7 @@ const VendorLayout = ({ children, onSearch, searchPlaceholder = 'Buscar...' }) =
       </header>
 
       {/* ── Contenido ──────────────────────────────────── */}
-      <main className="ulo-main" style={{ paddingBottom: 80 }}>
+      <main className="ulo-main" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
         {children}
       </main>
 

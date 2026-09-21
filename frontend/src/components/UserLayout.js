@@ -61,7 +61,7 @@ const UserLayout = ({ children, onSearch }) => {
       </header>
 
       {/* ── Contenido ──────────────────────────────────── */}
-      <main className="ulo-main" style={{ paddingBottom: totalItems > 0 && !isCart ? 140 : 80 }}>
+      <main className="ulo-main" style={{ paddingBottom: `calc(${totalItems > 0 && !isCart ? 140 : 80}px + env(safe-area-inset-bottom, 0px))` }}>
         {children}
       </main>
 

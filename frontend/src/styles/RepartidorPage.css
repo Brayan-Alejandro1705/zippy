@@ -15,8 +15,9 @@
 /* ── Header ──────────────────────────────────────────────── */
 .rp-header {
   background: linear-gradient(155deg, #FF8A24 0%, #FF7A00 55%, #F06A00 100%);
-  padding: 0 16px;
-  height: 54px;
+  /* Igual que el header del cliente: respeta la hora / Dynamic Island. */
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  height: calc(54px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;

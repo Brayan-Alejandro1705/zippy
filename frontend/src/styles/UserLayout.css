@@ -11,8 +11,12 @@
 /* ── Header ──────────────────────────────────────────────── */
 .ulo-header {
   background: #FF7A00;
-  height: 58px;
-  padding: 0 16px;
+  /* En iPhone el header se dibuja detras de la hora y la Dynamic Island:
+     el naranja llega hasta el borde pero el contenido baja lo necesario.
+     En Android y en web el inset vale 0 y todo queda igual que antes. */
+  box-sizing: border-box;
+  height: calc(58px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 16px 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -155,7 +159,7 @@
 /* ── Carrito flotante ────────────────────────────────────── */
 .ulo-cart-bar {
   position: fixed;
-  bottom: 72px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 24px);
@@ -200,7 +204,10 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 62px;
+  /* Deja libre la barra de inicio del iPhone (la rayita de abajo). */
+  box-sizing: border-box;
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: white;
   border-top: 1px solid #f0f0f0;
   display: flex;
