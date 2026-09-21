@@ -5,6 +5,7 @@ import UserLayout from '../../components/UserLayout';
 import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
 import CentroAyuda from '../../components/CentroAyuda';
+import EliminarCuenta from '../../components/EliminarCuenta';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -643,6 +644,11 @@ const SeccionCuenta = ({ addToast }) => {
             <span className="up-toggle-thumb" />
           </button>
         </div>
+      </div>
+
+      <div className="up-cuenta-card">
+        <p className="up-cuenta-section">Eliminar mi cuenta</p>
+        <EliminarCuenta />
       </div>
 
       <button className="up-logout-btn" onClick={handleLogout}>

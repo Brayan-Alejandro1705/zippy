@@ -3,7 +3,8 @@
 //
 // Google Play exige que toda app que permita crear cuentas ofrezca una via
 // para eliminarlas DENTRO de la app (ademas de una URL publica). Este
-// componente es esa via, y se usa en la configuracion de los 4 perfiles.
+// componente es esa via (Apple exige lo mismo), y se usa en la configuracion
+// del cliente, el vendedor y el repartidor.
 //
 // Pide la contrasena y una confirmacion escrita a proposito: es irreversible.
 // ============================================================================
@@ -65,7 +66,7 @@ const EliminarCuenta = () => {
           datos, porque la ley obliga a guardar ese soporte. Esta acción no se
           puede deshacer.
         </p>
-        <button className="elc-btn-abrir" onClick={() => setAbierto(true)}>
+        <button type="button" className="elc-btn-abrir" onClick={() => setAbierto(true)}>
           <Icon name="cerrar" size={16} /> Eliminar mi cuenta
         </button>
       </div>
@@ -100,10 +101,10 @@ const EliminarCuenta = () => {
       </div>
 
       <div className="elc-acciones">
-        <button className="elc-btn-cancelar" onClick={cancelar} disabled={enviando}>
+        <button type="button" className="elc-btn-cancelar" onClick={cancelar} disabled={enviando}>
           Cancelar
         </button>
-        <button className="elc-btn-confirmar" onClick={eliminar} disabled={!puedeEliminar || enviando}>
+        <button type="button" className="elc-btn-confirmar" onClick={eliminar} disabled={!puedeEliminar || enviando}>
           {enviando ? 'Eliminando...' : 'Eliminar definitivamente'}
         </button>
       </div>

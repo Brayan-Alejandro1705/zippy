@@ -10,8 +10,17 @@ const aMinutos = (hhmm) => {
   return h * 60 + (m || 0);
 };
 
-export const estaAbierto = (negocio, ahora = new Date()) => {
+// Hora de Colombia (UTC-5, sin horario de verano). El horario del negocio se
+// guarda como lo ve el vendedor en Garzon, asi que hay que compararlo con la
+// hora de alla y no con la del celular: si no, alguien en otra zona horaria
+// ve la tienda abierta o cerrada a destiempo y el servidor (que si usa hora
+// de Colombia) le rechaza el pedido sin explicacion.
+const horaColombia = (ahora) =>
+  new Date(ahora.getTime() + ahora.getTimezoneOffset() * 60000 - 5 * 3600000);
+
+export const estaAbierto = (negocio, ahoraReal = new Date()) => {
   if (!negocio || !negocio.hora_apertura || !negocio.hora_cierre) return true;
+  const ahora = horaColombia(ahoraReal);
 
   if (negocio.dias_operacion) {
     const dias = negocio.dias_operacion.split(',').map(d => d.trim()).filter(Boolean);

@@ -6,6 +6,7 @@ import { ordenesService, usuariosService, productosService, pedidosEspecialesSer
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
 import CentroAyuda from '../../components/CentroAyuda';
+import EliminarCuenta from '../../components/EliminarCuenta';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
@@ -450,6 +451,7 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
             <button type="button" className="rp-modal-cancel" onClick={onClose}>Cerrar</button>
           </>
         ) : (
+        <>
         <form onSubmit={handleSubmit}>
         <p className="rp-cuenta-section">Información personal</p>
         <div className="rp-field">
@@ -512,6 +514,9 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
         <button type="submit" className="rp-cuenta-save"><Icon name="check" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Guardar cambios</button>
         <button type="button" className="rp-cuenta-logout" onClick={onLogout}><Icon name="salir" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Cerrar sesión</button>
         </form>
+        <p className="rp-cuenta-section">Eliminar mi cuenta</p>
+        <EliminarCuenta />
+        </>
         )}
       </div>
     </div>
