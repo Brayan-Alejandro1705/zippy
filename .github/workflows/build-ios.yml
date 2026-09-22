@@ -289,18 +289,28 @@ jobs:
             -allowProvisioningUpdates
 
       - name: Subir a TestFlight
+        timeout-minutes: 50
         env:
           API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
           API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
         run: |
-          set -e
           mkdir -p "$HOME/.appstoreconnect/private_keys"
           echo "$API_KEY_BASE64" | base64 --decode > "$HOME/.appstoreconnect/private_keys/AuthKey_${API_KEY_ID}.p8"
           IPA=$(ls "$RUNNER_TEMP/salida"/*.ipa | head -1)
           echo "Subiendo $IPA"
-          xcrun altool --upload-app -f "$IPA" -t ios \
-            --apiKey "$API_KEY_ID" --apiIssuer "$API_ISSUER_ID"
+          # Apple a veces se queda colgado (errores 502 del servidor). Cada intento
+          # tiene 15 minutos como maximo y se reintenta hasta 3 veces.
+          for intento in 1 2 3; do
+            echo "Intento $intento de subida"
+            if perl -e 'alarm shift; exec @ARGV' 900 xcrun altool --upload-app -f "$IPA" -t ios \
+                 --apiKey "$API_KEY_ID" --apiIssuer "$API_ISSUER_ID"; then
+              echo "Subida correcta"; exit 0
+            fi
+            echo "Fallo o se colgo el intento $intento; esperando 60 s"
+            sleep 60
+          done
+          echo "No se pudo subir despues de 3 intentos"; exit 1
 
       - name: Guardar el .ipa por si acaso
         if: always()
