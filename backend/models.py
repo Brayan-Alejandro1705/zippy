@@ -106,6 +106,8 @@ class Usuario(Base):
     fecha_eliminacion = Column(DateTime)
     latitud = Column(DECIMAL(10, 8))
     longitud = Column(DECIMAL(11, 8))
+    # Veces que un repartidor reporto a este cliente; con 2 se suspende la cuenta
+    reportes_cliente = Column(Integer, default=0, nullable=False)
 
     # Datos del vehículo (solo domiciliarios)
     vehiculo = Column(String(20))   # moto, bicicleta, carro
@@ -322,6 +324,14 @@ class Orden(Base):
     # Codigo corto (formato ZP-0000) que el repartidor le muestra al vendedor
     # al recoger el pedido; el vendedor lo valida antes de entregarselo.
     codigo_recogida = Column(String(10), index=True)
+
+    # Seguridad (sep 2026): el primer pedido de un cliente lo valida soporte
+    # antes de que le llegue al negocio. Si el repartidor reporta al cliente
+    # (no salio, direccion falsa...), el motivo queda aqui.
+    requiere_validacion = Column(Boolean, default=False, nullable=False)
+    fecha_validacion = Column(DateTime)
+    reporte_motivo = Column(String(60))
+    fecha_reporte = Column(DateTime)
     
     fecha_ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

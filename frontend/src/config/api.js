@@ -223,6 +223,12 @@ export const ordenesService = {
   mensajes:      (id) => api.get(`/ordenes/${id}/mensajes`),
   enviarMensaje: (id, contenido) => api.post(`/ordenes/${id}/mensajes`, { contenido }),
   confirmarRecogida: (id, codigo) => api.post(`/ordenes/${id}/confirmar-recogida`, { codigo }),
+  // Seguridad: validacion del primer pedido y reportes de repartidores
+  porValidar:         () => api.get('/ordenes/validacion/pendientes'),
+  validar:            (id, aprobar, motivo) => api.post(`/ordenes/${id}/validar`, { aprobar, motivo }),
+  reportarCliente:    (id, motivo) => api.post(`/ordenes/${id}/reportar-cliente`, { motivo }),
+  clientesReportados: () => api.get('/ordenes/validacion/reportados'),
+  reactivarCliente:   (usuarioId) => api.post(`/ordenes/validacion/reactivar/${usuarioId}`),
 };
 
 export const logsService = {

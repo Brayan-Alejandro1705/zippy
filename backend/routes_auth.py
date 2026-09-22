@@ -349,9 +349,11 @@ async def login(request: Request, credenciales: LoginRequest, db: Session = Depe
 
     # Verificar que el usuario esté activo
     if usuario.estado != "activo":
+        suspendido = str(getattr(usuario.estado, "value", usuario.estado)) == "suspendido"
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Usuario {usuario.estado}"
+            detail=("Tu cuenta está suspendida por reportes de repartidores. Escríbenos por WhatsApp a soporte si crees que es un error."
+                    if suspendido else f"Usuario {usuario.estado}")
         )
     
     # Crear tokens. Se usa el id (no el email) como 'sub' porque el email

@@ -175,6 +175,15 @@ def init_db():
             conn.execute(text(
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS codigo_recogida VARCHAR(10)"
             ))
+            # Sep 2026: validacion del primer pedido y reportes de repartidores
+            for sql in (
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS requiere_validacion BOOLEAN NOT NULL DEFAULT FALSE",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS fecha_validacion TIMESTAMP",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS reporte_motivo VARCHAR(60)",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS fecha_reporte TIMESTAMP",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reportes_cliente INTEGER NOT NULL DEFAULT 0",
+            ):
+                conn.execute(text(sql))
             conn.commit()
     except Exception as e:
         print(f"⚠️ No se pudo verificar/agregar codigo_recogida: {e}")

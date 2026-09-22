@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { useTheme } from '../../context/ThemeContext';
-import { ordenesService, usuariosService, productosService, pedidosEspecialesService } from '../../config/api';
+import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
 import CentroAyuda from '../../components/CentroAyuda';
@@ -42,12 +42,12 @@ const PAGO_CFG = {
   billetera:     { label: 'Billetera',     icon: 'telefono', bg: '#dcfce7', color: '#15803d' },
 };
 
+// El codigo (value) es el que guarda el backend; con 2 reportes el cliente queda suspendido
 const REPORT_REASONS = [
-  'Cliente no contesta',
-  'Dirección incorrecta',
-  'Cliente no está en el lugar',
-  'Pedido incompleto o dañado',
-  'Otro problema',
+  { value: 'no_aparecio',     label: 'No salió / no contestó (esperé 10 min)' },
+  { value: 'direccion_falsa', label: 'La dirección no existe o es falsa' },
+  { value: 'rechazo_pedido',  label: 'Rechazó el pedido al llegar' },
+  { value: 'peligro',         label: 'Me sentí en peligro' },
 ];
 
 const VEHICULOS = [
@@ -281,12 +281,12 @@ const ReportModal = ({ orden, onClose, onSubmit }) => {
   return (
     <div className="rp-modal-overlay" onClick={onClose}>
       <div className="rp-modal" onClick={e => e.stopPropagation()}>
-        <h3 className="rp-modal-title">Reportar problema</h3>
-        <p className="rp-modal-sub">{orden.id} · {orden.direccion}</p>
+        <h3 className="rp-modal-title">¿Qué pasó con el pedido?</h3>
+        <p className="rp-modal-sub">{orden.id} · El pedido se cancela y queda registrado en la cuenta del cliente.</p>
         <div className="rp-modal-options">
           {REPORT_REASONS.map(r => (
-            <button key={r} className="rp-modal-option" onClick={() => onSubmit(orden, r)}>
-              {r}
+            <button key={r.value} className="rp-modal-option" onClick={() => onSubmit(orden, r)}>
+              {r.label}
             </button>
           ))}
         </div>
@@ -544,6 +544,17 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
               <Icon name={pago.icon} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pago.label}
             </span>
           )}
+          {orden.clienteEntregados != null && orden.estado !== 'entregada' && (
+            orden.clienteEntregados > 0 ? (
+              <span className="rp-pago-badge" style={{ background: '#dcfce7', color: '#166534' }}>
+                <Icon name="check" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{orden.clienteEntregados} pedido{orden.clienteEntregados === 1 ? '' : 's'} recibido{orden.clienteEntregados === 1 ? '' : 's'}
+              </span>
+            ) : (
+              <span className="rp-pago-badge" style={{ background: '#fef3c7', color: '#92400e' }}>
+                <Icon name="estrella" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Cliente nuevo{orden.validadoSoporte ? ' · validado por soporte' : ''}
+              </span>
+            )
+          )}
         </div>
         <div className="rp-order-meta">
           {orden.distancia != null && <span className="rp-order-dist"><Icon name="rombo" size={11} style={{ verticalAlign: '-1px', marginRight: 3 }} />{orden.distancia.toFixed(1)} km</span>}
@@ -600,11 +611,6 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
       <div className="rp-order-footer">
         <span className="rp-order-total">{fmt(orden.total)}</span>
         <div className="rp-order-actions">
-          <button
-            className="rp-report-btn"
-            onClick={e => { e.stopPropagation(); onReport(orden); }}
-            title="Reportar problema"
-          ><Icon name="alerta" size={17} /></button>
           {orden.estado === 'en_domicilio' && (
             <button
               className="rp-report-btn"
@@ -622,6 +628,15 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
           )}
         </div>
       </div>
+      {orden.estado === 'en_domicilio' && !reported && (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); onReport(orden); }}
+          style={{ width: '100%', marginTop: 10, padding: '11px 12px', borderRadius: 12, border: 0, background: '#fee2e2', color: '#dc2626', fontWeight: 800, fontSize: 13.5, fontFamily: 'inherit', cursor: 'pointer' }}
+        >
+          <Icon name="bandera" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />Cliente no apareció / problema
+        </button>
+      )}
     </div>
   );
 };
@@ -707,6 +722,51 @@ const ChatModal = ({ orden, onClose }) => {
   );
 };
 
+/* ── Botón de emergencia: avisa a soporte por WhatsApp ───── */
+const SosModal = ({ open, onClose, usuario, driverPos, orden }) => {
+  const [whatsapp, setWhatsapp] = useState('');
+  useEffect(() => {
+    if (!open) return;
+    soporteService.obtener().then(({ data }) => setWhatsapp(data?.whatsapp || '')).catch(() => {});
+  }, [open]);
+  if (!open) return null;
+
+  const ubic = driverPos ? `https://maps.google.com/?q=${driverPos.lat},${driverPos.lng}` : 'sin ubicación';
+  const nombre = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ') || 'Repartidor';
+  const lineas = [
+    'EMERGENCIA - repartidor ZIPPYGO',
+    `Repartidor: ${nombre}${usuario?.telefono ? ` (${usuario.telefono})` : ''}`,
+    `Mi ubicación: ${ubic}`,
+  ];
+  if (orden) {
+    lineas.push(`Pedido ${orden.id} · ${orden.direccion}`);
+    lineas.push(`Cliente: ${orden.cliente || 'Cliente'}${orden.telefono ? ` (${orden.telefono})` : ''}`);
+  }
+  const url = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(lineas.join('\n'))}` : null;
+
+  return (
+    <div className="rp-modal-overlay" onClick={onClose}>
+      <div className="rp-modal" onClick={e => e.stopPropagation()}>
+        <h3 className="rp-modal-title" style={{ color: '#dc2626' }}>
+          <Icon name="alerta" size={19} style={{ verticalAlign: '-4px', marginRight: 7 }} />Emergencia
+        </h3>
+        <p className="rp-modal-sub">Se abre WhatsApp con tu ubicación en el mapa y los datos del pedido activo, listo para enviar a soporte.</p>
+        {url ? (
+          <a
+            href={url} target="_blank" rel="noopener noreferrer" onClick={onClose}
+            style={{ display: 'block', textAlign: 'center', background: '#16a34a', color: '#fff', padding: 14, borderRadius: 12, fontWeight: 800, textDecoration: 'none', margin: '8px 0' }}
+          >
+            <Icon name="whatsapp" size={17} style={{ verticalAlign: '-3px', marginRight: 7 }} />Avisar a soporte por WhatsApp
+          </a>
+        ) : (
+          <p className="rp-modal-sub">Cargando el WhatsApp de soporte…</p>
+        )}
+        <button className="rp-modal-cancel" onClick={onClose}>Cancelar</button>
+      </div>
+    </div>
+  );
+};
+
 /* ── Página principal ────────────────────────────────────── */
 const RepartidorPage = () => {
   const navigate = useNavigate();
@@ -729,6 +789,7 @@ const RepartidorPage = () => {
   const [showCierre, setShowCierre] = useState(false);
   const [showCuenta, setShowCuenta] = useState(false);
   const [chatOrden,  setChatOrden]  = useState(null);
+  const [showSos,    setShowSos]    = useState(false);
 
   const sheetRef  = useRef(null);
   const dragState = useRef(null);
@@ -786,6 +847,8 @@ const RepartidorPage = () => {
           pago: o.metodo_pago,
           instrucciones: o.notas_cliente || null,
           codigoRecogida: o.codigo_recogida || null,
+          clienteEntregados: o.cliente_pedidos_entregados ?? null,
+          validadoSoporte: !!o.fecha_validacion,
           // Punto exacto marcado por el cliente; si no hay, se geocodifica el texto
           position: o.latitud_entrega != null && o.longitud_entrega != null
             ? { lat: Number(o.latitud_entrega), lng: Number(o.longitud_entrega) } : null,
@@ -928,9 +991,17 @@ const RepartidorPage = () => {
 
   const handleLogout = () => { if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return; localStorage.clear(); navigate('/login'); };
 
-  const handleReportSubmit = (orden, reason) => {
-    setReportedMap(prev => ({ ...prev, [orden.id]: reason }));
-    setReportTarget(null);
+  const handleReportSubmit = async (orden, reason) => {
+    if (!window.confirm(`¿Reportar el pedido ${orden.id}? Se cancela y queda en la cuenta del cliente.`)) return;
+    try {
+      await ordenesService.reportarCliente(orden.idCompleto, reason.value);
+      setReportedMap(prev => ({ ...prev, [orden.id]: reason.label }));
+      setReportTarget(null);
+      cargarOrdenes();
+      if (reason.value === 'peligro') setShowSos(true);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'No se pudo enviar el reporte.');
+    }
   };
 
   const handleCuentaSave = data => {
@@ -1136,6 +1207,11 @@ const RepartidorPage = () => {
         </div>
       </div>
 
+      <button
+        type="button" aria-label="Emergencia" onClick={() => setShowSos(true)}
+        style={{ position: 'fixed', right: 14, top: 'calc(72px + env(safe-area-inset-top, 0px))', zIndex: 60, width: 54, height: 54, borderRadius: '50%', border: 0, background: '#dc2626', color: '#fff', fontWeight: 900, fontSize: 14, fontFamily: 'inherit', boxShadow: '0 6px 18px rgba(220,38,38,.45)', cursor: 'pointer' }}
+      >SOS</button>
+      <SosModal open={showSos} onClose={() => setShowSos(false)} usuario={usuario} driverPos={driverPos} orden={enCamino[0] || null} />
       <ReportModal orden={reportTarget} onClose={() => setReportTarget(null)} onSubmit={handleReportSubmit} />
       <CierreModal open={showCierre} onClose={() => setShowCierre(false)} entregadas={entregadasHoy} ganado={ganado} />
       <CuentaModal open={showCuenta} usuario={usuario} onClose={() => setShowCuenta(false)} onSave={handleCuentaSave} onLogout={handleLogout} />

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useLoadScript, GoogleMap, Marker } from '@react-google-maps/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../config/googleMaps';
+import Icon from './Icons';
 
 // ============================================================================
 // SelectorUbicacion — el cliente marca en el mapa el punto exacto de entrega.
@@ -70,8 +71,8 @@ const SelectorUbicacion = ({ direccion, valor, onChange }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '4px 0 8px' }}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" style={btn} onClick={miUbicacion}>📍 Estoy en mi casa</button>
-        <button type="button" style={btn} onClick={buscar}>🔎 Buscar dirección</button>
+        <button type="button" style={btn} onClick={miUbicacion}><Icon name="ubicacion" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Estoy en mi casa</button>
+        <button type="button" style={btn} onClick={buscar}><Icon name="buscar" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Buscar dirección</button>
       </div>
       {isLoaded ? (
         <GoogleMap
@@ -95,7 +96,7 @@ const SelectorUbicacion = ({ direccion, valor, onChange }) => {
         </div>
       )}
       <p style={{ fontSize: 12.5, margin: 0, color: valor ? '#16a34a' : '#64748b', lineHeight: 1.4 }}>
-        {valor ? '✓ ' : ''}{aviso}
+        {valor && <Icon name="check" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />}{aviso}
       </p>
     </div>
   );

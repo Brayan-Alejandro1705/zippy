@@ -4,7 +4,9 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
+from pydantic import BaseModel
+from typing import Optional
 from typing import List
 from uuid import UUID
 from datetime import datetime, timedelta
@@ -119,6 +121,26 @@ async def crear_orden(
             detail=detalle
         )
 
+    # Cuenta suspendida por reportes de repartidores: no puede pedir
+    if str(getattr(current_user.estado, "value", current_user.estado)) != "activo":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tu cuenta está suspendida. Escríbenos por WhatsApp a soporte si crees que es un error."
+        )
+
+    # Primer pedido: pasa por validacion de soporte. Un cliente es confiable si
+    # ya le entregaron un pedido, si soporte ya le valido uno, o si tiene un
+    # pedido en curso de antes de que existiera la validacion.
+    cliente_confiable = db.query(Orden.id).filter(
+        Orden.cliente_id == current_user.id,
+        or_(
+            Orden.estado == "entregada",
+            Orden.fecha_validacion.isnot(None),
+            and_(Orden.requiere_validacion == False,  # noqa: E712
+                 Orden.estado.in_(["confirmada", "en_preparacion", "lista_para_retirar", "en_domicilio"])),
+        ),
+    ).first() is not None
+
     # Alcohol: exigir confirmacion de mayoria de edad. Tabaco: nunca.
     productos_pedido = db.query(Producto).filter(
         Producto.id.in_([item.producto_id for item in orden.items])
@@ -137,6 +159,7 @@ async def crear_orden(
         cliente_id=current_user.id,
         negocio_id=orden.negocio_id,
         estado="pendiente",
+        requiere_validacion=not cliente_confiable,
         subtotal=subtotal,
         impuesto=impuesto,
         costo_domicilio=costo_domicilio,
@@ -203,15 +226,26 @@ async def crear_orden(
     
     db.add(seguimiento)
 
-    # Avisar al vendedor: pedido nuevo por hacer
-    notificar_usuario(
-        db, negocio.vendedor,
-        tipo="pedido_nuevo",
-        titulo="Nuevo pedido",
-        mensaje=f"Pedido nuevo en {negocio.nombre_negocio} por ${total:,.0f}",
-        relacionado_tabla="ordenes",
-        relacionado_id=nueva_orden.id,
-    )
+    if nueva_orden.requiere_validacion:
+        # Primer pedido: le avisamos a soporte; el negocio lo recibe cuando se apruebe
+        notificar_usuarios(
+            db, _admins_activos(db),
+            tipo="pedido_por_validar",
+            titulo="Pedido por validar",
+            mensaje=f"Primer pedido de {current_user.nombre} en {negocio.nombre_negocio} por ${total:,.0f}. Confírmalo con el cliente.",
+            relacionado_tabla="ordenes",
+            relacionado_id=nueva_orden.id,
+        )
+    else:
+        # Avisar al vendedor: pedido nuevo por hacer
+        notificar_usuario(
+            db, negocio.vendedor,
+            tipo="pedido_nuevo",
+            titulo="Nuevo pedido",
+            mensaje=f"Pedido nuevo en {negocio.nombre_negocio} por ${total:,.0f}",
+            relacionado_tabla="ordenes",
+            relacionado_id=nueva_orden.id,
+        )
 
     db.commit()
     db.refresh(nueva_orden)
@@ -252,6 +286,9 @@ async def listar_ordenes(
 
         if negocio:
             query = query.filter(Orden.negocio_id == negocio.id)
+            # Los pedidos que soporte todavia no valida no le llegan al negocio
+            query = query.filter(or_(Orden.requiere_validacion == False,  # noqa: E712
+                                     Orden.fecha_validacion.isnot(None)))
         else:
             return []
 
@@ -272,8 +309,19 @@ async def listar_ordenes(
         query = query.filter(Orden.estado == estado)
     
     ordenes = query.order_by(Orden.fecha_creacion.desc()).offset(skip).limit(limit).all()
-    
-    return [OrdenResponse.from_orm(o) for o in ordenes]
+
+    respuesta = [OrdenResponse.from_orm(o) for o in ordenes]
+
+    # Al repartidor le mostramos si el cliente es nuevo o ya ha recibido pedidos
+    if current_user.tipo_usuario == "domiciliario" and respuesta:
+        ids = list({o.cliente_id for o in ordenes})
+        conteos = dict(db.query(Orden.cliente_id, func.count(Orden.id)).filter(
+            Orden.cliente_id.in_(ids), Orden.estado == "entregada"
+        ).group_by(Orden.cliente_id).all())
+        for r in respuesta:
+            r.cliente_pedidos_entregados = conteos.get(r.cliente_id, 0)
+
+    return respuesta
 
 @router.get(
     "/{orden_id}",
@@ -365,6 +413,12 @@ async def actualizar_orden(
     es_vendedor = orden.negocio.vendedor_id == current_user.id if orden.negocio else False
     es_domiciliario = orden.domiciliario_id == current_user.id
     es_cliente = orden.cliente_id == current_user.id
+
+    if es_vendedor and orden.requiere_validacion and orden.fecha_validacion is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Este pedido todavía está en validación por soporte"
+        )
 
     # Validar cambios de estado según rol
     if orden_actualizada.estado:
@@ -941,3 +995,214 @@ async def enviar_mensaje(
         "contenido": mensaje.contenido,
         "fecha": mensaje.fecha_creacion.isoformat(),
     }
+
+# ============================================================================
+# SEGURIDAD: validacion del primer pedido y reportes de repartidores (sep 2026)
+# ============================================================================
+
+MOTIVOS_REPORTE = {
+    "no_aparecio": "No salió / no contestó",
+    "direccion_falsa": "La dirección no existe o es falsa",
+    "rechazo_pedido": "Rechazó el pedido al llegar",
+    "peligro": "El repartidor se sintió en peligro",
+}
+REPORTES_PARA_SUSPENDER = 2
+
+
+class ValidarOrdenRequest(BaseModel):
+    aprobar: bool
+    motivo: Optional[str] = None
+
+
+class ReportarClienteRequest(BaseModel):
+    motivo: str
+
+
+def _solo_admin(usuario: Usuario):
+    tipo = getattr(usuario.tipo_usuario, "value", usuario.tipo_usuario)
+    if str(tipo).lower() != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Solo un administrador puede hacer esto")
+
+
+def _admins_activos(db: Session):
+    return db.query(Usuario).filter(
+        Usuario.tipo_usuario == "admin",
+        Usuario.estado == EstadoUsuario.ACTIVO,
+    ).all()
+
+
+@router.get("/validacion/pendientes", summary="Pedidos por validar (primer pedido de cada cliente)")
+async def pedidos_por_validar(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admin(current_user)
+    ordenes = db.query(Orden).filter(
+        Orden.requiere_validacion == True,  # noqa: E712
+        Orden.fecha_validacion.is_(None),
+        Orden.estado == "pendiente",
+    ).order_by(Orden.fecha_creacion.asc()).all()
+
+    resultado = []
+    for o in ordenes:
+        c = o.cliente
+        resultado.append({
+            "id": str(o.id),
+            "fecha_creacion": o.fecha_creacion.isoformat() if o.fecha_creacion else None,
+            "total": float(o.total or 0),
+            "metodo_pago": getattr(o.metodo_pago, "value", o.metodo_pago),
+            "direccion_entrega": o.direccion_entrega,
+            "lat": float(o.latitud_entrega) if o.latitud_entrega is not None else None,
+            "lng": float(o.longitud_entrega) if o.longitud_entrega is not None else None,
+            "notas_cliente": o.notas_cliente,
+            "negocio": o.negocio.nombre_negocio if o.negocio else "Negocio",
+            "items": [{"nombre": it.producto.nombre if it.producto else "Producto", "cantidad": it.cantidad} for it in o.items],
+            "cliente": {
+                "id": str(c.id) if c else None,
+                "nombre": f"{c.nombre} {c.apellido or ''}".strip() if c else "Cliente",
+                "telefono": c.telefono if c else None,
+                "email": c.email if c else None,
+                "fecha_creacion": c.fecha_creacion.isoformat() if c and c.fecha_creacion else None,
+            },
+        })
+    return resultado
+
+
+@router.post("/{orden_id}/validar", summary="Soporte aprueba o rechaza el primer pedido de un cliente")
+async def validar_orden(
+    orden_id: UUID,
+    datos: ValidarOrdenRequest,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admin(current_user)
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    if not orden.requiere_validacion or orden.fecha_validacion is not None or orden.estado != "pendiente":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Este pedido ya no está en validación")
+
+    nombre_negocio = orden.negocio.nombre_negocio if orden.negocio else "el negocio"
+    if datos.aprobar:
+        orden.fecha_validacion = datetime.utcnow()
+        db.add(SeguimientoOrden(orden_id=orden.id, estado_anterior="pendiente", estado_nuevo="pendiente",
+                                descripcion="Validado por soporte", fecha_creacion=datetime.utcnow()))
+        if orden.negocio and orden.negocio.vendedor:
+            notificar_usuario(db, orden.negocio.vendedor, tipo="pedido_nuevo", titulo="Nuevo pedido",
+                              mensaje=f"Pedido nuevo en {nombre_negocio} por ${float(orden.total):,.0f}",
+                              relacionado_tabla="ordenes", relacionado_id=orden.id)
+        if orden.cliente:
+            notificar_usuario(db, orden.cliente, tipo="pedido_validado", titulo="Pedido confirmado",
+                              mensaje=f"Confirmamos tu pedido. {nombre_negocio} ya lo puede preparar.",
+                              relacionado_tabla="ordenes", relacionado_id=orden.id)
+    else:
+        orden.estado = "rechazada"
+        # Devolver el stock que se descontó al crear la orden
+        for it in orden.items:
+            if it.producto:
+                it.producto.stock = (it.producto.stock or 0) + it.cantidad
+                it.producto.total_vendidos = max(0, (it.producto.total_vendidos or 0) - it.cantidad)
+        db.add(SeguimientoOrden(orden_id=orden.id, estado_anterior="pendiente", estado_nuevo="rechazada",
+                                descripcion=f"Rechazado por soporte: {datos.motivo or 'no se pudo confirmar'}",
+                                fecha_creacion=datetime.utcnow()))
+        if orden.cliente:
+            notificar_usuario(db, orden.cliente, tipo="pedido_rechazado", titulo="No pudimos confirmar tu pedido",
+                              mensaje="No pudimos confirmar tu pedido. Escríbenos por WhatsApp si fue un error.",
+                              relacionado_tabla="ordenes", relacionado_id=orden.id)
+    orden.fecha_ultima_actualizacion = datetime.utcnow()
+    db.commit()
+    return {"ok": True, "estado": orden.estado, "validado": orden.fecha_validacion is not None}
+
+
+@router.post("/{orden_id}/reportar-cliente", summary="El repartidor reporta un problema con el cliente")
+async def reportar_cliente(
+    orden_id: UUID,
+    datos: ReportarClienteRequest,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    if orden.domiciliario_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo el repartidor de este pedido puede reportarlo")
+    if datos.motivo not in MOTIVOS_REPORTE:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Motivo de reporte no válido")
+    if orden.estado != "en_domicilio":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Solo puedes reportar un pedido que vas entregando")
+
+    estado_anterior = orden.estado
+    orden.estado = "cancelada"
+    orden.reporte_motivo = datos.motivo
+    orden.fecha_reporte = datetime.utcnow()
+    orden.fecha_ultima_actualizacion = datetime.utcnow()
+    db.add(SeguimientoOrden(orden_id=orden.id, estado_anterior=estado_anterior, estado_nuevo="cancelada",
+                            descripcion=f"Reporte del repartidor: {MOTIVOS_REPORTE[datos.motivo]}",
+                            fecha_creacion=datetime.utcnow()))
+
+    cliente = orden.cliente
+    suspendido = False
+    if cliente:
+        cliente.reportes_cliente = (cliente.reportes_cliente or 0) + 1
+        if cliente.reportes_cliente >= REPORTES_PARA_SUSPENDER:
+            cliente.estado = EstadoUsuario.SUSPENDIDO
+            suspendido = True
+        notificar_usuario(db, cliente, tipo="pedido_reportado", titulo="Pedido cancelado",
+                          mensaje=("Tu cuenta fue suspendida por reportes de repartidores. Escríbenos por WhatsApp si fue un error."
+                                   if suspendido else
+                                   "El repartidor no pudo entregarte el pedido y lo reportó. Escríbenos por WhatsApp si fue un error."),
+                          relacionado_tabla="ordenes", relacionado_id=orden.id)
+
+    notificar_usuarios(db, _admins_activos(db), tipo="cliente_reportado",
+                       titulo="Emergencia de repartidor" if datos.motivo == "peligro" else "Cliente reportado",
+                       mensaje=f"{MOTIVOS_REPORTE[datos.motivo]} · pedido #{str(orden.id)[:8]}" + (" · cuenta suspendida" if suspendido else ""),
+                       relacionado_tabla="ordenes", relacionado_id=orden.id)
+    db.commit()
+    return {"ok": True, "cliente_suspendido": suspendido}
+
+
+@router.get("/validacion/reportados", summary="Clientes reportados por repartidores")
+async def clientes_reportados(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admin(current_user)
+    clientes = db.query(Usuario).filter(
+        Usuario.tipo_usuario == "cliente",
+        Usuario.reportes_cliente > 0,
+    ).order_by(Usuario.reportes_cliente.desc()).all()
+
+    resultado = []
+    for c in clientes:
+        ultima = db.query(Orden).filter(
+            Orden.cliente_id == c.id, Orden.reporte_motivo.isnot(None)
+        ).order_by(Orden.fecha_reporte.desc()).first()
+        resultado.append({
+            "id": str(c.id),
+            "nombre": f"{c.nombre} {c.apellido or ''}".strip(),
+            "telefono": c.telefono,
+            "email": c.email,
+            "reportes": c.reportes_cliente or 0,
+            "estado": getattr(c.estado, "value", c.estado),
+            "ultimo_motivo": MOTIVOS_REPORTE.get(ultima.reporte_motivo, ultima.reporte_motivo) if ultima else None,
+            "ultimo_pedido": str(ultima.id)[:8] if ultima else None,
+            "ultima_fecha": ultima.fecha_reporte.isoformat() if ultima and ultima.fecha_reporte else None,
+        })
+    return resultado
+
+
+@router.post("/validacion/reactivar/{usuario_id}", summary="Reactivar un cliente suspendido por reportes")
+async def reactivar_cliente(
+    usuario_id: UUID,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admin(current_user)
+    cliente = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not cliente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    cliente.estado = EstadoUsuario.ACTIVO
+    cliente.reportes_cliente = 0
+    db.commit()
+    return {"ok": True}

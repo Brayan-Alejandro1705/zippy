@@ -114,7 +114,7 @@ const UserCheckoutPage = () => {
     }
 
     try {
-      await Promise.all(
+      const respuestas = await Promise.all(
         Object.entries(porNegocio).map(([negocio_id, itemsNegocio]) =>
           ordenesService.crear({
             negocio_id,
@@ -129,7 +129,11 @@ const UserCheckoutPage = () => {
         )
       );
       clearCart();
-      addToast('¡Orden confirmada! Recibirás un correo de confirmación.', 'success');
+      if (respuestas.some(r => r?.data?.requiere_validacion)) {
+        addToast('Recibimos tu pedido. Como es tu primer pedido, soporte te va a contactar para confirmarlo.', 'success');
+      } else {
+        addToast('¡Orden confirmada! Recibirás un correo de confirmación.', 'success');
+      }
       navigate('/tienda/perfil');
     } catch (err) {
       const detail = err.response?.data?.detail;

@@ -20,6 +20,7 @@ import UsuarioDetallePage from './pages/UsuarioDetallePage';
 import ConfigPage from './pages/ConfigPage';
 import VendedoresPage from './pages/VendedoresPage';
 import SolicitudesPage from './pages/SolicitudesPage';
+import ValidacionPage from './pages/ValidacionPage';
 import RepartidoresPage from './pages/RepartidoresPage';
 import NuevoRepartidorPage from './pages/NuevoRepartidorPage';
 import RecuperarPasswordPage from './pages/RecuperarPasswordPage';
@@ -106,6 +107,7 @@ const App = () => (
           <Route path="/vendedores/nuevo" element={<ProtectedRoute><NuevoVendedorPage /></ProtectedRoute>} />
           <Route path="/vendedores" element={<ProtectedRoute><VendedoresPage /></ProtectedRoute>} />
           <Route path="/solicitudes" element={<ProtectedRoute><SolicitudesPage /></ProtectedRoute>} />
+          <Route path="/validacion" element={<ProtectedRoute><ValidacionPage /></ProtectedRoute>} />
           <Route path="/negocios"    element={<ProtectedRoute><NegociosPage /></ProtectedRoute>} />
           <Route path="/repartidores" element={<ProtectedRoute><RepartidoresPage /></ProtectedRoute>} />
           <Route path="/repartidores/nuevo" element={<ProtectedRoute><NuevoRepartidorPage /></ProtectedRoute>} />

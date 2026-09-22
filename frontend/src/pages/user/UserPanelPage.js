@@ -15,7 +15,7 @@ import SelectorUbicacion from '../../components/SelectorUbicacion';
 import '../../styles/UserPanel.css';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
-import { clienteService } from '../../config/api';
+import { clienteService, soporteService } from '../../config/api';
 
 const MAP_STYLE = { width: '100%', height: '220px', borderRadius: '12px' };
 
@@ -64,6 +64,7 @@ const ESTADO_STYLE = {
   Cancelado:            { bg: '#fee2e2', color: '#b91c1c' },
   Rechazado:            { bg: '#fee2e2', color: '#b91c1c' },
   Pendiente:            { bg: '#e0e7ff', color: '#3730a3' },
+  'En validación':      { bg: '#fef3c7', color: '#92400e' },
 };
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
@@ -79,6 +80,12 @@ const TABS = [
 
 /* ── Pedidos ─────────────────────────────────────────────── */
 const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
+  // WhatsApp de soporte, para el primer pedido que esta en validacion
+  const [wa, setWa] = useState('');
+  useEffect(() => {
+    soporteService.obtener().then(({ data }) => setWa(data?.whatsapp || '')).catch(() => {});
+  }, []);
+
   if (loading) return <ZLoader size="sm" label="Cargando pedidos..." />;
   if (pedidos.length === 0) return (
     <div className="up-empty">
@@ -105,6 +112,18 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
               <span className="up-order-fecha">{p.fecha}</span>
               {p.total != null && <span className="up-order-total">{fmt(p.total)}</span>}
             </div>
+            {p.estado === 'En validación' && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', borderRadius: 12, padding: '10px 12px', fontSize: 13, lineHeight: 1.45, margin: '10px 0 2px' }}>
+                <b>Estamos validando tu pedido.</b> Es tu primer pedido en ZIPPYGO: soporte te va a escribir por WhatsApp o llamar en unos minutos para confirmarlo. Apenas lo confirmemos, el negocio empieza a prepararlo.
+                {wa && (
+                  <a
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hola, hice mi primer pedido ${p.id} en ZIPPYGO y quiero confirmarlo.`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'block', marginTop: 8, fontWeight: 800, color: '#15803d', textDecoration: 'none' }}
+                  ><Icon name="whatsapp" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribir a soporte</a>
+                )}
+              </div>
+            )}
             {!['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
               <button className="up-track-btn" onClick={() => onTrack(p)}>
                 <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
@@ -229,7 +248,7 @@ const CalificarModal = ({ pedido, onClose }) => {
 
 /* ── Línea de estado del pedido ──────────────────────────── */
 const LineaEstado = ({ estado, tieneRepartidor, nombreRepartidor }) => {
-  const actual = indicePaso(estado);
+  const actual = estado === 'En validación' ? 0 : indicePaso(estado);
   const cancelado = estado === 'Cancelado' || estado === 'Rechazado';
 
   if (cancelado) {
@@ -533,7 +552,7 @@ const SeccionDirecciones = ({ addToast }) => {
           </div>
           <p className="up-addr-dir"><Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.dir}</p>
           {d.referencia && <p className="up-addr-ciudad">{d.referencia}</p>}
-          <p className="up-addr-ciudad">{d.lat != null ? '📍 Marcada en el mapa' : '⚠️ Sin ubicación en el mapa'}</p>
+          <p className="up-addr-ciudad"><Icon name={d.lat != null ? 'ubicacion' : 'alerta'} size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.lat != null ? 'Marcada en el mapa' : 'Sin ubicación en el mapa'}</p>
         </div>
       ))}
 
@@ -717,7 +736,8 @@ const UserPanelPage = () => {
           idCompleto: o.id,
           fecha: fmtFecha(o.fecha_creacion),
           fechaRaw: o.fecha_creacion,
-          estado: ESTADO_UI[o.estado] || 'Pendiente',
+          estado: (o.requiere_validacion && !o.fecha_validacion && o.estado === 'pendiente')
+            ? 'En validación' : (ESTADO_UI[o.estado] || 'Pendiente'),
           items: o.items.map(it => `${productosMap[it.producto_id] || 'Producto'} x${it.cantidad}`).join(', '),
           total: Number(o.total),
           tienda: negociosMap[o.negocio_id] || 'Tienda',

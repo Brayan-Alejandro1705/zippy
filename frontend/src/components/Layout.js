@@ -12,6 +12,7 @@ import '../styles/dark-theme.css';
 const NAV = [
   { path: '/dashboard',    icon: 'dashboard',    label: 'Dashboard',    permId: null          },
   { path: '/negocios',     icon: 'negocios',     label: 'Negocios',     permId: null          },
+  { path: '/validacion',   icon: 'check',        label: 'Validación',   permId: null          },
   { path: '/vendedores',   icon: 'vendedores',   label: 'Vendedores',   permId: 'vendedores'  },
   { path: '/repartidores', icon: 'repartidores', label: 'Repartidores', permId: 'repartidores'},
   { path: '/usuarios',     icon: 'usuarios',     label: 'Usuarios',     permId: 'usuarios'    },

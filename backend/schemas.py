@@ -276,6 +276,11 @@ class OrdenResponse(BaseModel):
     items: List[ItemOrdenResponse]
     fecha_creacion: datetime
     fecha_entrega: Optional[datetime]
+    requiere_validacion: Optional[bool] = False
+    fecha_validacion: Optional[datetime] = None
+    reporte_motivo: Optional[str] = None
+    # Solo para repartidores: cuantos pedidos le han entregado a este cliente
+    cliente_pedidos_entregados: Optional[int] = None
 
     class Config:
         from_attributes = True
