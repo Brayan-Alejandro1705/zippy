@@ -27,6 +27,7 @@ const useCountdown = () => {
   return time;
 };
 const pad = n => String(n).padStart(2, '0');
+const TIENDAS_VISIBLES = 4;
 
 /* ── Helpers de presentación (no son datos, son solo decoración) ─────────── */
 const CAT_ICON = {
@@ -73,6 +74,7 @@ const UserHomePage = () => {
   const [loading,   setLoading]   = useState(true);
   const [productos, setProductos] = useState([]);
   const [tiendas,   setTiendas]   = useState([]);
+  const [verTodasTiendas, setVerTodasTiendas] = useState(false);
   const [categorias, setCategorias] = useState([]);
 
   useEffect(() => {
@@ -340,16 +342,26 @@ const UserHomePage = () => {
         <div className="uh-section">
           <div className="uh-section-hdr">
             <h2 className="uh-section-title"><Icon name="vendedores" size={19} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tiendas</h2>
-            {tiendaFiltro && (
+            {tiendaFiltro ? (
               <button className="uh-clear-link" onClick={() => setTiendaFiltro('')}>Quitar filtro ✕</button>
+            ) : tiendas.length > TIENDAS_VISIBLES && (
+              <button className="uh-ver-todas" onClick={() => setVerTodasTiendas(v => !v)}>
+                {verTodasTiendas ? 'Ver menos ▴' : `Ver todas (${tiendas.length}) ▾`}
+              </button>
             )}
           </div>
+          {/* Antes era una fila con scroll horizontal y las tiendas de la derecha
+              quedaban escondidas. Ahora se despliegan en cuadricula. */}
           <div className="uh-stores-row">
-            {tiendas.map(t => (
+            {(verTodasTiendas ? tiendas : tiendas.slice(0, TIENDAS_VISIBLES)).map(t => (
               <button
                 key={t.id}
                 className={`uh-store-card ${tiendaFiltro === t.nombre ? 'uh-store-card--active' : ''}`}
-                onClick={() => setTiendaFiltro(prev => prev === t.nombre ? '' : t.nombre)}
+                onClick={() => {
+                  const activa = tiendaFiltro === t.nombre;
+                  setTiendaFiltro(activa ? '' : t.nombre);
+                  if (!activa) setTimeout(() => document.getElementById('uh-productos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                }}
               >
                 <div className="uh-store-avatar" style={{ background: t.color, color: t.text }}><Icon name={t.icon} size={22} /></div>
                 <div className="uh-store-info">
