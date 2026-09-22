@@ -17,6 +17,7 @@ from models import Producto, Negocio, Usuario
 from schemas import ProductoCreate, ProductoUpdate, ProductoResponse, OfertaCreate
 from routes_auth import get_current_user
 from storage_supabase import subir_archivo, SupabaseStorageError
+from restricciones import es_tabaco, MENSAJE_TABACO
 
 router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
 
@@ -144,6 +145,10 @@ async def crear_producto(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Negocio no encontrado o no te pertenece"
         )
+
+    if es_tabaco(producto.nombre, producto.descripcion, producto.categoria,
+                 getattr(producto, "subcategoria", None)):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_TABACO)
     
     # Crear producto
     nuevo_producto = Producto(
@@ -289,6 +294,9 @@ async def actualizar_producto(
     
     # Actualizar campos
     datos_actualizacion = producto_actualizado.dict(exclude_unset=True)
+
+    if es_tabaco(*(datos_actualizacion.get(k) for k in ("nombre", "descripcion", "categoria", "subcategoria"))):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_TABACO)
     
     for campo, valor in datos_actualizacion.items():
         setattr(producto, campo, valor)

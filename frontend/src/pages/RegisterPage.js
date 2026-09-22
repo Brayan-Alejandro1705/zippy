@@ -5,6 +5,7 @@ import ZLoader from '../components/ZLoader';
 import '../styles/RegisterPage.css';
 import Icon from '../components/Icons';
 import SelectPro from '../components/SelectPro';
+import { CATEGORIAS_NEGOCIO } from '../constants/categorias';
 
 // El registro público de "domiciliario" quedó deshabilitado: ahora solo un
 // súper admin puede crear el acceso de un repartidor (panel admin ->
@@ -23,11 +24,6 @@ const VEHICULOS = [
   { value: 'moto',      label: 'Moto'      },
   { value: 'bicicleta', label: 'Bicicleta' },
   { value: 'carro',     label: 'Carro'     },
-];
-
-const CATEGORIAS_NEGOCIO = [
-  'Restaurante', 'Comida rápida', 'Panadería', 'Cafetería', 'Frutas y verduras',
-  'Supermercado', 'Droguería', 'Ropa', 'Electrónica', 'Mascotas', 'General',
 ];
 
 const getPasswordStrength = (pass) => {

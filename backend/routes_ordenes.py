@@ -20,6 +20,7 @@ from models import (
 from schemas import OrdenCreate, OrdenUpdate, OrdenResponse, ConfirmarRecogidaRequest
 from routes_auth import get_current_user
 from push import notificar_usuario, notificar_usuarios
+from restricciones import es_alcohol, es_tabaco, MENSAJE_EDAD, MENSAJE_TABACO
 
 router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 
@@ -117,6 +118,15 @@ async def crear_orden(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=detalle
         )
+
+    # Alcohol: exigir confirmacion de mayoria de edad. Tabaco: nunca.
+    productos_pedido = db.query(Producto).filter(
+        Producto.id.in_([item.producto_id for item in orden.items])
+    ).all()
+    if any(es_tabaco(p.nombre, p.categoria) for p in productos_pedido):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_TABACO)
+    if any(es_alcohol(p, negocio) for p in productos_pedido) and not orden.confirma_mayor_edad:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_EDAD)
 
     # Calcular totales
     items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad} for item in orden.items]

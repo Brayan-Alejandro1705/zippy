@@ -241,6 +241,8 @@ class OrdenCreate(BaseModel):
     metodo_pago: str
     direccion_entrega: str
     notas_cliente: Optional[str] = None
+    # Obligatorio en True si el pedido lleva bebidas alcoholicas
+    confirma_mayor_edad: Optional[bool] = False
 
 class OrdenUpdate(BaseModel):
     estado: Optional[str] = None

@@ -9,7 +9,7 @@
 
 export const CATEGORIAS_NEGOCIO = [
   'Restaurante', 'Comida rápida', 'Panadería', 'Cafetería', 'Frutas y verduras',
-  'Supermercado', 'Droguería', 'Ropa', 'Electrónica', 'Mascotas', 'General',
+  'Supermercado', 'Droguería', 'Licorera', 'Ropa', 'Electrónica', 'Mascotas', 'General',
 ];
 
 export const CATEGORIAS_SERVICIO = [
@@ -80,6 +80,12 @@ export const CATEGORIAS_PRODUCTO_POR_NEGOCIO = {
   'Droguería': [
     'Medicamentos', 'Vitaminas y suplementos', 'Primeros auxilios',
     'Cuidado personal', 'Cuidado de la piel', 'Bebés', 'Otros',
+  ],
+  // Sin categoria de cigarrillos/tabaco a proposito: Apple no permite vender
+  // tabaco ni vapeadores y el backend los rechaza (restricciones.py).
+  'Licorera': [
+    'Cerveza', 'Aguardiente y ron', 'Whisky y otros licores', 'Vinos',
+    'Bebidas sin alcohol', 'Pasabocas', 'Hielo', 'Otros',
   ],
   'Ropa': [
     'Ropa de hombre', 'Ropa de mujer', 'Ropa infantil', 'Calzado',

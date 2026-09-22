@@ -9,6 +9,10 @@ import { estaAbierto, textoCerrado } from '../../utils/horario';
 
 const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
+const CAT_ALCOHOL = ['cerveza', 'aguardiente y ron', 'whisky y otros licores', 'vinos', 'licores'];
+const sinTildes = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const esAlcohol = i => CAT_ALCOHOL.includes(sinTildes(i.categoria)) || sinTildes(i.categoriaNegocio || i.negocio_categoria) === 'licorera';
+
 const UserCheckoutPage = () => {
   const navigate = useNavigate();
   const { items, subtotal, clearCart } = useCart();
@@ -30,6 +34,8 @@ const UserCheckoutPage = () => {
   const [pago]                = useState('efectivo');
   const [nota, setNota]       = useState('');
   const [loading, setLoading] = useState(false);
+  const [mayorEdad, setMayorEdad] = useState(false);
+  const [pideEdad, setPideEdad]   = useState(false);
 
   // La direccion venia escrita a mano en el codigo ('Cra 5 #23-45, Apto 402'),
   // asi que TODAS las ordenes salian con la misma direccion falsa. Ahora se
@@ -59,6 +65,9 @@ const UserCheckoutPage = () => {
   const envioTotal = tiendas.length * envioUnitario;
   const total      = subtotal + envioTotal;
   const itemsCerrados = items.filter(i => !estaAbierto(i));
+  // Bebidas alcoholicas: el backend es quien decide (tambien mira la categoria
+  // del negocio). Si responde que falta la confirmacion, se muestra la casilla.
+  const tieneAlcohol = pideEdad || items.some(esAlcohol);
 
   // Si el carrito queda vacio (p.ej. tras confirmar), volver a la tienda.
   // OJO: navigate() no puede llamarse durante el render -> pantalla en blanco.
@@ -76,6 +85,10 @@ const UserCheckoutPage = () => {
     }
     if (itemsCerrados.length > 0) {
       addToast(`Producto no disponible: ${itemsCerrados[0].tienda} está cerrada · ${textoCerrado(itemsCerrados[0])}`, 'error');
+      return;
+    }
+    if (tieneAlcohol && !mayorEdad) {
+      addToast('Confirma que eres mayor de 18 años para pedir bebidas alcohólicas.', 'error');
       return;
     }
     setLoading(true);
@@ -109,6 +122,7 @@ const UserCheckoutPage = () => {
             metodo_pago: pago,
             direccion_entrega: dirElegida.dir,
             notas_cliente: nota || undefined,
+            confirma_mayor_edad: mayorEdad,
           })
         )
       );
@@ -120,6 +134,7 @@ const UserCheckoutPage = () => {
       let msg = 'No se pudo confirmar la orden. Intenta de nuevo.';
       if (typeof detail === 'string') {
         msg = detail;
+        if (detail.includes('mayor de 18')) setPideEdad(true);
       } else if (Array.isArray(detail) && detail.length > 0) {
         // Error 422 de validación de FastAPI/Pydantic: detail es una lista de
         // objetos {type, loc, msg, input, url}, no un string. Antes esto se
@@ -229,6 +244,18 @@ const UserCheckoutPage = () => {
           />
         </div>
 
+        {tieneAlcohol && (
+          <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', margin: '4px 0 14px', fontSize: 14, lineHeight: 1.4, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={mayorEdad}
+              onChange={e => setMayorEdad(e.target.checked)}
+              style={{ width: 20, height: 20, marginTop: 1, flexShrink: 0 }}
+            />
+            <span>Confirmo que soy mayor de 18 años. El repartidor puede pedir mi documento al entregar. La venta de alcohol a menores está prohibida.</span>
+          </label>
+        )}
+
         {/* Total */}
         <div className="ucho-total-box">
           <span className="ucho-total-label">Total</span>
@@ -239,7 +266,7 @@ const UserCheckoutPage = () => {
         <button
           className="ucho-btn-confirm"
           onClick={handleConfirmar}
-          disabled={loading || !dirElegida || itemsCerrados.length > 0}
+          disabled={loading || !dirElegida || itemsCerrados.length > 0 || (tieneAlcohol && !mayorEdad)}
         >
           {loading
             ? 'Procesando...'
