@@ -786,7 +786,9 @@ const RepartidorPage = () => {
           pago: o.metodo_pago,
           instrucciones: o.notas_cliente || null,
           codigoRecogida: o.codigo_recogida || null,
-          position: null,
+          // Punto exacto marcado por el cliente; si no hay, se geocodifica el texto
+          position: o.latitud_entrega != null && o.longitud_entrega != null
+            ? { lat: Number(o.latitud_entrega), lng: Number(o.longitud_entrega) } : null,
           distancia: null,
           eta: null,
         };
@@ -798,7 +800,7 @@ const RepartidorPage = () => {
       setOrdenes(prev => {
         // Conservar posiciones ya geocodificadas para no volver a pedirlas
         const posMap = Object.fromEntries(prev.map(o => [o.idCompleto, o.position]));
-        return [...disponibles, ...mias].map(o => ({ ...o, position: posMap[o.idCompleto] || null }));
+        return [...disponibles, ...mias].map(o => ({ ...o, position: o.position || posMap[o.idCompleto] || null }));
       });
     } catch {
       setOrdenes([]);

@@ -144,6 +144,8 @@ async def crear_orden(
         metodo_pago=orden.metodo_pago,
         estado_pago="pendiente",
         direccion_entrega=orden.direccion_entrega,
+        latitud_entrega=orden.latitud_entrega,
+        longitud_entrega=orden.longitud_entrega,
         notas_cliente=orden.notas_cliente,
         fecha_creacion=datetime.utcnow()
     )

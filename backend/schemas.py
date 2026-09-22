@@ -243,6 +243,9 @@ class OrdenCreate(BaseModel):
     notas_cliente: Optional[str] = None
     # Obligatorio en True si el pedido lleva bebidas alcoholicas
     confirma_mayor_edad: Optional[bool] = False
+    # Punto exacto que el cliente marco en el mapa (si la direccion lo tiene)
+    latitud_entrega: Optional[float] = None
+    longitud_entrega: Optional[float] = None
 
 class OrdenUpdate(BaseModel):
     estado: Optional[str] = None
@@ -267,6 +270,8 @@ class OrdenResponse(BaseModel):
     metodo_pago: str
     estado_pago: str
     direccion_entrega: str
+    latitud_entrega: Optional[float] = None
+    longitud_entrega: Optional[float] = None
     notas_cliente: Optional[str] = None
     items: List[ItemOrdenResponse]
     fecha_creacion: datetime

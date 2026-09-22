@@ -11,6 +11,7 @@ import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, negociosService, productosService, resenasService, usuariosService, pedidosEspecialesService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
+import SelectorUbicacion from '../../components/SelectorUbicacion';
 import '../../styles/UserPanel.css';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
@@ -313,6 +314,7 @@ const SeguimientoModal = ({ pedido, onClose }) => {
   }, [pedido]);
 
   useEffect(() => {
+    if (pedido?.destino) { setDestino(pedido.destino); return; }
     if (!pedido || !isLoaded || !window.google || !pedido.direccion) return;
     const geocoder = new window.google.maps.Geocoder();
     geocoder.geocode({ address: `${pedido.direccion}, Garzón, Huila, Colombia` }, (results, status) => {
@@ -452,7 +454,8 @@ const SeccionDirecciones = ({ addToast }) => {
   const [dirs, setDirs]         = useState([]);
   const [cargando, setCargando] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm]         = useState({ label: '', dir: '', ciudad: 'Garzón' });
+  const [form, setForm]         = useState({ label: '', dir: '', ciudad: 'Garzón', referencia: '' });
+  const [ubic, setUbic]         = useState(null);
 
   useEffect(() => {
     clienteService.direcciones()
@@ -464,13 +467,18 @@ const SeccionDirecciones = ({ addToast }) => {
   const agregar = async (e) => {
     e.preventDefault();
     if (!form.label || !form.dir) return;
+    if (!ubic) { addToast('Marca en el mapa dónde queda tu casa', 'error'); return; }
     try {
       const { data } = await clienteService.agregarDireccion({
         etiqueta: form.label,
         direccion: form.dir,
+        referencia: form.referencia,
+        lat: ubic.lat,
+        lng: ubic.lng,
       });
       setDirs(prev => [...prev.map(d => ({ ...d, principal: data.principal ? false : d.principal })), data]);
-      setForm({ label: '', dir: '', ciudad: 'Garzón' });
+      setForm({ label: '', dir: '', ciudad: 'Garzón', referencia: '' });
+      setUbic(null);
       setShowForm(false);
       addToast('Dirección agregada', 'success');
     } catch {
@@ -524,7 +532,8 @@ const SeccionDirecciones = ({ addToast }) => {
             </div>
           </div>
           <p className="up-addr-dir"><Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.dir}</p>
-          <p className="up-addr-ciudad">{d.ciudad}</p>
+          {d.referencia && <p className="up-addr-ciudad">{d.referencia}</p>}
+          <p className="up-addr-ciudad">{d.lat != null ? '📍 Marcada en el mapa' : '⚠️ Sin ubicación en el mapa'}</p>
         </div>
       ))}
 
@@ -542,6 +551,12 @@ const SeccionDirecciones = ({ addToast }) => {
             onChange={e => setForm(p => ({ ...p, dir: e.target.value }))}
             required
           />
+          <input
+            placeholder="Referencia (casa azul, frente al parque...)"
+            value={form.referencia}
+            onChange={e => setForm(p => ({ ...p, referencia: e.target.value }))}
+          />
+          <SelectorUbicacion direccion={form.dir} valor={ubic} onChange={setUbic} />
           <div className="up-addr-form-row">
             <button type="submit" className="up-btn-primary">Guardar</button>
             <button type="button" className="up-btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
@@ -707,6 +722,8 @@ const UserPanelPage = () => {
           total: Number(o.total),
           tienda: negociosMap[o.negocio_id] || 'Tienda',
           direccion: o.direccion_entrega,
+          destino: o.latitud_entrega != null && o.longitud_entrega != null
+            ? { lat: Number(o.latitud_entrega), lng: Number(o.longitud_entrega) } : null,
         }));
 
         const especialesUI = especialesRaw.map(e => ({

@@ -120,7 +120,9 @@ const UserCheckoutPage = () => {
             negocio_id,
             items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty })),
             metodo_pago: pago,
-            direccion_entrega: dirElegida.dir,
+            direccion_entrega: dirElegida.referencia ? `${dirElegida.dir} · ${dirElegida.referencia}` : dirElegida.dir,
+            latitud_entrega: dirElegida.lat ?? undefined,
+            longitud_entrega: dirElegida.lng ?? undefined,
             notas_cliente: nota || undefined,
             confirma_mayor_edad: mayorEdad,
           })
@@ -243,6 +245,12 @@ const UserCheckoutPage = () => {
             onChange={e => setNota(e.target.value)}
           />
         </div>
+
+        {dirElegida && dirElegida.lat == null && (
+          <p style={{ fontSize: 13, color: '#b45309', background: 'rgba(245,158,11,0.12)', padding: '10px 12px', borderRadius: 10, margin: '0 0 12px', lineHeight: 1.4 }}>
+            Esta dirección no está marcada en el mapa. Para que el repartidor llegue exacto, agrégala de nuevo en Perfil → Direcciones y marca tu casa.
+          </p>
+        )}
 
         {tieneAlcohol && (
           <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', margin: '4px 0 14px', fontSize: 14, lineHeight: 1.4, cursor: 'pointer' }}>
