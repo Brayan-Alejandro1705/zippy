@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserLayout from '../../components/UserLayout';
 import { useToast } from '../../context/ToastContext';
@@ -12,6 +12,11 @@ const itemVacio = () => ({ id: Date.now() + Math.random(), descripcion: '', cant
 
 const PedidoEspecialPage = () => {
   const navigate = useNavigate();
+
+  // Los mandados son de la cuenta: sin sesion, al login
+  useEffect(() => {
+    if (!localStorage.getItem('access_token')) navigate('/login');
+  }, [navigate]);
   const { addToast } = useToast();
 
   const [items, setItems] = useState([itemVacio()]);

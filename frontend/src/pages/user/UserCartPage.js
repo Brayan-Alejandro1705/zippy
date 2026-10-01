@@ -8,6 +8,7 @@ import { domicilioService } from '../../config/api';
 import { estaAbierto, textoCerrado } from '../../utils/horario';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
+const hayCuenta = () => !!localStorage.getItem('access_token');
 
 const UserCartPage = () => {
   const navigate = useNavigate();
@@ -156,7 +157,7 @@ const UserCartPage = () => {
           {hayTiendaCerrada && (
             <p className="uc-cerrada-aviso">⚠️ Tienes productos de una tienda cerrada. Quítalos del carrito para continuar.</p>
           )}
-          <button className="uc-btn-pago" onClick={() => navigate('/tienda/checkout')} disabled={hayTiendaCerrada}>
+          <button className="uc-btn-pago" onClick={() => navigate(hayCuenta() ? '/tienda/checkout' : '/login')} disabled={hayTiendaCerrada}>
             {hayTiendaCerrada ? 'Hay tiendas cerradas' : 'Proceder al Pago'}
           </button>
           <button className="uc-btn-seguir" onClick={() => navigate('/tienda')}>

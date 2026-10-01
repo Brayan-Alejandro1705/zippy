@@ -34,6 +34,11 @@ jobs:
         working-directory: frontend
         run: npx cap sync android
 
+      # El icono de la app sale de frontend/resources/icon.png (el mismo que iOS)
+      - name: Poner el icono de ZIPPYGO
+        working-directory: frontend
+        run: npx -y @capacitor/assets@3 generate --androidProject android --assetPath resources
+
       - name: Configurar Java 21
         uses: actions/setup-java@v4
         with:

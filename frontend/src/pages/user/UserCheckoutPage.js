@@ -44,6 +44,11 @@ const UserCheckoutPage = () => {
   const [dirId, setDirId]                 = useState(null);
   const [cargandoDirs, setCargandoDirs]   = useState(true);
 
+  // Pedir si necesita cuenta; ver la tienda no (Apple 5.1.1)
+  useEffect(() => {
+    if (!localStorage.getItem('access_token')) navigate('/login');
+  }, [navigate]);
+
   useEffect(() => {
     let activo = true;
     clienteService.direcciones()

@@ -65,6 +65,12 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Visitante sin cuenta: puede ver la tienda, y si una ruta que pide sesion
+    // responde 401 simplemente se ignora (antes lo sacaba al login).
+    if (!localStorage.getItem('access_token') && !localStorage.getItem('refresh_token')) {
+      return Promise.reject(error);
+    }
+
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });

@@ -73,7 +73,9 @@ const RootRedirect = () => {
   if (isAuthenticated()) {
     return <Navigate to={homeRouteFor(getStoredTipoUsuario())} replace />;
   }
-  return <Navigate to="/login" replace />;
+  // Sin sesion se entra directo a la tienda: Apple (5.1.1) no permite exigir
+  // registro para ver negocios y productos, solo para pedir.
+  return <Navigate to="/tienda" replace />;
 };
 
 // Evita que alguien ya logueado vuelva a ver la pantalla de login/registro.

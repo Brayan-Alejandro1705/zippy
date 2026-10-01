@@ -28,6 +28,8 @@ const useCountdown = () => {
 };
 const pad = n => String(n).padStart(2, '0');
 const TIENDAS_VISIBLES = 4;
+// Se puede mirar la tienda sin cuenta; guardar y pedir si piden sesion
+const hayCuenta = () => !!localStorage.getItem('access_token');
 
 /* ── Helpers de presentación (no son datos, son solo decoración) ─────────── */
 const CAT_ICON = {
@@ -146,6 +148,8 @@ const UserHomePage = () => {
   }, []);
 
   useEffect(() => {
+    // Los guardados son de la cuenta: sin sesion no se piden
+    if (!hayCuenta()) return;
     let activo = true;
     clienteService.favoritos()
       .then(({ data }) => {
@@ -193,6 +197,11 @@ const UserHomePage = () => {
     addToast(`${p.nombre} agregado al carrito`, 'success');
   };
   const toggleSave = (id) => {
+    if (!hayCuenta()) {
+      addToast('Inicia sesión para guardar productos', 'error');
+      window.location.href = '/login';
+      return;
+    }
     const yaGuardado = saved.has(id);
     // Actualizacion optimista: refleja el cambio ya mismo en la UI...
     setSaved(prev => { const s = new Set(prev); yaGuardado ? s.delete(id) : s.add(id); return s; });

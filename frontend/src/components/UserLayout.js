@@ -7,6 +7,7 @@ import AccountSwitcher from './AccountSwitcher';
 import { registrarPush } from '../utils/push';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
+const hayCuenta = () => !!localStorage.getItem('access_token');
 
 const NAV_ITEMS = [
   { path: '/tienda',                 icon: 'inicio',       label: 'Inicio'    },
@@ -47,11 +48,22 @@ const UserLayout = ({ children, onSearch }) => {
           />
         </div>
 
-        <button className="ulo-profile-btn" onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos" aria-label="Mi perfil">
-          <Icon name="perfil" size={20} />
-        </button>
+        {hayCuenta() ? (
+          <>
+            <button className="ulo-profile-btn" onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos" aria-label="Mi perfil">
+              <Icon name="perfil" size={20} />
+            </button>
 
-        <AccountSwitcher variant="icon" />
+            <AccountSwitcher variant="icon" />
+          </>
+        ) : (
+          <button
+            className="ulo-profile-btn"
+            onClick={() => navigate('/login')}
+            title="Iniciar sesión"
+            style={{ width: 'auto', padding: '0 12px', fontWeight: 800, fontSize: 13, whiteSpace: 'nowrap' }}
+          >Entrar</button>
+        )}
 
         <button className="ulo-cart-btn" onClick={() => navigate('/tienda/carrito')} aria-label="Carrito">
           <Icon name="carrito" size={20} />

@@ -70,6 +70,16 @@ jobs:
           echo "--- schemes disponibles ---"
           xcodebuild -list -project App.xcodeproj || true
 
+      # Apple rechazo la primera version (2.3.8) porque el .ipa llevaba el icono
+      # de ejemplo de Capacitor. Aqui se genera el set de iconos de ZIPPYGO a
+      # partir de frontend/resources/icon.png en cada compilacion.
+      - name: Poner el icono de ZIPPYGO
+        working-directory: frontend
+        run: |
+          set -e
+          npx -y @capacitor/assets@3 generate --iosProject ios/App --assetPath resources
+          ls -la ios/App/App/Assets.xcassets/AppIcon.appiconset | head -20
+
       # La app pide ubicacion (mapa y seguimiento del pedido) y fotos (imagenes
       # de los productos). En iOS, si el permiso no esta declarado con su
       # explicacion, la app se cierra sola al pedirlo y Apple la rechaza.
