@@ -6,6 +6,8 @@ import '../../styles/UserCart.css';
 import { ENVIO_POR_TIENDA } from '../../constants/envio';
 import { domicilioService } from '../../config/api';
 import { estaAbierto, textoCerrado } from '../../utils/horario';
+import { urlImagen } from '../../utils/media';
+import Icon from '../../components/Icons';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 const hayCuenta = () => !!localStorage.getItem('access_token');
@@ -13,9 +15,6 @@ const hayCuenta = () => !!localStorage.getItem('access_token');
 const UserCartPage = () => {
   const navigate = useNavigate();
   const { items, removeItem, updateQty, subtotal } = useCart();
-  const [cupon, setCupon] = useState('');
-  const [descuento, setDescuento] = useState(0);
-  const [cuponMsg, setCuponMsg] = useState('');
 
   // El costo lo decide el servidor: el administrador puede cambiarlo desde el
   // panel sin que haya que reconstruir la app. El valor del archivo queda
@@ -35,25 +34,14 @@ const UserCartPage = () => {
   const tiendas = [...new Set(items.map(i => i.tienda))];
   const numTiendas = tiendas.length;
   const envioTotal = numTiendas * envioUnitario;
-  const total = subtotal + envioTotal - descuento;
+  const total = subtotal + envioTotal;
   const hayTiendaCerrada = items.some(i => !estaAbierto(i));
-
-  const aplicarCupon = () => {
-    if (cupon.trim().toUpperCase() === 'SAVE10') {
-      const desc = Math.round(subtotal * 0.1);
-      setDescuento(desc);
-      setCuponMsg(`¡Cupón aplicado! -${fmt(desc)}`);
-    } else {
-      setDescuento(0);
-      setCuponMsg('Cupón inválido');
-    }
-  };
 
   if (items.length === 0) {
     return (
       <UserLayout>
         <div className="uc-empty">
-          <div className="uc-empty-icon">🛒</div>
+          <div className="uc-empty-icon"><Icon name="carrito" size={44} strokeWidth={1.2} /></div>
           <p className="uc-empty-title">Tu carrito está vacío</p>
           <p className="uc-empty-sub">Agrega productos para comenzar a comprar</p>
           <button className="uc-btn-explore" onClick={() => navigate('/tienda')}>
@@ -67,9 +55,9 @@ const UserCartPage = () => {
   return (
     <UserLayout>
       <div className="uc-header">
-        <button className="uc-back" onClick={() => navigate('/tienda')}>← Volver</button>
-        <h1 className="uc-title">🛒 Mi Carrito</h1>
-        <button className="uc-back" onClick={() => navigate('/tienda')}>← Volver</button>
+        <button className="uc-back" onClick={() => navigate('/tienda')} aria-label="Volver">← Volver</button>
+        <h1 className="uc-title">Mi carrito</h1>
+        <span className="uc-header-count">{items.length} producto{items.length === 1 ? '' : 's'}</span>
       </div>
 
       <div className="uc-layout">
@@ -82,17 +70,21 @@ const UserCartPage = () => {
             return (
               <div key={tienda} className="uc-store-block">
                 <div className="uc-store-header">
-                  <span>🏪 {tienda}</span>
+                  <span><Icon name="vendedores" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />{tienda}</span>
                   <span className="uc-store-envio">Envío: {fmt(envioUnitario)}</span>
                 </div>
 
                 {tiendaCerrada && (
-                  <p className="uc-store-cerrada">🕒 Producto no disponible: tienda cerrada · {textoCerrado(tiendaItems[0])}</p>
+                  <p className="uc-store-cerrada"><Icon name="reloj" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />Producto no disponible: tienda cerrada · {textoCerrado(tiendaItems[0])}</p>
                 )}
 
                 {tiendaItems.map(item => (
                   <div key={item.id} className="uc-item">
-                    <div className="uc-item-img">Imagen</div>
+                    <div className="uc-item-img">
+                      {item.foto
+                        ? <img src={urlImagen(item.foto)} alt={item.nombre} loading="lazy" />
+                        : <Icon name="paquete" size={24} strokeWidth={1.3} />}
+                    </div>
                     <div className="uc-item-info">
                       <p className="uc-item-name">{item.nombre}</p>
                       <p className="uc-item-tienda">{item.tienda}</p>
@@ -126,36 +118,13 @@ const UserCartPage = () => {
             <span>Envío:</span>
             <span>{fmt(envioTotal)}</span>
           </div>
-          {descuento > 0 && (
-            <div className="uc-summary-row uc-summary-row--desc">
-              <span>Descuento:</span>
-              <span>−{fmt(descuento)}</span>
-            </div>
-          )}
-
-          <div className="uc-cupon-row">
-            <input
-              className="uc-cupon-input"
-              placeholder="Código (ej: SAVE10)"
-              value={cupon}
-              onChange={e => setCupon(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && aplicarCupon()}
-            />
-            <button className="uc-cupon-btn" onClick={aplicarCupon}>Aplicar</button>
-          </div>
-          {cuponMsg && (
-            <p className={`uc-cupon-msg ${descuento > 0 ? 'uc-cupon-msg--ok' : 'uc-cupon-msg--err'}`}>
-              {cuponMsg}
-            </p>
-          )}
-
           <div className="uc-total-row">
             <span>$</span>
             <span className="uc-total-val">{fmt(total).replace('$', '')}</span>
           </div>
 
           {hayTiendaCerrada && (
-            <p className="uc-cerrada-aviso">⚠️ Tienes productos de una tienda cerrada. Quítalos del carrito para continuar.</p>
+            <p className="uc-cerrada-aviso"><Icon name="alerta" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />Tienes productos de una tienda cerrada. Quítalos del carrito para continuar.</p>
           )}
           <button className="uc-btn-pago" onClick={() => navigate(hayCuenta() ? '/tienda/checkout' : '/login')} disabled={hayTiendaCerrada}>
             {hayTiendaCerrada ? 'Hay tiendas cerradas' : 'Proceder al Pago'}
@@ -163,7 +132,7 @@ const UserCartPage = () => {
           <button className="uc-btn-seguir" onClick={() => navigate('/tienda')}>
             Seguir Comprando
           </button>
-          <p className="uc-secure">🔒 Compra segura y protegida</p>
+          <p className="uc-secure"><Icon name="candado" size={13} style={{ verticalAlign: '-2px', marginRight: 5 }} />Compra segura y protegida</p>
         </div>
       </div>
     </UserLayout>

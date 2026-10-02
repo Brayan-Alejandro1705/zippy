@@ -4,7 +4,7 @@ import UserProductModal from '../../components/UserProductModal';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService, clienteService } from '../../config/api';
-import ZLoader from '../../components/ZLoader';
+import PantallaCarga from '../../components/PantallaCarga';
 import '../../styles/UserHome.css';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
@@ -221,7 +221,7 @@ const UserHomePage = () => {
   if (loading) {
     return (
       <UserLayout onSearch={setQuery}>
-        <div style={{ padding: 24 }}><ZLoader label="Cargando catálogo..." /></div>
+        <PantallaCarga texto="Cargando los negocios de Garzón…" />
       </UserLayout>
     );
   }
@@ -479,8 +479,10 @@ const UserHomePage = () => {
 
             {filtrados.length === 0 ? (
               <div className="uh-empty">
-                <span><Icon name="buscar" size={38} strokeWidth={1.2} /></span>
-                <p>{productos.length === 0 ? 'Todavía no hay productos publicados.' : 'Sin resultados para esta combinación de filtros.'}</p>
+                <span><Icon name={productos.length === 0 ? 'paquete' : 'buscar'} size={38} strokeWidth={1.2} /></span>
+                <p>{productos.length === 0
+                  ? 'Todavía no hay productos publicados. Los negocios de Garzón están llegando: vuelve pronto.'
+                  : 'No encontramos nada con esos filtros. Prueba quitando alguno o busca otra cosa.'}</p>
               </div>
             ) : (
               <div className="uh-grid">

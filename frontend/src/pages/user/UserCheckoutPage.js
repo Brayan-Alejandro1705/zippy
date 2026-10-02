@@ -6,6 +6,8 @@ import { ordenesService, clienteService, domicilioService } from '../../config/a
 import '../../styles/UserCheckout.css';
 import { ENVIO_POR_TIENDA } from '../../constants/envio';
 import { estaAbierto, textoCerrado } from '../../utils/horario';
+import { urlImagen } from '../../utils/media';
+import Icon from '../../components/Icons';
 
 const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
@@ -179,14 +181,21 @@ const UserCheckoutPage = () => {
             const cerrado = !estaAbierto(item);
             return (
               <div key={item.id} className="ucho-item">
-                <div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', minWidth: 0 }}>
+                  <div style={{ width: 46, height: 46, borderRadius: 10, background: '#f1f5f9', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                    {item.foto
+                      ? <img src={urlImagen(item.foto)} alt={item.nombre} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      : <Icon name="paquete" size={20} strokeWidth={1.3} />}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
                   <p className="ucho-item-name">{item.nombre}</p>
                   <p className="ucho-item-meta">
                     Cantidad: {item.qty} · Precio: {fmt(item.precio)} c/u
                   </p>
                   {cerrado && (
-                    <p className="ucho-item-cerrado">🕒 Producto no disponible · tienda cerrada · {textoCerrado(item)}</p>
+                    <p className="ucho-item-cerrado"><Icon name="reloj" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Producto no disponible · tienda cerrada · {textoCerrado(item)}</p>
                   )}
+                  </div>
                 </div>
                 <span className="ucho-item-total">{fmt(item.precio * item.qty)}</span>
               </div>
@@ -201,7 +210,7 @@ const UserCheckoutPage = () => {
             <p className="ucho-address-text">Cargando direcciones...</p>
           ) : direcciones.length === 0 ? (
             <div className="ucho-address ucho-address--vacia">
-              <span className="ucho-address-icon">📍</span>
+              <span className="ucho-address-icon"><Icon name="ubicacion" size={18} /></span>
               <div>
                 <p className="ucho-address-text">No tienes direcciones guardadas</p>
                 <button
