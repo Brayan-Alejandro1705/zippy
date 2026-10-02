@@ -4,6 +4,7 @@ import UserLayout from '../../components/UserLayout';
 import '../../styles/Servicios.css';
 import Icon from '../../components/Icons';
 import { negociosService } from '../../config/api';
+import { coincide } from '../../utils/buscar';
 
 /* ── Categorías ─────────────────────────────────────────── */
 const CATS = [
@@ -197,9 +198,7 @@ const ServiciosPage = () => {
 
   const filtrados = servicios.filter(s => {
     const matchCat = catActiva === 'todos' || s.categoria === catActiva;
-    const matchQ   = !query ||
-      s.nombre.toLowerCase().includes(query.toLowerCase()) ||
-      s.descripcion.toLowerCase().includes(query.toLowerCase());
+    const matchQ   = coincide([s.nombre, s.descripcion], query);
     return matchCat && matchQ;
   });
 

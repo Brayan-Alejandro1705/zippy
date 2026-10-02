@@ -79,7 +79,7 @@ const TABS = [
 ];
 
 /* ── Pedidos ─────────────────────────────────────────────── */
-const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
+const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo }) => {
   // WhatsApp de soporte, para el primer pedido que esta en validacion
   const [wa, setWa] = useState('');
   useEffect(() => {
@@ -134,6 +134,18 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar }) => {
                 <Icon name="estrella" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Calificar pedido
               </button>
             )}
+            {/* Repetir: la mayoria de la gente pide casi siempre lo mismo.
+                Volver a buscar producto por producto era el camino largo. */}
+            {['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && !p.esEspecial && (
+              <button
+                className="up-track-btn up-repetir-btn"
+                onClick={() => onRepetir(p)}
+                disabled={repitiendo === p.idCompleto}
+              >
+                <Icon name="repetir" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />
+                {repitiendo === p.idCompleto ? 'Agregando al carrito…' : 'Repetir pedido'}
+              </button>
+            )}
           </div>
         );
       })}
@@ -160,17 +172,32 @@ const CalificarModal = ({ pedido, onClose }) => {
   const [loading, setLoading]     = useState(true);
   const [existente, setExistente] = useState(null);
   const [saving, setSaving]       = useState(false);
-  const [form, setForm] = useState({ calificacion_general: 0, calificacion_producto: 0, calificacion_entrega: 0, comentario: '' });
+  const [form, setForm] = useState({ calificacion_general: 0, calificacion_producto: 0, calificacion_entrega: 0, calificacion_domiciliario: 0, comentario: '' });
+  // Nombre del repartidor, para poder calificarlo por su nombre y no como
+  // "el domiciliario". Si nadie llevo el pedido, esa parte no aparece.
+  const [repartidor, setRepartidor] = useState(null);
 
   useEffect(() => {
     if (!pedido) return;
     let activo = true;
     setLoading(true);
-    setForm({ calificacion_general: 0, calificacion_producto: 0, calificacion_entrega: 0, comentario: '' });
+    setForm({ calificacion_general: 0, calificacion_producto: 0, calificacion_entrega: 0, calificacion_domiciliario: 0, comentario: '' });
     resenasService.obtenerPorOrden(pedido.idCompleto)
       .then(({ data }) => { if (activo) setExistente(data); })
       .catch(() => { if (activo) setExistente(null); })
       .finally(() => { if (activo) setLoading(false); });
+    return () => { activo = false; };
+  }, [pedido]);
+
+  useEffect(() => {
+    if (!pedido) { setRepartidor(null); return; }
+    let activo = true;
+    setRepartidor(null);
+    ordenesService.ubicacionDomiciliario(pedido.idCompleto)
+      .then(({ data }) => {
+        if (activo && data?.asignado) setRepartidor(data.domiciliario_nombre || 'tu repartidor');
+      })
+      .catch(() => { if (activo) setRepartidor(null); });
     return () => { activo = false; };
   }, [pedido]);
 
@@ -186,6 +213,7 @@ const CalificarModal = ({ pedido, onClose }) => {
         calificacion_general: form.calificacion_general,
         calificacion_producto: form.calificacion_producto || undefined,
         calificacion_entrega: form.calificacion_entrega || undefined,
+        calificacion_domiciliario: form.calificacion_domiciliario || undefined,
         comentario: form.comentario || undefined,
       });
       setExistente(data);
@@ -223,9 +251,19 @@ const CalificarModal = ({ pedido, onClose }) => {
               <StarPicker value={form.calificacion_producto} onChange={v => setForm(p => ({ ...p, calificacion_producto: v }))} />
             </div>
             <div className="up-field">
-              <label>Entrega</label>
+              <label>Tiempo de entrega</label>
               <StarPicker value={form.calificacion_entrega} onChange={v => setForm(p => ({ ...p, calificacion_entrega: v }))} />
             </div>
+            {repartidor && (
+              <div className="up-field">
+                <label>
+                  <Icon name="repartidores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />
+                  {repartidor}
+                </label>
+                <StarPicker value={form.calificacion_domiciliario} onChange={v => setForm(p => ({ ...p, calificacion_domiciliario: v }))} />
+                <p className="up-field-ayuda">Cómo te trató quien te llevó el pedido</p>
+              </div>
+            )}
             <div className="up-field">
               <label>Comentario (opcional)</label>
               <textarea
@@ -299,6 +337,76 @@ const LineaEstado = ({ estado, tieneRepartidor, nombreRepartidor }) => {
   );
 };
 
+/* ── Tiempo estimado de entrega ───────────────────────────
+ *
+ * No hay un servicio de rutas detras: esto es una cuenta honesta, no una
+ * promesa. Cuando ya se sabe donde va el repartidor se calcula con la
+ * distancia en linea recta y una velocidad de moto por las calles de Garzon;
+ * mientras el pedido todavia esta en la tienda solo se puede dar un rango por
+ * etapa. Por eso siempre se muestra con "aprox" y nunca una hora exacta: es
+ * peor prometer 7 minutos y llegar en 25 que decir de entrada "entre 15 y 25".
+ */
+const VELOCIDAD_MOTO_KMH = 18;   // promedio real en calle de pueblo, con semaforos y huecos
+const MINUTOS_ENTREGA_FINAL = 2; // parquear, timbrar y entregar
+const FACTOR_CALLES = 1.3;       // nadie viaja en linea recta: hay que dar la vuelta por las manzanas
+
+// Distancia en linea recta entre dos puntos (formula del semiverseno)
+const distanciaKm = (a, b) => {
+  if (!a || !b || a.lat == null || b.lat == null) return null;
+  const R = 6371;
+  const rad = g => (g * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+
+// Rango de minutos por etapa, para cuando todavia no hay repartidor en la calle
+const RANGO_POR_ESTADO = {
+  'Confirmado':         [30, 45],
+  'En preparación':     [25, 35],
+  'Listo para recoger': [15, 25],
+  'En camino':          [10, 20],
+};
+
+const textoDistancia = (km) => (km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`);
+
+const EstimadoEntrega = ({ estado, driverPos, destino, enCamino }) => {
+  const km = enCamino ? distanciaKm(driverPos, destino) : null;
+
+  if (km != null) {
+    const kmPorCalle = km * FACTOR_CALLES;
+    const minutos = Math.max(3, Math.round((kmPorCalle / VELOCIDAD_MOTO_KMH) * 60) + MINUTOS_ENTREGA_FINAL);
+    return (
+      <div className="up-eta">
+        <Icon name="reloj" size={18} />
+        <div>
+          <p className="up-eta-min">Llega en {minutos} min aprox</p>
+          <p className="up-eta-sub">Tu repartidor está a {textoDistancia(km)} de la dirección</p>
+        </div>
+      </div>
+    );
+  }
+
+  const rango = RANGO_POR_ESTADO[estado];
+  if (!rango) return null;
+
+  return (
+    <div className="up-eta">
+      <Icon name="reloj" size={18} />
+      <div>
+        <p className="up-eta-min">Entre {rango[0]} y {rango[1]} min aprox</p>
+        <p className="up-eta-sub">
+          {estado === 'En camino'
+            ? 'Tu pedido ya salió. En cuanto veamos al repartidor en el mapa te damos el tiempo exacto.'
+            : 'Es un estimado; se ajusta cuando el repartidor salga con tu pedido'}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 /* ── Seguimiento de pedido (mapa real + estado real) ──────── */
 const SeguimientoModal = ({ pedido, onClose }) => {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: MAPS_KEY, libraries: MAPS_LIBRARIES });
@@ -366,6 +474,13 @@ const SeguimientoModal = ({ pedido, onClose }) => {
             <div className="up-track-map-msg"><ZLoader size="sm" label="Cargando mapa..." /></div>
           )}
         </div>
+
+        <EstimadoEntrega
+          estado={pedido.estado}
+          driverPos={driverPos}
+          destino={destino}
+          enCamino={pedido.estado === 'En camino' && !!ubicacion?.asignado}
+        />
 
         <LineaEstado
           estado={pedido.estado}
@@ -698,6 +813,7 @@ const UserPanelPage = () => {
   const { addItem } = useCart();
   const { addToast }= useToast();
   const [tab, setTab] = useState('pedidos');
+  const [repitiendo, setRepitiendo] = useState(null);
 
   const [pedidos, setPedidos] = useState([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
@@ -744,6 +860,10 @@ const UserPanelPage = () => {
           direccion: o.direccion_entrega,
           destino: o.latitud_entrega != null && o.longitud_entrega != null
             ? { lat: Number(o.latitud_entrega), lng: Number(o.longitud_entrega) } : null,
+          negocioId: o.negocio_id,
+          tieneRepartidor: !!o.domiciliario_id,
+          // Se guarda el detalle crudo para poder repetir el pedido despues
+          itemsRaw: (o.items || []).map(it => ({ producto_id: it.producto_id, cantidad: it.cantidad })),
         }));
 
         const especialesUI = especialesRaw.map(e => ({
@@ -782,6 +902,81 @@ const UserPanelPage = () => {
     return () => { activo = false; };
   }, []);
 
+  /*
+   * Repetir pedido.
+   *
+   * No se copian los precios viejos: se vuelve a consultar cada producto para
+   * que el cliente pague lo que vale HOY y no un precio de hace tres semanas.
+   * Lo que ya no se vende, o quedo sin existencias, se dice por nombre en vez
+   * de dejar el carrito a medias sin explicar nada.
+   */
+  const handleRepetir = async (pedido) => {
+    if (!pedido?.itemsRaw?.length) {
+      addToast('Este pedido no tiene productos para repetir', 'error');
+      return;
+    }
+    setRepitiendo(pedido.idCompleto);
+    try {
+      const negocio = await negociosService.obtener(pedido.negocioId)
+        .then(({ data }) => data)
+        .catch(() => null);
+
+      const consultados = await Promise.all(
+        pedido.itemsRaw.map(it =>
+          productosService.obtener(it.producto_id)
+            .then(({ data }) => ({ it, prod: data }))
+            .catch(() => ({ it, prod: null }))
+        )
+      );
+
+      const noDisponibles = [];
+      let agregados = 0;
+
+      consultados.forEach(({ it, prod }) => {
+        const disponible = prod && prod.estado === 'activo' && prod.es_visible !== false && Number(prod.stock) > 0;
+        if (!disponible) {
+          noDisponibles.push(prod?.nombre || 'un producto');
+          return;
+        }
+        const cantidad = Math.max(1, Math.min(Number(it.cantidad) || 1, Number(prod.stock)));
+        const paraCarrito = {
+          id: prod.id,
+          nombre: prod.nombre,
+          descripcion: prod.descripcion,
+          precio: Number(prod.precio),
+          foto: prod.imagenes?.[0] || null,
+          categoria: prod.categoria || 'Otros',
+          stock: prod.stock,
+          tienda: negocio?.nombre_negocio || pedido.tienda,
+          negocioId: prod.negocio_id,
+          categoriaNegocio: negocio?.categoria,
+          hora_apertura: negocio?.hora_apertura,
+          hora_cierre: negocio?.hora_cierre,
+          dias_operacion: negocio?.dias_operacion,
+        };
+        // addItem suma de uno en uno; llamarlo n veces respeta lo que ya
+        // hubiera en el carrito en lugar de pisarlo con una cantidad fija.
+        for (let i = 0; i < cantidad; i++) addItem(paraCarrito);
+        agregados++;
+      });
+
+      if (agregados === 0) {
+        addToast('Los productos de ese pedido ya no están disponibles', 'error');
+        return;
+      }
+      if (noDisponibles.length) {
+        addToast(`Ya no está disponible: ${noDisponibles.join(', ')}. Agregamos el resto al carrito.`, 'error');
+      } else {
+        addToast('Listo, tu pedido está otra vez en el carrito', 'success');
+      }
+      navigate('/tienda/carrito');
+    } catch {
+      addToast('No pudimos repetir el pedido. Intenta de nuevo.', 'error');
+    } finally {
+      setRepitiendo(null);
+    }
+  };
+
   const handleLogout = () => {
     if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
     localStorage.removeItem('access_token');
@@ -793,7 +988,7 @@ const UserPanelPage = () => {
   const gastado  = pedidos.filter(p => p.estado === 'Entregado').reduce((s, p) => s + p.total, 0);
 
   const content = {
-    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} />,
+    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} />,
     guardados:   <SeccionGuardados addItem={addItem} addToast={addToast} />,
     direcciones: <SeccionDirecciones addToast={addToast} />,
     cuenta:      <SeccionCuenta addToast={addToast} />,

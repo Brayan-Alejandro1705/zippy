@@ -367,6 +367,9 @@ async def listar_usuarios(
                 "tipo": u.tipo_usuario,
                 "estado": u.estado,
                 "telefono": u.telefono,
+                # Estrellas como repartidor (los clientes ya pueden calificarlo)
+                "calificacion_promedio": float(u.calificacion_promedio) if u.calificacion_promedio is not None else None,
+                "total_calificaciones": u.total_calificaciones or 0,
                 "fecha_creacion": u.fecha_creacion.isoformat() if u.fecha_creacion else None,
             } for u in usuarios
         ]

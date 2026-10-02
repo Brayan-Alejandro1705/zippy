@@ -352,6 +352,28 @@
   cursor: pointer; transition: all 0.2s; font-family: inherit;
 }
 .up-track-btn:hover { background: #FF7A00; color: white; border-color: #FF7A00; }
+.up-track-btn:disabled { opacity: 0.6; cursor: default; }
+.up-track-btn:disabled:hover { background: #fff8f0; color: #FF7A00; border-color: #ffd9ad; }
+
+/* Repetir pedido: en gris para que no compita con el boton naranja de arriba */
+.up-repetir-btn {
+  background: #f8fafc; border-color: #e2e8f0; color: #475569;
+}
+.up-repetir-btn:hover { background: #475569; color: #fff; border-color: #475569; }
+.up-repetir-btn:disabled:hover { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+
+/* Tiempo estimado de entrega, arriba de la linea de estado */
+.up-eta {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 14px 16px 0; padding: 12px 14px;
+  background: #fff8f0; border: 1.5px solid #ffd9ad; border-radius: 12px;
+  color: #9a4a00;
+}
+.up-eta-min { font-size: 15px; font-weight: 800; color: #c2410c; }
+.up-eta-sub { font-size: 12px; margin-top: 2px; line-height: 1.4; color: #9a4a00; }
+
+/* Aclaracion chiquita debajo de un campo del formulario */
+.up-field-ayuda { font-size: 11.5px; color: #64748b; margin-top: 4px; }
 
 .up-modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);

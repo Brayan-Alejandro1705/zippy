@@ -42,4 +42,7 @@ export const mapUsuario = (u) => ({
   fechaRegistro: u.fecha_creacion ? u.fecha_creacion.slice(0, 10) : null,
   productos: u.productos ?? 0,
   entregas: u.entregas ?? 0,
+  // Estrellas como repartidor; null cuando todavia nadie lo ha calificado
+  calificacion: u.calificacion_promedio != null ? Number(u.calificacion_promedio) : null,
+  totalCalificaciones: u.total_calificaciones ?? 0,
 });

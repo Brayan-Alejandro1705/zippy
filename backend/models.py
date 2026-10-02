@@ -112,6 +112,10 @@ class Usuario(Base):
     # Datos del vehículo (solo domiciliarios)
     vehiculo = Column(String(20))   # moto, bicicleta, carro
     placa = Column(String(10))
+    # Promedio de estrellas que le han puesto como repartidor. Se guarda ya
+    # calculado para no recorrer todas las resenas cada vez que se lista.
+    calificacion_promedio = Column(DECIMAL(3, 2), default=0)
+    total_calificaciones = Column(Integer, default=0, nullable=False)
 
     # Token de FCM para notificaciones push (se sobreescribe con el último dispositivo que inició sesión)
     fcm_token = Column(String(255))
@@ -121,7 +125,7 @@ class Usuario(Base):
     ordenes_cliente = relationship("Orden", foreign_keys="Orden.cliente_id", back_populates="cliente")
     ordenes_domiciliario = relationship("Orden", foreign_keys="Orden.domiciliario_id", back_populates="domiciliario")
     transacciones = relationship("Transaccion", back_populates="usuario")
-    resenas = relationship("ResenaCalificacion", back_populates="cliente")
+    resenas = relationship("ResenaCalificacion", foreign_keys="ResenaCalificacion.cliente_id", back_populates="cliente")
     notificaciones = relationship("Notificacion", back_populates="usuario")
     direcciones = relationship("Direccion", back_populates="usuario")
     carritos = relationship("Carrito", back_populates="cliente")
@@ -420,12 +424,16 @@ class ResenaCalificacion(Base):
     orden_id = Column(UUID(as_uuid=True), ForeignKey("ordenes.id"), nullable=False, index=True)
     cliente_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, index=True)
     negocio_id = Column(UUID(as_uuid=True), ForeignKey("negocios.id"), nullable=False, index=True)
+    # Quien llevo el pedido. Se copia aqui al calificar porque la orden se puede
+    # reasignar despues y la calificacion es de quien la entrego ese dia.
+    domiciliario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True, index=True)
     
     # Calificaciones
     calificacion_general = Column(Integer, nullable=False)
     calificacion_producto = Column(Integer)
     calificacion_entrega = Column(Integer)
     calificacion_atencion = Column(Integer)
+    calificacion_domiciliario = Column(Integer)
     
     # Reseña
     titulo = Column(String(255))
@@ -444,7 +452,10 @@ class ResenaCalificacion(Base):
 
     # Relaciones
     orden = relationship("Orden", back_populates="resenas")
-    cliente = relationship("Usuario", back_populates="resenas")
+    # La tabla apunta dos veces a usuarios (cliente y domiciliario), asi que hay
+    # que decirle a SQLAlchemy por cual columna va cada relacion.
+    cliente = relationship("Usuario", foreign_keys=[cliente_id], back_populates="resenas")
+    domiciliario = relationship("Usuario", foreign_keys=[domiciliario_id])
     negocio = relationship("Negocio", back_populates="resenas")
 
     def __repr__(self):

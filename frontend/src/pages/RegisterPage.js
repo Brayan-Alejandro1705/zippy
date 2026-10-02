@@ -101,7 +101,7 @@ const RegisterPage = () => {
     const baseFields = { nombre: true, apellido: true, email: true, telefono: true, password: true, confirmPassword: true };
     const vendorFields = isVendedor ? { nombre_negocio: true, ciudad: true } : {};
     const repartidorFields = (isDomiciliario && form.vehiculo !== 'bicicleta') ? { placa: true } : {};
-    setTouched({ ...baseFields, ...vendorFields });
+    setTouched({ ...baseFields, ...vendorFields, ...repartidorFields });
 
     if (!form.nombre || !form.apellido || !form.email || !form.telefono || !form.password || !form.confirmPassword) {
       setError('Completa todos los campos obligatorios'); triggerShake(); return;

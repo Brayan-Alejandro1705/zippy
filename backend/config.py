@@ -182,6 +182,11 @@ def init_db():
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS reporte_motivo VARCHAR(60)",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS fecha_reporte TIMESTAMP",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reportes_cliente INTEGER NOT NULL DEFAULT 0",
+                # Oct 2026: el cliente califica al repartidor que le llevo el pedido
+                "ALTER TABLE resenas_calificaciones ADD COLUMN IF NOT EXISTS domiciliario_id UUID REFERENCES usuarios(id)",
+                "ALTER TABLE resenas_calificaciones ADD COLUMN IF NOT EXISTS calificacion_domiciliario INTEGER",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS calificacion_promedio NUMERIC(3,2) DEFAULT 0",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS total_calificaciones INTEGER NOT NULL DEFAULT 0",
             ):
                 conn.execute(text(sql))
             conn.commit()

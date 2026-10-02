@@ -90,6 +90,8 @@ class UsuarioResponse(UsuarioBase):
     id: uuid.UUID
     vehiculo: Optional[str] = None
     placa: Optional[str] = None
+    calificacion_promedio: Optional[Decimal] = None
+    total_calificaciones: Optional[int] = 0
     foto_perfil: Optional[str]
     es_verificado: bool
     es_super_admin: bool = False
@@ -295,6 +297,8 @@ class ResenaCreate(BaseModel):
     calificacion_producto: Optional[int] = Field(None, ge=1, le=5)
     calificacion_entrega: Optional[int] = Field(None, ge=1, le=5)
     calificacion_atencion: Optional[int] = Field(None, ge=1, le=5)
+    # Estrellas para el repartidor que llevo el pedido
+    calificacion_domiciliario: Optional[int] = Field(None, ge=1, le=5)
     titulo: Optional[str] = None
     comentario: Optional[str] = None
     imagenes: Optional[List[str]] = []
@@ -304,7 +308,11 @@ class ResenaResponse(BaseModel):
     orden_id: uuid.UUID
     cliente_id: uuid.UUID
     negocio_id: uuid.UUID
+    domiciliario_id: Optional[uuid.UUID] = None
     calificacion_general: int
+    calificacion_producto: Optional[int] = None
+    calificacion_entrega: Optional[int] = None
+    calificacion_domiciliario: Optional[int] = None
     titulo: Optional[str]
     comentario: Optional[str]
     imagenes: List[str]

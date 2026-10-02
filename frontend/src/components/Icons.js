@@ -578,6 +578,13 @@ const PATHS = {
       <circle cx="12" cy="15.5" r="1.3" fill="currentColor" stroke="none" />
     </>
   ),
+  // Flecha en circulo: repetir un pedido
+  repetir: (
+    <>
+      <path d="M20 12a8 8 0 11-2.34-5.66" />
+      <path d="M20 4v4.5h-4.5" />
+    </>
+  ),
 };
 
 export const Icon = ({ name, size = 20, strokeWidth = 1.7, className = '', style, filled = false }) => {

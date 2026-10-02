@@ -46,6 +46,35 @@ def _recalcular_calificacion_productos(orden, db: Session):
         if producto:
             producto.calificacion_promedio = round(Decimal(str(promedio)), 2) if promedio is not None else Decimal(0)
 
+def _recalcular_calificacion_domiciliario(domiciliario_id, db: Session):
+    """Promedio de estrellas de un repartidor.
+
+    Solo cuentan las resenas donde el cliente si le puso estrellas al
+    repartidor: si califico la tienda y dejo esa parte en blanco, no se
+    interpreta como un cero. Un cero inventado le baja el promedio a alguien
+    que no hizo nada mal.
+    """
+    if not domiciliario_id:
+        return
+
+    promedio, cuantas = (
+        db.query(
+            func.avg(ResenaCalificacion.calificacion_domiciliario),
+            func.count(ResenaCalificacion.calificacion_domiciliario),
+        )
+        .filter(
+            ResenaCalificacion.domiciliario_id == domiciliario_id,
+            ResenaCalificacion.calificacion_domiciliario.isnot(None),
+        )
+        .one()
+    )
+
+    repartidor = db.query(Usuario).filter(Usuario.id == domiciliario_id).first()
+    if repartidor:
+        repartidor.calificacion_promedio = round(Decimal(str(promedio)), 2) if promedio is not None else Decimal(0)
+        repartidor.total_calificaciones = int(cuantas or 0)
+
+
 @router.post(
     "/",
     response_model=ResenaResponse,
@@ -88,10 +117,14 @@ async def crear_resena(
         orden_id=orden.id,
         cliente_id=current_user.id,
         negocio_id=orden.negocio_id,
+        domiciliario_id=orden.domiciliario_id,
         calificacion_general=datos.calificacion_general,
         calificacion_producto=datos.calificacion_producto,
         calificacion_entrega=datos.calificacion_entrega,
         calificacion_atencion=datos.calificacion_atencion,
+        # Si nadie llevo el pedido no se guardan estrellas de repartidor,
+        # aunque el formulario las mande por error.
+        calificacion_domiciliario=datos.calificacion_domiciliario if orden.domiciliario_id else None,
         titulo=datos.titulo,
         comentario=datos.comentario,
         imagenes=datos.imagenes or [],
@@ -102,6 +135,7 @@ async def crear_resena(
 
     _recalcular_calificacion_negocio(orden.negocio_id, db)
     _recalcular_calificacion_productos(orden, db)
+    _recalcular_calificacion_domiciliario(orden.domiciliario_id, db)
 
     db.commit()
     db.refresh(resena)
@@ -149,6 +183,7 @@ async def listar_resenas_negocio(
             "calificacion_producto": r.calificacion_producto,
             "calificacion_entrega": r.calificacion_entrega,
             "calificacion_atencion": r.calificacion_atencion,
+            "calificacion_domiciliario": r.calificacion_domiciliario,
             "titulo": r.titulo,
             "comentario": r.comentario,
             "respuesta_vendedor": r.respuesta_vendedor,

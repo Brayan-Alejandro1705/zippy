@@ -81,14 +81,14 @@ const RepartidoresPage = () => {
           <thead>
             <tr>
               <th>ID</th><th>Repartidor</th><th>Ciudad</th><th>Vehículo</th>
-              <th>Entregas</th><th>Estado</th><th>Registro</th><th>Acciones</th>
+              <th>Entregas</th><th>Calificación</th><th>Estado</th><th>Registro</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8}><ZLoader size="sm" label="Cargando repartidores..." /></td></tr>
+              <tr><td colSpan={9}><ZLoader size="sm" label="Cargando repartidores..." /></td></tr>
             ) : repartidores.length === 0 ? (
-              <tr><td colSpan={8} className="us-email">No hay repartidores registrados</td></tr>
+              <tr><td colSpan={9} className="us-email">No hay repartidores registrados</td></tr>
             ) : repartidores.map(r => (
               <tr key={r.id}>
                 <td className="us-id">{r.id}</td>
@@ -104,6 +104,15 @@ const RepartidoresPage = () => {
                 <td>{r.ciudad}</td>
                 <td>{r.vehiculo}</td>
                 <td><span className="vd-productos-badge">{r.entregas}</span></td>
+                <td>
+                  {r.totalCalificaciones > 0
+                    ? <span className="rp-calif-cel">
+                        <Icon name="estrella" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+                        {r.calificacion.toFixed(1)}
+                        <small> ({r.totalCalificaciones})</small>
+                      </span>
+                    : <span className="us-email">Sin calificar</span>}
+                </td>
                 <td>
                   <span className={`badge ${r.estado === 'Activo' ? 'badge-active' : 'badge-suspended'}`}>
                     {r.estado === 'Activo' ? 'Activo' : 'Suspendido'}

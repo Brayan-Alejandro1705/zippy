@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { vendedoresService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
@@ -29,7 +28,6 @@ const exportCSV = (data) => {
 };
 
 const VendedoresPage = () => {
-  const navigate      = useNavigate();
   const { addToast }  = useToast();
 
   const [vendedores, setVendedores] = useState([]);

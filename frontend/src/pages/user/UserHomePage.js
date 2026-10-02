@@ -9,6 +9,7 @@ import '../../styles/UserHome.css';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
 import { estaAbierto, textoCerrado } from '../../utils/horario';
+import { coincide } from '../../utils/buscar';
 
 /* ── Countdown ──────────────────────────────────────────── */
 const useCountdown = () => {
@@ -174,7 +175,10 @@ const UserHomePage = () => {
 
   const filtrados = productos
     .filter(p => {
-      const matchQ      = !query || p.nombre.toLowerCase().includes(query.toLowerCase()) || p.tienda.toLowerCase().includes(query.toLowerCase());
+      // Busca sin importar tildes, mayusculas ni errores de escritura, y
+      // mira tambien la descripcion y la categoria: quien escribe "platano"
+      // o "arros" tiene que encontrar su producto igual.
+      const matchQ      = coincide([p.nombre, p.tienda, p.descripcion, p.categoria], query);
       const matchTab    = tab === 'destacados' || p.categoria === tab;
       const matchTienda = !tiendaFiltro || p.tienda === tiendaFiltro;
       const matchMin    = !precioMin || p.precio >= Number(precioMin);

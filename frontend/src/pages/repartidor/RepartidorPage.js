@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { useTheme } from '../../context/ThemeContext';
-import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService } from '../../config/api';
+import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
 import CentroAyuda from '../../components/CentroAyuda';
@@ -782,6 +782,8 @@ const RepartidorPage = () => {
   const [pedidosEspeciales, setPedidosEspeciales] = useState([]);
   const [selected,  setSelected]  = useState(null);
   const [online,    setOnline]    = useState(true);
+  // Las estrellas que le han puesto los clientes a este repartidor
+  const [calificacion, setCalificacion] = useState(null);
   const [driverPos, setDriverPos] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [reportedMap,  setReportedMap]  = useState({});
@@ -796,6 +798,22 @@ const RepartidorPage = () => {
 
   /* Notificaciones push: pedido nuevo por entregar */
   useEffect(() => { registrarPush(); }, []);
+
+  // Mi calificacion como repartidor. Se pide al servidor y no al localStorage
+  // porque el dato cambia cada vez que un cliente califica.
+  useEffect(() => {
+    let activo = true;
+    authService.me()
+      .then(({ data }) => {
+        if (!activo) return;
+        setCalificacion({
+          promedio: Number(data?.calificacion_promedio) || 0,
+          total: Number(data?.total_calificaciones) || 0,
+        });
+      })
+      .catch(() => { if (activo) setCalificacion(null); });
+    return () => { activo = false; };
+  }, []);
 
   /* Geolocalización del repartidor */
   useEffect(() => {
@@ -1101,6 +1119,21 @@ const RepartidorPage = () => {
         <div className="rp-stat">
           <span className="rp-stat-val">{activasCount}</span>
           <span className="rp-stat-label">Activas</span>
+        </div>
+        <div className="rp-stat-div"/>
+        {/* Los clientes ya pueden calificar al repartidor; que el repartidor
+            vea su propia nota es parte del trato. */}
+        <div className="rp-stat">
+          <span className="rp-stat-val">
+            {calificacion?.total > 0
+              ? <>{Number(calificacion.promedio).toFixed(1)} <Icon name="estrella" size={14} style={{ verticalAlign: '-1px' }} /></>
+              : '—'}
+          </span>
+          <span className="rp-stat-label">
+            {calificacion?.total > 0
+              ? `Mi calificación (${calificacion.total})`
+              : 'Sin calificar aún'}
+          </span>
         </div>
       </div>
 

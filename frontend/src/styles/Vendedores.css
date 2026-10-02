@@ -52,3 +52,7 @@
 /* Dark mode */
 .dark-theme .vd-nombre      { color: #e2e8f0; }
 .dark-theme .vd-productos-badge { background: #162032; color: #60a5fa; }
+
+/* Calificacion del repartidor en la tabla de administracion */
+.rp-calif-cel { font-weight: 700; color: #b45309; white-space: nowrap; }
+.rp-calif-cel small { font-weight: 600; color: #94a3b8; }
