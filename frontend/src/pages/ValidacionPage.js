@@ -12,6 +12,11 @@ import '../styles/Usuarios.css';
 //    negocio hasta que soporte lo confirma con el cliente (WhatsApp/llamada).
 // 2. Clientes reportados: los que un repartidor reportó (no salió, dirección
 //    falsa...). Con 2 reportes la cuenta queda suspendida; aquí se reactiva.
+// 3. Pedidos quietos (oct 2026): los que llevan demasiado tiempo parados sin
+//    que nadie se entere. El servidor no vigila solo —no hay tareas
+//    programadas— sino que los calcula cuando esta pantalla pregunta, cada 30
+//    segundos mientras esté abierta. Si nadie la tiene abierta, nadie se
+//    entera: por eso vale la pena dejarla abierta en el turno.
 // ============================================================================
 
 const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
@@ -39,22 +44,32 @@ const btn = (bg, color, border) => ({
 });
 const muted = { color: '#64748b', fontSize: 13, margin: '3px 0 0' };
 
+// Por qué está quieto y a quién hay que llamar
+const MOTIVO_QUIETO = {
+  sin_confirmar:  { titulo: 'El negocio no lo ha confirmado', a: 'Llama al negocio', color: '#dc2626' },
+  sin_validar:    { titulo: 'Soporte no ha confirmado el primer pedido', a: 'Llama al cliente', color: '#b45309' },
+  sin_repartidor: { titulo: 'Listo para recoger y sin repartidor', a: 'Busca un repartidor', color: '#7c3aed' },
+};
+
 const ValidacionPage = () => {
   const { addToast } = useToast();
   const [tab, setTab] = useState('validar');
   const [pendientes, setPendientes] = useState([]);
   const [reportados, setReportados] = useState([]);
+  const [quietos, setQuietos] = useState({ total: 0, pedidos: [], umbrales: {} });
   const [cargando, setCargando] = useState(true);
   const [ocupado, setOcupado] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
-      const [p, r] = await Promise.all([
+      const [p, r, q] = await Promise.all([
         ordenesService.porValidar().then(x => x.data).catch(() => []),
         ordenesService.clientesReportados().then(x => x.data).catch(() => []),
+        ordenesService.atascados().then(x => x.data).catch(() => ({ total: 0, pedidos: [], umbrales: {} })),
       ]);
       setPendientes(p || []);
       setReportados(r || []);
+      setQuietos(q || { total: 0, pedidos: [], umbrales: {} });
     } finally {
       setCargando(false);
     }
@@ -99,7 +114,7 @@ const ValidacionPage = () => {
       <div className="us-page-header">
         <div>
           <h1 className="us-title">Validación y seguridad</h1>
-          <p className="us-subtitle">Primer pedido de clientes nuevos y clientes reportados por repartidores</p>
+          <p className="us-subtitle">Primer pedido de clientes nuevos, pedidos que se quedaron quietos y clientes reportados</p>
         </div>
       </div>
 
@@ -107,6 +122,10 @@ const ValidacionPage = () => {
         <button type="button" onClick={() => setTab('validar')} className="us-stat us-stat--orange" style={{ cursor: 'pointer', border: tab === 'validar' ? '2px solid #FF7A00' : undefined, fontFamily: 'inherit' }}>
           <span className="us-stat-num">{pendientes.length}</span>
           <span className="us-stat-label">Por validar</span>
+        </button>
+        <button type="button" onClick={() => setTab('quietos')} className={`us-stat ${quietos.total > 0 ? 'us-stat--red' : ''}`} style={{ cursor: 'pointer', border: tab === 'quietos' ? '2px solid #FF7A00' : undefined, fontFamily: 'inherit' }}>
+          <span className="us-stat-num">{quietos.total}</span>
+          <span className="us-stat-label">Quietos</span>
         </button>
         <button type="button" onClick={() => setTab('reportados')} className="us-stat" style={{ cursor: 'pointer', border: tab === 'reportados' ? '2px solid #FF7A00' : undefined, fontFamily: 'inherit' }}>
           <span className="us-stat-num">{suspendidos}</span>
@@ -162,6 +181,57 @@ const ValidacionPage = () => {
               );
             })}
             <p style={{ ...muted, textAlign: 'center' }}>Cuando soporte aprueba el primer pedido de un cliente, los siguientes ya no pasan por aquí.</p>
+          </div>
+        )
+      ) : tab === 'quietos' ? (
+        quietos.pedidos.length === 0 ? (
+          <div className="us-empty">
+            <p>Ningún pedido está quieto. Aquí aparecen los que el negocio no confirma en {quietos.umbrales?.sin_confirmar || 10} min,
+            los primeros pedidos sin validar después de {quietos.umbrales?.sin_validar || 20} min,
+            y los que llevan {quietos.umbrales?.sin_repartidor || 15} min listos sin repartidor.</p>
+          </div>
+        ) : (
+          <div style={{ maxWidth: 640 }}>
+            {quietos.pedidos.map(o => {
+              const m = MOTIVO_QUIETO[o.motivo] || { titulo: o.motivo, a: '', color: '#dc2626' };
+              const waNegocio = numeroWa(o.negocio.telefono || o.negocio.vendedor_telefono);
+              const waCliente = numeroWa(o.cliente.telefono);
+              const textoNegocio = `Hola, te escribimos de ZIPPYGO. El pedido #${o.corto} de ${o.cliente.nombre} lleva ${o.minutos} minutos esperando. ¿Lo puedes atender o lo cancelamos?`;
+              const textoCliente = `Hola ${o.cliente.nombre}, te escribimos de ZIPPYGO por tu pedido #${o.corto}. Estamos sobre él para que te llegue lo antes posible.`;
+              return (
+                <div key={o.id + o.motivo} style={{ ...card, border: `2px solid ${m.color}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                    <strong>#{o.corto}</strong>
+                    <span style={{ fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: '#fee2e2', color: m.color }}>
+                      quieto {o.minutos} min
+                    </span>
+                  </div>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, fontWeight: 700, color: m.color }}>{m.titulo}</p>
+                  <p style={muted}>{m.a}</p>
+                  <p style={{ ...muted, marginTop: 8 }}>{o.negocio.nombre} · <strong style={{ color: '#FF7A00' }}>{fmt(o.total)}</strong></p>
+                  <p style={muted}>{o.cliente.nombre}{o.cliente.telefono ? ` · ${o.cliente.telefono}` : ''}</p>
+                  <p style={muted}><Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{o.direccion_entrega}</p>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                    {waNegocio && (
+                      <a href={`https://wa.me/${waNegocio}?text=${encodeURIComponent(textoNegocio)}`} target="_blank" rel="noopener noreferrer" style={btn('transparent', '#15803d', '1.5px solid #bbf7d0')}>
+                        <Icon name="whatsapp" size={16} />Negocio
+                      </a>
+                    )}
+                    {waCliente && (
+                      <a href={`https://wa.me/${waCliente}?text=${encodeURIComponent(textoCliente)}`} target="_blank" rel="noopener noreferrer" style={btn('transparent', '#15803d', '1.5px solid #bbf7d0')}>
+                        <Icon name="whatsapp" size={16} />Cliente
+                      </a>
+                    )}
+                    {o.negocio.telefono && (
+                      <a href={`tel:${o.negocio.telefono}`} style={btn('transparent', '#1e293b', '1.5px solid #e2e8f0')}>
+                        <Icon name="telefono" size={16} />Llamar al negocio
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            <p style={{ ...muted, textAlign: 'center' }}>Esta lista se calcula cada 30 segundos mientras tengas esta pantalla abierta.</p>
           </div>
         )
       ) : (

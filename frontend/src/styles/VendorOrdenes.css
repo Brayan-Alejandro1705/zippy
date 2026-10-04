@@ -194,3 +194,14 @@
 .dark-theme .vo-empty-icon  { background: #2a3547; color: #FFA14D; }
 .dark-theme .vo-empty-title { color: #e2e8f0; }
 .dark-theme .vo-empty-desc  { color: #94a3b8; }
+
+/* Aviso de pedidos sin confirmar: arriba de todo y en rojo, porque hay un
+   cliente esperando al otro lado */
+.vo-alerta-quietos {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 0 0 16px; padding: 13px 15px;
+  background: #fef2f2; border: 1.5px solid #fecaca; border-left: 4px solid #dc2626;
+  border-radius: 12px; color: #b91c1c;
+}
+.vo-alerta-titulo { font-size: 14.5px; font-weight: 800; }
+.vo-alerta-sub { font-size: 12.5px; margin-top: 3px; line-height: 1.45; color: #9f1239; }

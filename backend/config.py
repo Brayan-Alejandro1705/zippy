@@ -95,6 +95,9 @@ class Settings:
     # por eso usamos la API REST de Brevo por HTTPS en vez de smtplib)
     BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
     SMTP_REMITENTE = os.getenv("BREVO_REMITENTE", "")
+    # Correo que recibe el aviso cuando el servidor falla. Si no se
+    # configura, se usa el mismo remitente: mejor avisar ahi que no avisar.
+    EMAIL_ALERTAS = os.getenv("EMAIL_ALERTAS", "")
     SMTP_REMITENTE_NOMBRE = os.getenv("BREVO_REMITENTE_NOMBRE", "Zippy")
 
     # (Variables SMTP viejas, ya no se usan para email pero se dejan por si acaso)

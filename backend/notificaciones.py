@@ -210,3 +210,48 @@ def enviar_resena_email(destinatario: str, nombre_vendedor: str, nombre_negocio:
             resp.read()
     except Exception as e:
         print(f"[resena_email] no se pudo enviar el correo: {e}")
+
+
+def enviar_alerta_error_email(asunto: str, detalle: str) -> None:
+    """Avisa por correo que el servidor falló.
+
+    Va al correo de EMAIL_ALERTAS (o al remitente, si no se configuró otro).
+    No lanza excepciones a proposito: esto se llama justo cuando algo ya se
+    rompio, y un fallo del aviso no puede tapar el error original ni romper la
+    respuesta al cliente.
+    """
+    destino = settings.EMAIL_ALERTAS or settings.SMTP_REMITENTE
+    if not settings.BREVO_API_KEY or not settings.SMTP_REMITENTE or not destino:
+        print("[alerta_error] Brevo sin configurar: no se envio el aviso")
+        return
+
+    cuerpo_texto = (
+        f"{asunto}\n\n"
+        f"{detalle}\n\n"
+        "Este aviso lo manda ZIPPYGO solo, cuando el servidor responde con un error "
+        "que no estaba previsto. Si llegan varios iguales seguidos, es el mismo fallo "
+        "repitiendose: solo se envia uno cada 15 minutos por tipo de error.\n"
+    )
+
+    payload = json.dumps({
+        "sender": {"email": settings.SMTP_REMITENTE, "name": settings.SMTP_REMITENTE_NOMBRE},
+        "to": [{"email": destino}],
+        "subject": f"[ZIPPYGO] {asunto}"[:200],
+        "textContent": cuerpo_texto,
+    }).encode("utf-8")
+
+    request = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=payload,
+        method="POST",
+    )
+    request.add_header("accept", "application/json")
+    request.add_header("api-key", settings.BREVO_API_KEY)
+    request.add_header("content-type", "application/json")
+
+    try:
+        with urllib.request.urlopen(request, timeout=15) as resp:
+            resp.read()
+        print(f"[alerta_error] aviso enviado a {destino}")
+    except Exception as e:
+        print(f"[alerta_error] no se pudo enviar el aviso: {e}")

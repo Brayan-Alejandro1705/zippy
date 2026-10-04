@@ -25,7 +25,7 @@ const CONTENIDO = {
       },
       {
         p: '¿Puedo cancelar un pedido?',
-        r: 'Sí, mientras el pedido siga en estado Pendiente. Cuando la tienda lo confirma y empieza a prepararlo ya no se puede cancelar desde la app; en ese caso escríbenos por soporte.',
+        r: 'Sí. En Pedidos te aparece el botón Cancelar pedido mientras el negocio no haya empezado a prepararlo. Cuando ya está en preparación no se puede cancelar desde la app, porque el negocio ya gastó en tu pedido; en ese caso escríbenos por soporte.',
       },
       {
         p: '¿Cómo sigo mi pedido?',

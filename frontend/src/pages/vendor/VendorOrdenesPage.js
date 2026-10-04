@@ -28,10 +28,22 @@ const BADGE  = { 'En camino':'vo-badge--camino', 'Entregada':'vo-badge--entregad
 const fmtFull  = n => `$${Math.round(n).toLocaleString('es-CO')}`;
 const fmtFecha = iso => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+// El servidor manda la fecha en UTC sin la Z al final; sin agregarla, el
+// navegador la lee como hora local y el calculo sale corrido cinco horas.
+const minutosDesde = (iso) => {
+  if (!iso) return 0;
+  const limpio = iso.endsWith('Z') ? iso : `${iso}Z`;
+  return Math.max(0, Math.round((Date.now() - new Date(limpio).getTime()) / 60000));
+};
+
+// A partir de aqui el cliente ya se esta preguntando si alguien vio su pedido
+const MINUTOS_PARA_ALERTA = 10;
+
 const ordenDeApi = (o, negocioNombre, productosMap, clienteNombre, clienteTelefono) => ({
   id: `#${o.id.slice(0, 8)}`,
   idCompleto: o.id,
   fecha: fmtFecha(o.fecha_creacion),
+  fechaRaw: o.fecha_creacion,
   negocio: negocioNombre,
   cliente: clienteNombre,
   clienteTelefono,
@@ -298,9 +310,33 @@ const VendorOrdenesPage = () => {
   const filtradas = tab === 'Todos' ? ordenes : ordenes.filter(o => o.estado === tab);
   const count = (val) => val === 'Todos' ? ordenes.length : ordenes.filter(o => o.estado === val).length;
 
+  // Pedidos que llevan rato sin confirmar. Un pedido sin confirmar es un
+  // cliente mirando una pantalla que no cambia, asi que esto va arriba de
+  // todo y en rojo, no escondido en una pestaña.
+  const sinConfirmar = ordenes
+    .filter(o => o.estadoReal === 'pendiente' && minutosDesde(o.fechaRaw) >= MINUTOS_PARA_ALERTA)
+    .sort((a, b) => minutosDesde(b.fechaRaw) - minutosDesde(a.fechaRaw));
+  const masViejo = sinConfirmar.length ? minutosDesde(sinConfirmar[0].fechaRaw) : 0;
+
   return (
     <VendorLayout searchPlaceholder="Buscar orden...">
       <h1 className="vo-title">Mis Órdenes</h1>
+
+      {sinConfirmar.length > 0 && (
+        <div className="vo-alerta-quietos">
+          <Icon name="alerta" size={20} />
+          <div>
+            <p className="vo-alerta-titulo">
+              {sinConfirmar.length === 1
+                ? `Tienes 1 pedido sin confirmar desde hace ${masViejo} min`
+                : `Tienes ${sinConfirmar.length} pedidos sin confirmar (el más viejo, ${masViejo} min)`}
+            </p>
+            <p className="vo-alerta-sub">
+              El cliente está esperando. Confírmalo para que puedan prepararlo y recogerlo.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="vo-tabs">

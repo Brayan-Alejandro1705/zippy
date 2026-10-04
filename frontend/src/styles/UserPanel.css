@@ -375,6 +375,21 @@
 /* Aclaracion chiquita debajo de un campo del formulario */
 .up-field-ayuda { font-size: 11.5px; color: #64748b; margin-top: 4px; }
 
+/* Cancelar pedido: rojo suave, que no invite a tocarlo por error */
+.up-cancelar-btn {
+  background: #fff5f5; border-color: #fecaca; color: #b91c1c;
+}
+.up-cancelar-btn:hover { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+.up-cancelar-btn:disabled:hover { background: #fff5f5; color: #b91c1c; border-color: #fecaca; }
+
+/* Aviso cuando el negocio se demora en confirmar */
+.up-aviso-espera {
+  background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+  border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.45;
+  margin: 10px 0 2px;
+}
+.up-aviso-link { display: block; margin-top: 8px; font-weight: 800; color: #15803d; text-decoration: none; }
+
 .up-modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center;

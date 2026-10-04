@@ -1206,3 +1206,124 @@ async def reactivar_cliente(
     cliente.reportes_cliente = 0
     db.commit()
     return {"ok": True}
+
+
+# ============================================================================
+# PEDIDOS QUIETOS
+# ============================================================================
+#
+# Un pedido se puede quedar parado sin que nadie se entere: el vendedor
+# dormido y el pedido en "pendiente" toda la noche, o nadie que lo recoja
+# cuando ya esta listo. Hoy eso se descubria cuando el cliente se quejaba.
+#
+# No hay tareas programadas en este servidor (ni se quiere, para no tenerlo
+# despierto a toda hora), asi que esto NO vigila solo: calcula los pedidos
+# quietos en el momento en que alguien pregunta. Quien pregunta es el panel de
+# soporte, que ya se refresca cada 30 segundos mientras este abierto.
+#
+# La consecuencia hay que tenerla clara: si nadie tiene el panel abierto,
+# nadie se enterara hasta que lo abra.
+
+MINUTOS_SIN_CONFIRMAR = 10    # el negocio no ha aceptado el pedido
+MINUTOS_SIN_VALIDAR = 20      # soporte no ha llamado al cliente del primer pedido
+MINUTOS_SIN_REPARTIDOR = 15   # el pedido esta listo y nadie lo ha tomado
+
+
+def _minutos_desde(fecha) -> int:
+    if not fecha:
+        return 0
+    return int((datetime.utcnow() - fecha).total_seconds() // 60)
+
+
+def _resumen_quieto(orden: Orden, motivo: str, minutos: int) -> dict:
+    """Lo minimo para que soporte pueda llamar a alguien y destrabarlo."""
+    cliente = orden.cliente
+    negocio = orden.negocio
+    vendedor = negocio.vendedor if negocio else None
+    return {
+        "id": str(orden.id),
+        "corto": str(orden.id)[:8],
+        "motivo": motivo,
+        "minutos": minutos,
+        "estado": getattr(orden.estado, "value", orden.estado),
+        "total": float(orden.total or 0),
+        "direccion_entrega": orden.direccion_entrega,
+        "fecha_creacion": orden.fecha_creacion.isoformat() if orden.fecha_creacion else None,
+        "negocio": {
+            "nombre": negocio.nombre_negocio if negocio else "Negocio",
+            "telefono": (negocio.whatsapp or negocio.telefono) if negocio else None,
+            "vendedor": f"{vendedor.nombre} {vendedor.apellido or ''}".strip() if vendedor else None,
+            "vendedor_telefono": vendedor.telefono if vendedor else None,
+        },
+        "cliente": {
+            "nombre": f"{cliente.nombre} {cliente.apellido or ''}".strip() if cliente else "Cliente",
+            "telefono": cliente.telefono if cliente else None,
+        },
+    }
+
+
+# La ruta va bajo /validacion/ a proposito: "/atascados" seria capturado por
+# GET /{orden_id}, que se registra antes y espera un UUID.
+@router.get("/validacion/atascados", summary="Pedidos que llevan mucho tiempo quietos")
+async def pedidos_atascados(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Pedidos parados por mas tiempo del razonable, para que soporte llame.
+
+    Tres casos, cada uno con su umbral:
+      - sin_confirmar: el negocio no lo ha aceptado
+      - sin_validar: es el primer pedido del cliente y soporte no lo ha llamado
+      - sin_repartidor: ya esta listo para recoger y nadie lo ha tomado
+    """
+    _solo_admin(current_user)
+
+    ahora = datetime.utcnow()
+    resultado = []
+
+    # 1. El negocio no ha confirmado (y no es uno que este esperando validacion,
+    #    porque ese caso tiene su propio umbral mas abajo).
+    limite = ahora - timedelta(minutes=MINUTOS_SIN_CONFIRMAR)
+    sin_confirmar = db.query(Orden).filter(
+        Orden.estado == "pendiente",
+        Orden.fecha_creacion < limite,
+        or_(Orden.requiere_validacion == False, Orden.fecha_validacion.isnot(None)),  # noqa: E712
+    ).order_by(Orden.fecha_creacion.asc()).all()
+    for o in sin_confirmar:
+        resultado.append(_resumen_quieto(o, "sin_confirmar", _minutos_desde(o.fecha_creacion)))
+
+    # 2. Primer pedido sin validar. Este es el recordatorio que faltaba desde
+    #    que se monto la validacion: un pedido esperando a soporte sin que
+    #    soporte sepa que lleva media hora esperando.
+    limite = ahora - timedelta(minutes=MINUTOS_SIN_VALIDAR)
+    sin_validar = db.query(Orden).filter(
+        Orden.estado == "pendiente",
+        Orden.requiere_validacion == True,  # noqa: E712
+        Orden.fecha_validacion.is_(None),
+        Orden.fecha_creacion < limite,
+    ).order_by(Orden.fecha_creacion.asc()).all()
+    for o in sin_validar:
+        resultado.append(_resumen_quieto(o, "sin_validar", _minutos_desde(o.fecha_creacion)))
+
+    # 3. Listo para recoger y sin repartidor. Se mide desde la ultima vez que
+    #    cambio de estado, que es cuando el vendedor lo dejo listo.
+    limite = ahora - timedelta(minutes=MINUTOS_SIN_REPARTIDOR)
+    sin_repartidor = db.query(Orden).filter(
+        Orden.estado == "lista_para_retirar",
+        Orden.domiciliario_id.is_(None),
+        Orden.fecha_ultima_actualizacion < limite,
+    ).order_by(Orden.fecha_ultima_actualizacion.asc()).all()
+    for o in sin_repartidor:
+        resultado.append(_resumen_quieto(o, "sin_repartidor", _minutos_desde(o.fecha_ultima_actualizacion)))
+
+    # El que lleva mas tiempo parado va primero: es el que mas arde.
+    resultado.sort(key=lambda r: r["minutos"], reverse=True)
+    return {
+        "total": len(resultado),
+        "umbrales": {
+            "sin_confirmar": MINUTOS_SIN_CONFIRMAR,
+            "sin_validar": MINUTOS_SIN_VALIDAR,
+            "sin_repartidor": MINUTOS_SIN_REPARTIDOR,
+        },
+        "pedidos": resultado,
+    }

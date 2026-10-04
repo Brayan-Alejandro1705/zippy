@@ -5,6 +5,7 @@ import UserLayout from '../../components/UserLayout';
 import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
 import CentroAyuda from '../../components/CentroAyuda';
+import ConfirmModal from '../../components/ConfirmModal';
 import EliminarCuenta from '../../components/EliminarCuenta';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
@@ -51,6 +52,17 @@ const PASOS_PEDIDO = [
 ];
 
 const indicePaso = (estado) => PASOS_PEDIDO.findIndex(p => p.estado === estado);
+
+// El servidor manda la fecha en UTC sin la Z final; sin agregarla el navegador
+// la lee como hora local y la cuenta sale corrida varias horas.
+const minutosDesde = (iso) => {
+  if (!iso) return 0;
+  const limpio = iso.endsWith('Z') ? iso : `${iso}Z`;
+  return Math.max(0, Math.round((Date.now() - new Date(limpio).getTime()) / 60000));
+};
+// Pasado este rato sin que el negocio conteste, mejor darle al cliente una
+// salida que dejarlo mirando una pantalla que no cambia.
+const MINUTOS_PARA_SOPORTE = 10;
 const fmtFecha = iso => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 /* ── Mock data (todavía no hay backend para esto) ─────────── */
@@ -79,7 +91,12 @@ const TABS = [
 ];
 
 /* ── Pedidos ─────────────────────────────────────────────── */
-const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo }) => {
+// Estados en los que el cliente todavia puede cancelar. Una vez el negocio
+// empieza a preparar el pedido ya gasto en el, asi que cancelar ahi le hace
+// perder plata: de ese punto en adelante toca por soporte.
+const ESTADOS_CANCELABLES = ['Pendiente', 'En validación', 'Confirmado'];
+
+const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo, onCancelar, cancelando }) => {
   // WhatsApp de soporte, para el primer pedido que esta en validacion
   const [wa, setWa] = useState('');
   useEffect(() => {
@@ -124,9 +141,33 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 )}
               </div>
             )}
+            {p.estado === 'Pendiente' && minutosDesde(p.fechaRaw) >= MINUTOS_PARA_SOPORTE && (
+              <div className="up-aviso-espera">
+                <b>El negocio todavía no ha confirmado tu pedido.</b> Lleva {minutosDesde(p.fechaRaw)} minutos esperando. Puedes cancelarlo aquí mismo o escribirnos y lo movemos nosotros.
+                {wa && (
+                  <a
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hola, mi pedido ${p.id} en ZIPPYGO lleva ${minutosDesde(p.fechaRaw)} minutos sin confirmar.`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="up-aviso-link"
+                  ><Icon name="whatsapp" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribir a soporte</a>
+                )}
+              </div>
+            )}
             {!['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
               <button className="up-track-btn" onClick={() => onTrack(p)}>
                 <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
+              </button>
+            )}
+            {/* Cancelar: el Centro de Ayuda lo prometia desde el principio,
+                pero no habia boton que lo hiciera. */}
+            {ESTADOS_CANCELABLES.includes(p.estado) && (
+              <button
+                className="up-track-btn up-cancelar-btn"
+                onClick={() => onCancelar(p)}
+                disabled={cancelando === p.idCompleto}
+              >
+                <Icon name="equis" size={15} style={{ verticalAlign: '-2px', marginRight: 6 }} />
+                {cancelando === p.idCompleto ? 'Cancelando…' : 'Cancelar pedido'}
               </button>
             )}
             {p.estado === 'Entregado' && !p.esEspecial && (
@@ -814,6 +855,8 @@ const UserPanelPage = () => {
   const { addToast }= useToast();
   const [tab, setTab] = useState('pedidos');
   const [repitiendo, setRepitiendo] = useState(null);
+  const [cancelando, setCancelando] = useState(null);
+  const [porCancelar, setPorCancelar] = useState(null);
 
   const [pedidos, setPedidos] = useState([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
@@ -903,6 +946,34 @@ const UserPanelPage = () => {
   }, []);
 
   /*
+   * Cancelar pedido.
+   *
+   * El servidor es el que manda: si el negocio ya empezo a preparar responde
+   * que no se puede, y ese mensaje se le muestra tal cual al cliente en vez de
+   * un "error" generico. Al cancelar, el servidor devuelve el inventario y le
+   * avisa al vendedor; aqui solo se refleja el cambio en la pantalla.
+   */
+  const handleCancelar = async () => {
+    const pedido = porCancelar;
+    if (!pedido) return;
+    setPorCancelar(null);
+    setCancelando(pedido.idCompleto);
+    try {
+      if (pedido.esEspecial) {
+        await pedidosEspecialesService.cancelar(pedido.idCompleto);
+      } else {
+        await ordenesService.cancelar(pedido.idCompleto);
+      }
+      setPedidos(prev => prev.map(p => p.idCompleto === pedido.idCompleto ? { ...p, estado: 'Cancelado' } : p));
+      addToast('Tu pedido quedó cancelado', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No pudimos cancelar el pedido. Escríbenos por soporte.', 'error');
+    } finally {
+      setCancelando(null);
+    }
+  };
+
+  /*
    * Repetir pedido.
    *
    * No se copian los precios viejos: se vuelve a consultar cada producto para
@@ -988,7 +1059,7 @@ const UserPanelPage = () => {
   const gastado  = pedidos.filter(p => p.estado === 'Entregado').reduce((s, p) => s + p.total, 0);
 
   const content = {
-    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} />,
+    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} />,
     guardados:   <SeccionGuardados addItem={addItem} addToast={addToast} />,
     direcciones: <SeccionDirecciones addToast={addToast} />,
     cuenta:      <SeccionCuenta addToast={addToast} />,
@@ -1048,6 +1119,18 @@ const UserPanelPage = () => {
 
       <SeguimientoModal pedido={trackingPedido} onClose={() => setTrackingPedido(null)} />
       <CalificarModal pedido={calificarPedido} onClose={() => setCalificarPedido(null)} />
+      <ConfirmModal
+        isOpen={!!porCancelar}
+        title="¿Cancelar este pedido?"
+        message={porCancelar
+          ? `Vamos a cancelar el pedido ${porCancelar.id} de ${porCancelar.tienda}. Si el negocio ya empezó a prepararlo, el servidor no lo va a permitir y te lo decimos.`
+          : ''}
+        confirmLabel="Sí, cancelar"
+        cancelLabel="No, dejarlo"
+        danger
+        onConfirm={handleCancelar}
+        onCancel={() => setPorCancelar(null)}
+      />
     </UserLayout>
   );
 };
