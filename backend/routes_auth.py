@@ -19,6 +19,7 @@ from schemas import (
 
 )
 from notificaciones import generar_codigo, enviar_codigo
+import whatsapp
 from rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Autenticación"])
@@ -411,6 +412,18 @@ async def verificar_codigo(request: Request, datos: dict, db: Session = Depends(
     usuario.codigo_verificacion_expira = None
     db.commit()
     db.refresh(usuario)
+
+    # Bienvenida por WhatsApp a los vendedores que se registraron ellos mismos.
+    # Va aqui y no al registrarse: antes de verificar la cuenta no sirve de
+    # nada, y el numero todavia podria ser de alguien mas.
+    tipo = getattr(usuario.tipo_usuario, "value", usuario.tipo_usuario)
+    if str(tipo).lower() == "vendedor":
+        negocio = db.query(Negocio).filter(Negocio.vendedor_id == usuario.id).first()
+        whatsapp.bienvenida_vendedor_en_hilo(
+            usuario.nombre,
+            negocio.nombre_negocio if negocio else "tu negocio",
+            usuario.telefono,
+        )
 
     access_token = create_access_token(data={"sub": str(usuario.id)})
     refresh_token = create_refresh_token(data={"sub": str(usuario.id)})

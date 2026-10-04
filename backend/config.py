@@ -98,6 +98,15 @@ class Settings:
     # Correo que recibe el aviso cuando el servidor falla. Si no se
     # configura, se usa el mismo remitente: mejor avisar ahi que no avisar.
     EMAIL_ALERTAS = os.getenv("EMAIL_ALERTAS", "")
+
+    # WhatsApp (Cloud API de Meta). Sin token ni phone id no se manda nada
+    # y queda dicho en el registro: el codigo puede estar en produccion
+    # antes de que la cuenta de Meta este lista.
+    WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN", "")
+    WHATSAPP_PHONE_ID = os.getenv("WHATSAPP_PHONE_ID", "")
+    WHATSAPP_API_VERSION = os.getenv("WHATSAPP_API_VERSION", "v21.0")
+    WHATSAPP_IDIOMA = os.getenv("WHATSAPP_IDIOMA", "es")
+    WHATSAPP_PLANTILLA_BIENVENIDA = os.getenv("WHATSAPP_PLANTILLA_BIENVENIDA", "bienvenida_vendedor")
     SMTP_REMITENTE_NOMBRE = os.getenv("BREVO_REMITENTE_NOMBRE", "Zippy")
 
     # (Variables SMTP viejas, ya no se usan para email pero se dejan por si acaso)

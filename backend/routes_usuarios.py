@@ -13,6 +13,7 @@ from models import Usuario, Negocio, Producto
 from schemas import UsuarioCreate, UsuarioResponse, UsuarioUpdate, MensajeResponse
 from routes_auth import hash_password, verify_password, get_current_user
 from logs_utils import registrar_log
+import whatsapp
 
 router = APIRouter(prefix="/api/v1/usuarios", tags=["Usuarios"])
 
@@ -179,7 +180,16 @@ async def crear_vendedor(
         db.add(nuevo_negocio)
         db.commit()
         db.refresh(nuevo_usuario)
-        
+
+        # Bienvenida por WhatsApp. Va DESPUES del commit y en otro hilo: el
+        # vendedor ya quedo creado, y si Meta no contesta eso no se deshace ni
+        # hace esperar a quien esta llenando el formulario.
+        whatsapp.bienvenida_vendedor_en_hilo(
+            nuevo_usuario.nombre,
+            nuevo_negocio.nombre_negocio,
+            nuevo_usuario.telefono,
+        )
+
         return {
             "mensaje": "Vendedor creado exitosamente",
             "vendedor": {
@@ -201,6 +211,51 @@ async def crear_vendedor(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al crear vendedor: {str(e)}"
         )
+
+
+@router.post(
+    "/whatsapp/prueba/",
+    summary="Probar el WhatsApp de bienvenida (Admin)",
+    description="Manda la plantilla de bienvenida a un numero para comprobar que la cuenta de Meta quedo bien configurada",
+)
+async def probar_whatsapp_bienvenida(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Sirve para no tener que crear un vendedor falso solo para probar.
+
+    A diferencia del envio real, este espera la respuesta de Meta y la
+    devuelve tal cual: si la plantilla no esta aprobada o el token vencio,
+    el motivo se ve aqui mismo en vez de quedar enterrado en el registro.
+    """
+    _requiere_admin(current_user)
+
+    telefono = (datos or {}).get("telefono")
+    if not telefono:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Falta el telefono al que mandar la prueba",
+        )
+
+    if not whatsapp.esta_configurado():
+        return {
+            "configurado": False,
+            "ok": False,
+            "detalle": "Faltan WHATSAPP_TOKEN y/o WHATSAPP_PHONE_ID en el servidor",
+        }
+
+    resultado = whatsapp.bienvenida_vendedor(
+        (datos.get("nombre") or current_user.nombre),
+        (datos.get("negocio") or "Negocio de prueba"),
+        telefono,
+    )
+    return {
+        "configurado": True,
+        "numero_normalizado": whatsapp.normalizar_numero(telefono),
+        "plantilla": settings.WHATSAPP_PLANTILLA_BIENVENIDA,
+        **resultado,
+    }
 
 # ============================================================================
 # ENDPOINTS: CREAR REPARTIDOR (desde admin -- solo súper admin)
