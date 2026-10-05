@@ -49,6 +49,12 @@ class Settings:
     # Por defecto False: en producción DEBUG expone el texto de las excepciones
     # al cliente. En local se activa poniendo DEBUG=True en backend/.env
     DEBUG = os.getenv("DEBUG", "False") == "True"
+
+    # La pagina /docs lista TODAS las rutas del servidor. No filtra datos
+    # (lo importante pide sesion), pero le entrega a cualquiera el mapa
+    # completo de la API. En produccion va cerrada; para abrirla un rato,
+    # poner DOCS_PUBLICAS=True en las variables de entorno.
+    DOCS_PUBLICAS = os.getenv("DOCS_PUBLICAS", "False") == "True"
     
     # Servidor
     HOST = os.getenv("HOST", "0.0.0.0")

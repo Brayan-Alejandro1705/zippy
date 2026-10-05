@@ -31,12 +31,21 @@ os.makedirs("uploads/productos", exist_ok=True)
 # CREAR APLICACIÓN FASTAPI
 # ============================================================================
 
+# En local (DEBUG) la documentacion queda abierta, que es cuando sirve. En
+# produccion queda cerrada salvo que se pida a proposito con DOCS_PUBLICAS:
+# esa pagina no filtra datos, pero le muestra a cualquiera el mapa completo de
+# la API, y eso le ahorra trabajo a quien ande buscando por donde entrar.
+_mostrar_docs = settings.DEBUG or settings.DOCS_PUBLICAS
+
 app = FastAPI(
     title=settings.API_TITLE,
     description="Marketplace Garzón Huila - Un solo app para comprar, vender y crecer",
     version=settings.API_VERSION,
-    docs_url="/docs",  # Swagger UI
-    redoc_url="/redoc"  # ReDoc
+    docs_url="/docs" if _mostrar_docs else None,
+    redoc_url="/redoc" if _mostrar_docs else None,
+    # Sin esto, cerrar /docs no serviria de nada: el mapa completo se baja
+    # igual pidiendo /openapi.json.
+    openapi_url="/openapi.json" if _mostrar_docs else None,
 )
 
 # ============================================================================
@@ -123,7 +132,7 @@ async def root():
         "message": "Bienvenido a TOUTAIN API",
         "status": "online",
         "version": settings.API_VERSION,
-        "docs": "/docs"
+        "docs": "/docs" if _mostrar_docs else "cerrada en produccion",
     }
 
 @app.get("/health", tags=["Health"])

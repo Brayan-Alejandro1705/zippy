@@ -4,12 +4,13 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime
 import bcrypt
 
 from config import get_db, settings
-from models import Usuario, Negocio, Producto
+from models import Usuario, Negocio, Producto, Orden
 from schemas import UsuarioCreate, UsuarioResponse, UsuarioUpdate, MensajeResponse
 from routes_auth import hash_password, verify_password, get_current_user
 from logs_utils import registrar_log
@@ -409,7 +410,26 @@ async def listar_usuarios(
     
     total = query.count()
     usuarios = query.offset(skip).limit(limit).all()
-    
+
+    # Entregas de cada repartidor. La tabla de administracion ya mostraba esta
+    # columna, pero el servidor nunca mandaba el dato: todos los repartidores
+    # aparecian con cero entregas y el total de arriba tambien daba cero. Un
+    # numero mentiroso en el panel es peor que no mostrarlo.
+    #
+    # Se cuenta en UNA sola consulta agrupada, no una por repartidor: con
+    # treinta repartidores eso serian treinta viajes a la base de datos para
+    # pintar una tabla.
+    ids_domiciliarios = [u.id for u in usuarios if str(getattr(u.tipo_usuario, "value", u.tipo_usuario)).lower() == "domiciliario"]
+    entregas_por_id = {}
+    if ids_domiciliarios:
+        filas = (
+            db.query(Orden.domiciliario_id, func.count(Orden.id))
+            .filter(Orden.domiciliario_id.in_(ids_domiciliarios), Orden.estado == "entregada")
+            .group_by(Orden.domiciliario_id)
+            .all()
+        )
+        entregas_por_id = {did: cuantas for did, cuantas in filas}
+
     return {
         "total": total,
         "skip": skip,
@@ -422,6 +442,7 @@ async def listar_usuarios(
                 "tipo": u.tipo_usuario,
                 "estado": u.estado,
                 "telefono": u.telefono,
+                "entregas": entregas_por_id.get(u.id, 0),
                 # Estrellas como repartidor (los clientes ya pueden calificarlo)
                 "calificacion_promedio": float(u.calificacion_promedio) if u.calificacion_promedio is not None else None,
                 "total_calificaciones": u.total_calificaciones or 0,
