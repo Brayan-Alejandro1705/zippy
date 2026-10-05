@@ -360,6 +360,9 @@
   font-family: inherit; white-space: nowrap;
 }
 .rp-action-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+/* Mientras el servidor contesta: se ve que el toque si entro */
+.rp-action-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
+.rp-action-btn:disabled:hover { opacity: 0.55; transform: none; }
 .rp-btn--orange { background: #FF7A00; color: white; box-shadow: 0 3px 10px rgba(255,122,0,0.3); }
 /* Escribirle al cliente del mandado: en morado como el resto del mandado,
    y mas discreto que el boton de avanzar para no competir con el */

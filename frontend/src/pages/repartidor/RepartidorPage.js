@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { useTheme } from '../../context/ThemeContext';
-import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService } from '../../config/api';
+import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService, negociosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
+import ChatBurbuja from '../../components/ChatBurbuja';
 import CentroAyuda from '../../components/CentroAyuda';
 import EliminarCuenta from '../../components/EliminarCuenta';
 import ZLoader from '../../components/ZLoader';
@@ -12,6 +13,7 @@ import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
 import AccountSwitcher from '../../components/AccountSwitcher';
 import { registrarPush } from '../../utils/push';
+import { urlImagen } from '../../utils/media';
 
 const MAP_OPTIONS = {
   disableDefaultUI: false,
@@ -524,7 +526,7 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
 };
 
 /* ── Order card ─────────────────────────────────────────── */
-const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, onChat }) => {
+const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, reported, onChat }) => {
   const cfg    = ESTADO_CFG[orden.estado];
   const pago   = PAGO_CFG[orden.pago];
   const nav    = orden.position ? navUrls(orden.position) : null;
@@ -599,8 +601,27 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
         )}
       </div>
 
+      {/* Donde recoger. El repartidor lo necesita antes que nada y la tarjeta
+          no lo decia por ningun lado. */}
+      {orden.negocio && (
+        <p className="rp-order-negocio">
+          {orden.negocioLogo
+            ? <img src={urlImagen(orden.negocioLogo)} alt="" className="rp-negocio-logo" loading="lazy" />
+            : <Icon name="vendedores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />}
+          Recoger en <strong>{orden.negocio}</strong>
+        </p>
+      )}
+
       <div className="rp-order-products">
-        <div className="rp-order-thumb">{orden.emoji}</div>
+        {/* Antes aqui se pintaba el NOMBRE del icono como texto: en la tarjeta
+            salia literalmente la palabra "paquete" dentro de un cuadro gris. */}
+        <div className="rp-order-thumb">
+          {orden.fotoProducto
+            ? <img src={urlImagen(orden.fotoProducto)} alt="" loading="lazy" />
+            : orden.negocioLogo
+              ? <img src={urlImagen(orden.negocioLogo)} alt="" loading="lazy" />
+              : <Icon name={orden.emoji || 'paquete'} size={20} />}
+        </div>
         <div className="rp-order-items">{orden.items}</div>
       </div>
 
@@ -622,8 +643,9 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
             <button
               className={`rp-action-btn ${cfg.btnClass}`}
               onClick={e => { e.stopPropagation(); onAvanzar(orden); }}
+              disabled={ocupado}
             >
-              {cfg.btnLabel}
+              {ocupado ? 'Un momento…' : cfg.btnLabel}
             </button>
           )}
         </div>
@@ -641,8 +663,8 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
   );
 };
 
-/* ── Pedidos especiales del cliente (todavía solo locales, sin backend) ──── */
-const PedidoEspecialCard = ({ pedido, onAdvance }) => {
+/* ── Mandados ─────────────────────────────────────────────────────────── */
+const PedidoEspecialCard = ({ pedido, onAdvance, onChat, ocupado }) => {
   const cfg = ESTADO_CFG[pedido.estado] || ESTADO_CFG['disponible'];
   return (
     <div className="rp-order-card rp-order-card--especial" style={{ borderLeftColor: '#8b5cf6' }}>
@@ -658,6 +680,15 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
           </div>
         )}
       </div>
+
+      {/* De donde, antes que a donde: es lo primero que el repartidor
+          necesita saber para decidir si lo toma. */}
+      {pedido.origen && (
+        <p className="rp-especial-origen">
+          <Icon name="vendedores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />
+          Recoger en <strong>{pedido.origen}</strong>
+        </p>
+      )}
 
       <div className="rp-order-addr-row">
         <div>
@@ -690,13 +721,34 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
         <p className="rp-order-instructions"><Icon name="campana_aviso" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pedido.notas}</p>
       )}
 
+      {/* Cuanto cobrar. Antes aqui solo decia "Mandado" y el repartidor no
+          tenia ni idea de que pedirle al cliente. */}
+      {pedido.costo_servicio != null && (
+        <div className="rp-especial-cobro">
+          <span>Cóbrale por el servicio</span>
+          <strong>${Number(pedido.costo_servicio).toLocaleString('es-CO')}</strong>
+          <small>más lo que valga la compra</small>
+        </div>
+      )}
+
       <div className="rp-order-footer">
         <span className="rp-order-total" style={{ color: '#8b5cf6' }}>Mandado</span>
         <div className="rp-order-actions">
+          {/* El chat solo tiene sentido cuando ya lo tomo: antes de eso el
+              cliente no sabe quien le va a escribir. */}
+          {pedido.estado === 'en_camino' && onChat && (
+            <button
+              className="rp-action-btn rp-action-btn--chat"
+              onClick={() => onChat(pedido)}
+            >
+              <Icon name="chat" size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />Escribirle
+            </button>
+          )}
           {cfg.btnLabel && (
             <button
               className={`rp-action-btn ${cfg.btnClass}`}
               onClick={() => onAdvance(pedido)}
+              disabled={ocupado}
             >
               {cfg.btnLabel}
             </button>
@@ -791,6 +843,11 @@ const RepartidorPage = () => {
   const [showCierre, setShowCierre] = useState(false);
   const [showCuenta, setShowCuenta] = useState(false);
   const [chatOrden,  setChatOrden]  = useState(null);
+  const [chatMandado, setChatMandado] = useState(null);
+  // Pedido al que se le acaba de tocar el boton, para bloquearlo y avisar
+  const [ocupado, setOcupado] = useState(null);
+  // Nombres y fotos ya consultados; no cambian entre refrescos
+  const datosCache = useRef({ clientes: {}, productos: {}, negocios: {} });
   const [showSos,    setShowSos]    = useState(false);
 
   const sheetRef  = useRef(null);
@@ -838,19 +895,38 @@ const RepartidorPage = () => {
       ]);
       const crudas = [...disponiblesRaw, ...miasRaw];
 
+      // Los nombres de clientes, productos y negocios no cambian entre un
+      // refresco y otro, pero se estaban volviendo a pedir TODOS cada 15
+      // segundos: con cuatro pedidos eran mas de diez peticiones por vuelta.
+      // Eso dejaba el telefono ocupado justo cuando el repartidor tocaba
+      // "Tomar pedido", y el boton se sentia muerto. Ahora solo se pide lo
+      // que no se tenga ya guardado.
+      const cache = datosCache.current;
+      const faltan = (ids, mapa) => ids.filter(id => id && !(id in mapa));
+
       const clienteIds  = [...new Set(crudas.map(o => o.cliente_id))];
       const productoIds = [...new Set(crudas.flatMap(o => o.items.map(it => it.producto_id)))];
+      const negocioIds  = [...new Set(crudas.map(o => o.negocio_id).filter(Boolean))];
 
-      const [clientesPairs, productosPairs] = await Promise.all([
-        Promise.all(clienteIds.map(id => usuariosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
-        Promise.all(productoIds.map(id => productosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
+      const [nuevosClientes, nuevosProductos, nuevosNegocios] = await Promise.all([
+        Promise.all(faltan(clienteIds, cache.clientes).map(id => usuariosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
+        Promise.all(faltan(productoIds, cache.productos).map(id => productosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
+        // El negocio hace falta para dos cosas: el repartidor necesita saber
+        // DONDE recoger, y el logo evita la cajita gris igual para todos.
+        Promise.all(faltan(negocioIds, cache.negocios).map(id => negociosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
       ]);
-      const clientesMap  = Object.fromEntries(clientesPairs);
-      const productosMap = Object.fromEntries(productosPairs);
+      nuevosClientes.forEach(([id, v]) => { cache.clientes[id] = v; });
+      nuevosProductos.forEach(([id, v]) => { cache.productos[id] = v; });
+      nuevosNegocios.forEach(([id, v]) => { cache.negocios[id] = v; });
+
+      const clientesMap  = cache.clientes;
+      const productosMap = cache.productos;
+      const negociosMap  = cache.negocios;
 
       const mapear = (o, esDisponible) => {
         const cliente = clientesMap[o.cliente_id];
         const primerProducto = productosMap[o.items[0]?.producto_id];
+        const negocio = negociosMap[o.negocio_id];
         return {
           id: `#${o.id.slice(0, 8)}`,
           idCompleto: o.id,
@@ -861,6 +937,9 @@ const RepartidorPage = () => {
           telefono: cliente?.telefono,
           items: o.items.map(it => `${productosMap[it.producto_id]?.nombre || 'Producto'} x${it.cantidad}`).join(', '),
           emoji: getIcon(primerProducto?.categoria),
+          negocio: negocio?.nombre_negocio || null,
+          negocioLogo: negocio?.logo || null,
+          fotoProducto: primerProducto?.imagenes?.[0] || null,
           total: Number(o.total),
           pago: o.metodo_pago,
           instrucciones: o.notas_cliente || null,
@@ -881,7 +960,15 @@ const RepartidorPage = () => {
       setOrdenes(prev => {
         // Conservar posiciones ya geocodificadas para no volver a pedirlas
         const posMap = Object.fromEntries(prev.map(o => [o.idCompleto, o.position]));
-        return [...disponibles, ...mias].map(o => ({ ...o, position: o.position || posMap[o.idCompleto] || null }));
+
+        // Un pedido puede venir en las DOS listas: el servidor todavia lo da
+        // por disponible mientras ya figura como mio. Si se deja duplicado,
+        // aparece dos veces en pantalla y con estados distintos. Manda la
+        // version "mia", que es la que refleja que ya lo tome.
+        const porId = new Map();
+        [...disponibles, ...mias].forEach(o => porId.set(o.idCompleto, o));
+
+        return [...porId.values()].map(o => ({ ...o, position: o.position || posMap[o.idCompleto] || null }));
       });
     } catch {
       setOrdenes([]);
@@ -969,22 +1056,48 @@ const RepartidorPage = () => {
     usuariosService.actualizarPerfil({ latitud: driverPos.lat, longitud: driverPos.lng }).catch(() => {});
   }, [driverPos, ordenes]);
 
+  /*
+   * Tomar un pedido.
+   *
+   * La pantalla cambia PRIMERO y el servidor se entera despues. Antes era al
+   * reves: el repartidor tocaba el boton y no pasaba absolutamente nada hasta
+   * que volvian todas las respuestas, varios segundos despues en una conexion
+   * de calle. Se sentia como un boton dañado, y la reaccion natural es
+   * volverlo a tocar.
+   *
+   * Si el servidor dice que no (porque otro repartidor lo tomo primero), la
+   * tarjeta vuelve a su sitio y se explica por que.
+   */
   const aceptar = async (orden) => {
+    if (ocupado) return;
+    setOcupado(orden.idCompleto);
+    setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: 'recogiendo' } : o));
+
     try {
       await ordenesService.actualizar(orden.idCompleto, { domiciliario_id: usuario.id });
       cargarOrdenes();
     } catch (err) {
+      setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: 'disponible' } : o));
       alert(err.response?.data?.detail || 'No se pudo aceptar el pedido. Puede que ya lo haya tomado otro repartidor.');
       cargarOrdenes();
+    } finally {
+      setOcupado(null);
     }
   };
 
   const marcarEntregado = async (orden) => {
+    if (ocupado) return;
+    setOcupado(orden.idCompleto);
+    const antes = orden.estado;
+    setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: 'entregada' } : o));
     try {
       await ordenesService.actualizar(orden.idCompleto, { estado: 'entregada' });
       cargarOrdenes();
     } catch (err) {
+      setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: antes } : o));
       alert(err.response?.data?.detail || 'No se pudo marcar como entregado.');
+    } finally {
+      setOcupado(null);
     }
   };
 
@@ -994,16 +1107,25 @@ const RepartidorPage = () => {
   };
 
   const advanceEspecial = async (pedido) => {
+    if (ocupado) return;
+    setOcupado(pedido.idCompleto);
+    const antes = pedido.estado;
+    const siguiente = pedido.estado === 'disponible' ? 'en_camino' : 'entregada';
+    setPedidosEspeciales(prev => prev.map(p => p.idCompleto === pedido.idCompleto ? { ...p, estado: siguiente } : p));
+
     try {
-      if (pedido.estado === 'disponible') {
+      if (antes === 'disponible') {
         await pedidosEspecialesService.aceptar(pedido.idCompleto);
-      } else if (pedido.estado === 'en_camino') {
+      } else if (antes === 'en_camino') {
         await pedidosEspecialesService.entregar(pedido.idCompleto);
       }
-      await cargarEspeciales();
+      cargarEspeciales();
     } catch (err) {
+      setPedidosEspeciales(prev => prev.map(p => p.idCompleto === pedido.idCompleto ? { ...p, estado: antes } : p));
       alert(err?.response?.data?.detail || 'No se pudo actualizar el mandado.');
-      await cargarEspeciales();
+      cargarEspeciales();
+    } finally {
+      setOcupado(null);
     }
   };
 
@@ -1211,18 +1333,27 @@ const RepartidorPage = () => {
               <p className="rp-offline-sub">Esperando nuevos pedidos...</p>
             </div>
           ) : (
+            /* Primero lo que ya tomo (eso es lo que tiene que entregar ahora),
+                despues lo que esta libre. Dentro de cada grupo, lo mas viejo
+                arriba: ese es el cliente que lleva mas rato esperando.
+                Antes se agrupaban por tipo —normales y mandados por separado—
+                y en pantalla se veian salteados sin ningun orden claro. */
             [
-              ...enCamino.map(o => ({ tipo: 'normal', data: o })),
-              ...especialesActivos.filter(p => p.estado === 'en_camino').map(p => ({ tipo: 'especial', data: p })),
-              ...disponibles.map(o => ({ tipo: 'normal', data: o })),
-              ...especialesActivos.filter(p => p.estado === 'disponible').map(p => ({ tipo: 'especial', data: p })),
-            ].map(item => item.tipo === 'normal' ? (
+              ...enCamino.map(o => ({ tipo: 'normal', data: o, mios: true, cuando: o.fechaCreacion })),
+              ...especialesActivos.filter(p => p.estado === 'en_camino').map(p => ({ tipo: 'especial', data: p, mios: true, cuando: p.fecha_creacion })),
+              ...disponibles.map(o => ({ tipo: 'normal', data: o, mios: false, cuando: o.fechaCreacion })),
+              ...especialesActivos.filter(p => p.estado === 'disponible').map(p => ({ tipo: 'especial', data: p, mios: false, cuando: p.fecha_creacion })),
+            ].sort((a, b) => {
+              if (a.mios !== b.mios) return a.mios ? -1 : 1;
+              return new Date(a.cuando || 0) - new Date(b.cuando || 0);
+            }).map(item => item.tipo === 'normal' ? (
               <OrdenCard
-                key={item.data.id} orden={item.data} onAvanzar={avanzar} onSelect={setSelected} selected={selected}
+                key={item.data.idCompleto} orden={item.data} onAvanzar={avanzar} onSelect={setSelected} selected={selected}
                 onReport={setReportTarget} reported={reportedMap[item.data.id]} onChat={setChatOrden}
+                ocupado={ocupado === item.data.idCompleto}
               />
             ) : (
-              <PedidoEspecialCard key={item.data.id} pedido={item.data} onAdvance={advanceEspecial} />
+              <PedidoEspecialCard key={item.data.idCompleto} pedido={item.data} onAdvance={advanceEspecial} onChat={setChatMandado} ocupado={ocupado === item.data.idCompleto} />
             ))
           )}
 
@@ -1249,6 +1380,17 @@ const RepartidorPage = () => {
       <CierreModal open={showCierre} onClose={() => setShowCierre(false)} entregadas={entregadasHoy} ganado={ganado} />
       <CuentaModal open={showCuenta} usuario={usuario} onClose={() => setShowCuenta(false)} onSave={handleCuentaSave} onLogout={handleLogout} />
       <ChatModal orden={chatOrden} onClose={() => setChatOrden(null)} />
+
+      {/* El chat del mandado va flotando: el repartidor esta mirando la lista
+          de lo que tiene que comprar justo cuando le llega la duda. */}
+      {chatMandado && (
+        <ChatBurbuja
+          id={chatMandado.idCompleto}
+          servicio={pedidosEspecialesService}
+          titulo={`Mandado ${chatMandado.id} · ${chatMandado.cliente}`}
+          onCerrar={() => setChatMandado(null)}
+        />
+      )}
     </div>
   );
 };
