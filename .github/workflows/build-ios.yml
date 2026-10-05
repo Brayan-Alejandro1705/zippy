@@ -18,9 +18,20 @@ name: Build iOS
 #   GOOGLE_SERVICE_INFO_PLIST_BASE64
 #                                  GoogleService-Info.plist de Firebase en base64
 #   GOOGLE_MAPS_KEY                (ya existe, lo comparte con el build de Android)
+#
+# Desde la version 1.2 el .ipa lleva el plugin de Capgo, que permite mandarle
+# pantallas nuevas a los iPhone sin volver a pasar por Apple (ver el workflow
+# "Actualizar iPhone (Capgo)"). Ojo: eso solo sirve para HTML, CSS y JavaScript.
+# Si se agrega o cambia un plugin nativo, hay que compilar aqui otra vez y
+# mandar version nueva a revision.
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Numero de version para la App Store (la 1.1 ya esta publicada)'
+        required: true
+        default: '1.2'
 
 jobs:
   build:
@@ -219,7 +230,7 @@ jobs:
         working-directory: frontend/ios/App
         env:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          VERSION_MARKETING: '1.1'
+          VERSION_MARKETING: ${{ inputs.version || '1.2' }}
           VERSION_BUILD: ${{ github.run_number }}
         run: |
           set -e

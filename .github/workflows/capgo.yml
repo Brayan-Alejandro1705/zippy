@@ -1,0 +1,109 @@
+name: Actualizar iPhone (Capgo)
+
+# Manda el frontend nuevo a los iPhone sin pasar por la revision de Apple.
+#
+# Por que hace falta: en Android la app carga el frontend desde Render, asi que
+# cualquier cambio llega al celular con solo publicar. En iPhone no se puede
+# (Apple rechaza las apps que cargan toda su interfaz desde una web), asi que la
+# nuestra lleva el frontend empaquetado por dentro. Sin esto, cambiar un boton
+# significaba una version nueva y la cola de revision: la primera vez fueron
+# nueve dias.
+#
+# Que SI viaja por aqui: HTML, CSS y JavaScript. O sea pantallas, textos,
+# arreglos de la app web.
+# Que NO: cualquier cosa nativa (un plugin nuevo, permisos, el icono). Eso
+# necesita compilar de nuevo con "Build iOS" y pasar por Apple otra vez.
+#
+# Secret que necesita (Settings > Secrets and variables > Actions):
+#   CAPGO_TOKEN   llave de la cuenta de Capgo (capgo.app > Settings > API keys,
+#                 con permiso de subida)
+#
+# Mientras el secret no exista, el workflow avisa y termina bien, sin romper nada.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/src/**'
+      - 'frontend/public/**'
+      - 'frontend/package.json'
+  workflow_dispatch:
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Revisar que exista la llave de Capgo
+        id: llave
+        env:
+          CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
+        run: |
+          if [ -z "$CAPGO_TOKEN" ]; then
+            echo "Falta el secret CAPGO_TOKEN. No se sube nada."
+            echo "hay=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "hay=si" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar dependencias del frontend
+        if: steps.llave.outputs.hay == 'si'
+        working-directory: frontend
+        run: npm ci || npm install
+
+      - name: Compilar la app React
+        if: steps.llave.outputs.hay == 'si'
+        working-directory: frontend
+        run: npm run build
+        env:
+          GENERATE_SOURCEMAP: 'false'
+          CI: 'false'
+          REACT_APP_GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY }}
+
+      # Se revisa a mano porque un build vacio o a medias subido por aire deja a
+      # los usuarios de iPhone con una pantalla en blanco, y revertir toma otra
+      # vuelta completa. Vale mas detenerse aqui.
+      - name: Revisar que el build quedo completo
+        if: steps.llave.outputs.hay == 'si'
+        working-directory: frontend
+        run: |
+          set -e
+          test -f build/index.html || { echo "No quedo el index.html" >&2; exit 1; }
+          ls build/static/js/main.*.js >/dev/null 2>&1 || { echo "No quedo el javascript principal" >&2; exit 1; }
+          grep -q 'static/js/main\.' build/index.html || { echo "El index.html no apunta al javascript" >&2; exit 1; }
+          echo "Build completo:"
+          du -sh build
+
+      - name: Subir el paquete a Capgo
+        if: steps.llave.outputs.hay == 'si'
+        working-directory: frontend
+        env:
+          CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
+        run: |
+          set -e
+          # La version del paquete tiene que ser unica y en formato x.y.z. Se usa
+          # el numero de corrida para que nunca se repita.
+          VERSION="1.2.${{ github.run_number }}"
+          echo "Subiendo el paquete $VERSION al canal production"
+          npx -y @capgo/cli@latest bundle upload \
+            --apikey "$CAPGO_TOKEN" \
+            --path build \
+            --channel production \
+            --bundle "$VERSION"
+
+      - name: Resumen
+        if: always()
+        run: |
+          if [ "${{ steps.llave.outputs.hay }}" = "si" ]; then
+            echo "El frontend quedo publicado. Los iPhone lo aplican la proxima vez que abran la app."
+          else
+            echo "No se subio nada: falta el secret CAPGO_TOKEN."
+          fi

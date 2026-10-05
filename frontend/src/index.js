@@ -3,6 +3,12 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { avisarQueArranco } from './utils/actualizaciones';
+
+// Lo primero de todo: confirmarle a Capgo que esta version arranco bien. Si no
+// se avisa, el plugin asume que la actualizacion rompio la app y vuelve a la
+// anterior. Va antes de pintar nada para que ni un error de React lo impida.
+avisarQueArranco();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
