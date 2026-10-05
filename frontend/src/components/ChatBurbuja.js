@@ -26,9 +26,10 @@ import '../styles/ChatBurbuja.css';
 
 const POLL_AVISO_MS = 20000;
 
-const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar }) => {
-  // Arranca abierto: se monta justo cuando la persona toco "Escribirle"
-  const [abierto, setAbierto] = useState(true);
+const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar, arrancaAbierto = true }) => {
+  // Si la persona toco "Escribirle", se abre de una. Si aparecio sola porque
+  // hay un mandado en curso, arranca como burbuja y no le tapa la pantalla.
+  const [abierto, setAbierto] = useState(arrancaAbierto);
   const [sinLeer, setSinLeer] = useState(0);
   // Cuantos mensajes habia la ultima vez que la persona miro el chat
   const vistos = useRef(0);

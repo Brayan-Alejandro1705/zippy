@@ -5,6 +5,8 @@ import '../styles/UserLayout.css';
 import Icon from './Icons';
 import AccountSwitcher from './AccountSwitcher';
 import { registrarPush } from '../utils/push';
+import ChatBurbuja from './ChatBurbuja';
+import { pedidosEspecialesService } from '../config/api';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 const hayCuenta = () => !!localStorage.getItem('access_token');
@@ -22,6 +24,41 @@ const UserLayout = ({ children, onSearch }) => {
   const [query, setQuery] = useState('');
 
   useEffect(() => { registrarPush(); }, []);
+
+  /*
+   * Burbuja del chat del mandado, en TODA la app del cliente.
+   *
+   * Antes solo aparecia dentro de Pedidos, y ahi casi no sirve: el cliente
+   * pide el mandado y se va a mirar otra cosa o deja el telefono. La duda la
+   * tiene el repartidor desde la tienda, asi que la respuesta tiene que estar
+   * a un toque sin importar en que pantalla ande.
+   *
+   * Solo se consulta si hay sesion, y cada minuto: no es informacion urgente
+   * —para eso esta la notificacion— sino para que la burbuja este ahi cuando
+   * el cliente vuelva a mirar.
+   */
+  const [mandadoActivo, setMandadoActivo] = useState(null);
+
+  useEffect(() => {
+    if (!hayCuenta()) return;
+    let activo = true;
+
+    const revisar = () => {
+      pedidosEspecialesService.misPedidos()
+        .then(({ data }) => {
+          if (!activo) return;
+          const lista = Array.isArray(data) ? data : (data?.items || []);
+          // El chat existe desde que un repartidor lo toma y hasta que lo entrega
+          const enCurso = lista.find(p => p.domiciliario_id && !['entregada', 'cancelada'].includes(p.estado));
+          setMandadoActivo(enCurso || null);
+        })
+        .catch(() => { if (activo) setMandadoActivo(null); });
+    };
+
+    revisar();
+    const t = setInterval(revisar, 60000);
+    return () => { activo = false; clearInterval(t); };
+  }, []);
 
   const isCart    = location.pathname === '/tienda/carrito' || location.pathname === '/tienda/checkout';
   const activeNav = NAV_ITEMS.find(n => location.pathname === n.path)?.path || '/tienda';
@@ -104,6 +141,16 @@ const UserLayout = ({ children, onSearch }) => {
           </button>
         ))}
       </nav>
+
+      {mandadoActivo && (
+        <ChatBurbuja
+          id={mandadoActivo.idCompleto}
+          servicio={pedidosEspecialesService}
+          titulo={`Mandado ${mandadoActivo.id}`}
+          arrancaAbierto={false}
+          onCerrar={() => setMandadoActivo(null)}
+        />
+      )}
     </div>
   );
 };

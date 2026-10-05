@@ -6,7 +6,6 @@ import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
 import CentroAyuda from '../../components/CentroAyuda';
 import ConfirmModal from '../../components/ConfirmModal';
-import ChatBurbuja from '../../components/ChatBurbuja';
 import EliminarCuenta from '../../components/EliminarCuenta';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
@@ -97,7 +96,7 @@ const TABS = [
 // perder plata: de ese punto en adelante toca por soporte.
 const ESTADOS_CANCELABLES = ['Pendiente', 'En validación', 'Confirmado'];
 
-const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo, onCancelar, cancelando, onChatMandado }) => {
+const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo, onCancelar, cancelando }) => {
   // WhatsApp de soporte, para el primer pedido que esta en validacion
   const [wa, setWa] = useState('');
   useEffect(() => {
@@ -162,10 +161,14 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
               </button>
             )}
+            {/* El chat del mandado vive en la burbuja flotante, que sale en
+                toda la app del cliente (ver UserLayout). Poner otro boton aqui
+                abriria una segunda burbuja encima de la misma conversacion. */}
             {p.esEspecial && p.tieneRepartidor && !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
-              <button className="up-track-btn" onClick={() => onChatMandado(p)}>
-                <Icon name="chat" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribirle al repartidor
-              </button>
+              <p className="up-aviso-espera" style={{ marginTop: 10 }}>
+                <Icon name="chat" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />
+                Usa la burbuja naranja de la esquina para escribirle al repartidor.
+              </p>
             )}
             {/* Cancelar: el Centro de Ayuda lo prometia desde el principio,
                 pero no habia boton que lo hiciera. */}
@@ -866,7 +869,6 @@ const UserPanelPage = () => {
   const [repitiendo, setRepitiendo] = useState(null);
   const [cancelando, setCancelando] = useState(null);
   const [porCancelar, setPorCancelar] = useState(null);
-  const [chatMandado, setChatMandado] = useState(null);
 
   const [pedidos, setPedidos] = useState([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
@@ -1072,7 +1074,7 @@ const UserPanelPage = () => {
   const gastado  = pedidos.filter(p => p.estado === 'Entregado').reduce((s, p) => s + p.total, 0);
 
   const content = {
-    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} onChatMandado={setChatMandado} />,
+    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} />,
     guardados:   <SeccionGuardados addItem={addItem} addToast={addToast} />,
     direcciones: <SeccionDirecciones addToast={addToast} />,
     cuenta:      <SeccionCuenta addToast={addToast} />,
@@ -1132,15 +1134,6 @@ const UserPanelPage = () => {
 
       <SeguimientoModal pedido={trackingPedido} onClose={() => setTrackingPedido(null)} />
       <CalificarModal pedido={calificarPedido} onClose={() => setCalificarPedido(null)} />
-      {chatMandado && (
-        <ChatBurbuja
-          id={chatMandado.idCompleto}
-          servicio={pedidosEspecialesService}
-          titulo={`Mandado ${chatMandado.id}`}
-          onCerrar={() => setChatMandado(null)}
-        />
-      )}
-
       <ConfirmModal
         isOpen={!!porCancelar}
         title="¿Cancelar este pedido?"
