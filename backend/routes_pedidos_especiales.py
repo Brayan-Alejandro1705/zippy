@@ -24,6 +24,18 @@ from push import notificar_usuario, notificar_usuarios
 # codigo; este numero es solo el respaldo si todavia no se ha configurado.
 COSTO_MANDADO_POR_DEFECTO = 4000
 
+# Todo en la base se guarda con datetime.utcnow(). Colombia va cinco horas
+# atras y no cambia de hora en todo el ano, asi que restar cinco es exacto.
+# Hace falta para la fecha que se arma aqui como texto: sin restarlas, un
+# mandado hecho a las 8 de la noche salia con la fecha del dia siguiente.
+HORAS_COLOMBIA = 5
+
+
+def _fecha_colombia(momento):
+    if not momento:
+        return ""
+    return (momento - timedelta(hours=HORAS_COLOMBIA)).strftime("%d/%m/%Y")
+
 
 def _costo_mandado(db: Session) -> float:
     fila = db.query(ConfiguracionSistema).filter(
@@ -75,7 +87,7 @@ def _a_dict(p: PedidoEspecial, db: Session) -> dict:
         "notas": p.notas or "",
         "cliente": nombre_cliente or "Cliente",
         "domiciliario_id": str(p.domiciliario_id) if p.domiciliario_id else None,
-        "fecha": p.fecha_creacion.strftime("%d/%m/%Y") if p.fecha_creacion else "",
+        "fecha": _fecha_colombia(p.fecha_creacion),
         "fecha_creacion": p.fecha_creacion.isoformat() if p.fecha_creacion else None,
     }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { logsService } from '../config/api';
+import { fechaHoraLarga } from '../utils/fechas';
 import '../styles/Usuarios.css';
 
 const ACCIONES = ['Todas', 'Suspensión', 'Activación', 'Eliminación', 'Aprobación', 'Configuración', 'Acceso'];
@@ -57,7 +58,7 @@ const LogsActividadPage = () => {
             <tbody>
               {logs.map(l => (
                 <tr key={l.id}>
-                  <td className="us-email">{new Date(l.fecha).toLocaleString('es-CO')}</td>
+                  <td className="us-email">{fechaHoraLarga(l.fecha)}</td>
                   <td className="us-nombre">{l.admin}</td>
                   <td><span className={`badge ${ACCION_BADGE[l.accion]}`}>{l.accion}</span></td>
                   <td className="us-email">{l.detalle}</td>

@@ -15,6 +15,7 @@ import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import SelectorUbicacion from '../../components/SelectorUbicacion';
 import '../../styles/UserPanel.css';
 import { urlImagen } from '../../utils/media';
+import { fechaCorta, fechaHoraLarga, fechaServidor, minutosDesde } from '../../utils/fechas';
 import Icon from '../../components/Icons';
 import { clienteService, soporteService } from '../../config/api';
 
@@ -53,17 +54,10 @@ const PASOS_PEDIDO = [
 
 const indicePaso = (estado) => PASOS_PEDIDO.findIndex(p => p.estado === estado);
 
-// El servidor manda la fecha en UTC sin la Z final; sin agregarla el navegador
-// la lee como hora local y la cuenta sale corrida varias horas.
-const minutosDesde = (iso) => {
-  if (!iso) return 0;
-  const limpio = iso.endsWith('Z') ? iso : `${iso}Z`;
-  return Math.max(0, Math.round((Date.now() - new Date(limpio).getTime()) / 60000));
-};
 // Pasado este rato sin que el negocio conteste, mejor darle al cliente una
 // salida que dejarlo mirando una pantalla que no cambia.
 const MINUTOS_PARA_SOPORTE = 10;
-const fmtFecha = iso => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const fmtFecha = fechaCorta;
 
 /* ── Mock data (todavía no hay backend para esto) ─────────── */
 
@@ -567,7 +561,7 @@ const SeguimientoModal = ({ pedido, onClose }) => {
                 <span className="up-track-step-dot" />
                 <div>
                   <p className="up-track-step-label">{PASO_LABEL[s.estado_nuevo] || s.estado_nuevo}</p>
-                  <p className="up-track-step-fecha">{new Date(s.fecha).toLocaleString('es-CO')}</p>
+                  <p className="up-track-step-fecha">{fechaHoraLarga(s.fecha)}</p>
                 </div>
               </div>
             ))}
@@ -939,7 +933,7 @@ const UserPanelPage = () => {
 
         const todos = [...pedidosReales.map(p => ({ ...p, fechaRaw: p.fechaRaw }))]
           .concat(especialesUI)
-          .sort((a, b) => new Date(b.fechaRaw || 0) - new Date(a.fechaRaw || 0));
+          .sort((a, b) => (fechaServidor(b.fechaRaw)?.getTime() || 0) - (fechaServidor(a.fechaRaw)?.getTime() || 0));
 
         if (activo) setPedidos(todos);
       } catch {

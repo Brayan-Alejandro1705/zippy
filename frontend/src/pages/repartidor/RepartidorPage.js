@@ -14,6 +14,7 @@ import Icon from '../../components/Icons';
 import AccountSwitcher from '../../components/AccountSwitcher';
 import { registrarPush, alTocarNotificacion } from '../../utils/push';
 import { urlImagen } from '../../utils/media';
+import { esHoy, fechaServidor } from '../../utils/fechas';
 
 const MAP_OPTIONS = {
   disableDefaultUI: false,
@@ -79,7 +80,6 @@ const CAT_ICON = {
 const getIcon = (categoria) => CAT_ICON[(categoria || '').toLowerCase()] || 'paquete';
 
 const fmt = n => `$${Math.round(n).toLocaleString('es-CO')}`;
-const esHoy = iso => new Date(iso).toDateString() === new Date().toDateString();
 
 const haversineKm = (a, b) => {
   if (!a || !b) return 0;
@@ -1370,7 +1370,7 @@ const RepartidorPage = () => {
               ...especialesActivos.filter(p => p.estado === 'disponible').map(p => ({ tipo: 'especial', data: p, mios: false, cuando: p.fecha_creacion })),
             ].sort((a, b) => {
               if (a.mios !== b.mios) return a.mios ? -1 : 1;
-              return new Date(a.cuando || 0) - new Date(b.cuando || 0);
+              return (fechaServidor(a.cuando)?.getTime() || 0) - (fechaServidor(b.cuando)?.getTime() || 0);
             }).map(item => item.tipo === 'normal' ? (
               <OrdenCard
                 key={item.data.idCompleto} orden={item.data} onAvanzar={avanzar} onSelect={setSelected} selected={selected}

@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import { useToast } from '../context/ToastContext';
 import { ordenesService } from '../config/api';
+import { fechaHoraCorta, minutosDesde } from '../utils/fechas';
 import '../styles/Usuarios.css';
 
 // ============================================================================
@@ -22,13 +23,13 @@ import '../styles/Usuarios.css';
 const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 const hace = iso => {
   if (!iso) return '';
-  const min = Math.max(0, Math.round((Date.now() - new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).getTime()) / 60000));
+  const min = minutosDesde(iso);
   if (min < 1) return 'ahora';
   if (min < 60) return `hace ${min} min`;
   const h = Math.round(min / 60);
   return h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`;
 };
-const fecha = iso => iso ? new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+const fecha = fechaHoraCorta;
 // wa.me necesita el número con indicativo; los de Colombia se guardan con 10 dígitos
 const numeroWa = tel => {
   const d = String(tel || '').replace(/\D/g, '');

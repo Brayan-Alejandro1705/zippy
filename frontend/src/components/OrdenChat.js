@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ordenesService } from '../config/api';
 import Icon from './Icons';
+import { hora } from '../utils/fechas';
 import '../styles/OrdenChat.css';
 
 const POLL_MS = 4000;
@@ -82,9 +83,7 @@ const OrdenChat = ({ ordenId, servicio = ordenesService }) => {
             <div key={m.id} className={`oc-bubble-row ${m.es_mio ? 'oc-bubble-row--mine' : ''}`}>
               <div className={`oc-bubble ${m.es_mio ? 'oc-bubble--mine' : ''}`}>
                 <p className="oc-bubble-text">{m.contenido}</p>
-                <span className="oc-bubble-time">
-                  {new Date(m.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                </span>
+                <span className="oc-bubble-time">{hora(m.fecha)}</span>
               </div>
             </div>
           ))
