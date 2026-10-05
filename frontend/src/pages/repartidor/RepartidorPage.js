@@ -12,7 +12,7 @@ import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
 import AccountSwitcher from '../../components/AccountSwitcher';
-import { registrarPush } from '../../utils/push';
+import { registrarPush, alTocarNotificacion } from '../../utils/push';
 import { urlImagen } from '../../utils/media';
 
 const MAP_OPTIONS = {
@@ -849,6 +849,7 @@ const RepartidorPage = () => {
   const [showCuenta, setShowCuenta] = useState(false);
   const [chatOrden,  setChatOrden]  = useState(null);
   const [chatMandado, setChatMandado] = useState(null);
+  const especialesRef = useRef([]);
   // Pedido al que se le acaba de tocar el boton, para bloquearlo y avisar
   const [ocupado, setOcupado] = useState(null);
   // Nombres y fotos ya consultados; no cambian entre refrescos
@@ -860,6 +861,21 @@ const RepartidorPage = () => {
 
   /* Notificaciones push: pedido nuevo por entregar */
   useEffect(() => { registrarPush(); }, []);
+
+  /*
+   * Tocar el aviso de un mensaje abre el chat de ese mandado, en vez de dejar
+   * al repartidor buscandolo en la lista. El mandado se busca en la lista solo
+   * para ponerle el nombre del cliente al titulo; si todavia no llego del
+   * servidor el chat se abre igual, porque se pide por id.
+   */
+  useEffect(() => alTocarNotificacion((datos) => {
+    if (String(datos?.tipo || '') !== 'mensaje_mandado') return false;
+    const id = String(datos?.relacionado_id || '');
+    if (!id) return false;
+    const enLista = especialesRef.current.find(p => String(p.idCompleto) === id);
+    setChatMandado(enLista || { idCompleto: id, id, cliente: '' });
+    return true;
+  }), []);
 
   // Mi calificacion como repartidor. Se pide al servidor y no al localStorage
   // porque el dato cambia cada vez que un cliente califica.
@@ -991,6 +1007,10 @@ const RepartidorPage = () => {
     const t = setInterval(cargarOrdenes, 15000);
     return () => clearInterval(t);
   }, [cargarOrdenes]);
+
+  // Copia de la lista para el aviso de arriba, que corre fuera del render y no
+  // puede leer el estado directamente sin quedarse con una version vieja.
+  useEffect(() => { especialesRef.current = pedidosEspeciales; }, [pedidosEspeciales]);
 
   /* Pedidos especiales reales: disponibles + los que este repartidor tomó */
   const cargarEspeciales = useCallback(async () => {
@@ -1258,8 +1278,8 @@ const RepartidorPage = () => {
           </span>
           <span className="rp-stat-label">
             {calificacion?.total > 0
-              ? `Mi calificación (${calificacion.total})`
-              : 'Sin calificar aún'}
+              ? `Calificación (${calificacion.total})`
+              : 'Calificación'}
           </span>
         </div>
       </div>
@@ -1392,7 +1412,7 @@ const RepartidorPage = () => {
         <ChatBurbuja
           id={chatMandado.idCompleto}
           servicio={pedidosEspecialesService}
-          titulo={`Mandado ${chatMandado.id} · ${chatMandado.cliente}`}
+          titulo={`Mandado ${chatMandado.id}${chatMandado.cliente ? ` · ${chatMandado.cliente}` : ''}`}
           onCerrar={() => setChatMandado(null)}
         />
       )}

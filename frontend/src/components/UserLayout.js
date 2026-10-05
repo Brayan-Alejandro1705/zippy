@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import '../styles/UserLayout.css';
 import Icon from './Icons';
 import AccountSwitcher from './AccountSwitcher';
-import { registrarPush } from '../utils/push';
+import { registrarPush, alTocarNotificacion } from '../utils/push';
 import ChatBurbuja from './ChatBurbuja';
 import { pedidosEspecialesService } from '../config/api';
 
@@ -59,6 +59,28 @@ const UserLayout = ({ children, onSearch }) => {
     const t = setInterval(revisar, 60000);
     return () => { activo = false; clearInterval(t); };
   }, []);
+
+  /*
+   * Notificacion de mensaje tocada: abre el chat de ese mandado de una.
+   *
+   * Se guarda el id aparte de `mandadoActivo` porque en arranque en frio (la
+   * app estaba cerrada y se abrio tocando el aviso) el toque llega antes que
+   * la respuesta del servidor, y porque el chat se pide por id: no hace falta
+   * tener el pedido completo para abrirlo.
+   */
+  const [chatPorAviso, setChatPorAviso] = useState(null);
+  const [abrirSenal, setAbrirSenal] = useState(0);
+
+  useEffect(() => alTocarNotificacion((datos) => {
+    if (String(datos?.tipo || '') !== 'mensaje_mandado') return false;
+    const id = String(datos?.relacionado_id || '');
+    if (!id) return false;
+    setChatPorAviso(id);
+    setAbrirSenal(n => n + 1);
+    return true;
+  }), []);
+
+  const idChat = chatPorAviso || mandadoActivo?.idCompleto || null;
 
   const isCart    = location.pathname === '/tienda/carrito' || location.pathname === '/tienda/checkout';
   const activeNav = NAV_ITEMS.find(n => location.pathname === n.path)?.path || '/tienda';
@@ -142,13 +164,14 @@ const UserLayout = ({ children, onSearch }) => {
         ))}
       </nav>
 
-      {mandadoActivo && (
+      {idChat && (
         <ChatBurbuja
-          id={mandadoActivo.idCompleto}
+          id={idChat}
           servicio={pedidosEspecialesService}
-          titulo={`Mandado ${mandadoActivo.id}`}
+          titulo={`Mandado ${idChat}`}
           arrancaAbierto={false}
-          onCerrar={() => setMandadoActivo(null)}
+          abrirSenal={abrirSenal}
+          onCerrar={() => { setChatPorAviso(null); setMandadoActivo(null); }}
         />
       )}
     </div>

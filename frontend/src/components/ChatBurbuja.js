@@ -26,13 +26,22 @@ import '../styles/ChatBurbuja.css';
 
 const POLL_AVISO_MS = 20000;
 
-const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar, arrancaAbierto = true }) => {
+const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar, arrancaAbierto = true, abrirSenal = 0 }) => {
   // Si la persona toco "Escribirle", se abre de una. Si aparecio sola porque
   // hay un mandado en curso, arranca como burbuja y no le tapa la pantalla.
   const [abierto, setAbierto] = useState(arrancaAbierto);
   const [sinLeer, setSinLeer] = useState(0);
   // Cuantos mensajes habia la ultima vez que la persona miro el chat
   const vistos = useRef(0);
+
+  // Si la persona toco la notificacion del mensaje, la burbuja se abre sola
+  // aunque estuviera minimizada. Llega como un numero que sube, y no como un
+  // si/no, para que tambien funcione la segunda vez que toca un aviso.
+  useEffect(() => {
+    if (!abrirSenal) return;
+    setAbierto(true);
+    setSinLeer(0);
+  }, [abrirSenal]);
 
   // Mientras esta cerrada, se revisa de vez en cuando si llegaron mensajes.
   // Cada 20 segundos y no cada 4 como el chat abierto: cerrada no hay nadie

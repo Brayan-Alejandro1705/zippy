@@ -25,7 +25,7 @@
   flex-shrink: 0;
   box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 3px 10px rgba(184,74,0,0.25);
 }
-.rp-header-left { display: flex; align-items: center; gap: 10px; }
+.rp-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .rp-brand {
   font-family: 'Manrope', sans-serif;
   font-size: 16px; font-weight: 800; color: white;
@@ -41,7 +41,7 @@
   letter-spacing: 1px;
 }
 
-.rp-header-right { display: flex; align-items: center; gap: 8px; }
+.rp-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .rp-online-btn {
   display: flex; align-items: center; gap: 6px;
@@ -53,6 +53,8 @@
   font-size: 12px; font-weight: 700;
   cursor: pointer; transition: all 0.2s;
   font-family: inherit;
+  /* Sin esto "En linea" se parte en dos renglones y estira el header */
+  white-space: nowrap;
 }
 .rp-online-btn--on {
   background: rgba(16,185,129,0.25);
@@ -617,7 +619,20 @@
 
 /* ── Mobile tweaks ───────────────────────────────────────── */
 @media (max-width: 480px) {
-  .rp-header { padding: 0 12px; height: 50px; }
+  /* OJO: aqui se repite el env(safe-area-inset-top). Antes esta regla ponia
+     "padding: 0 12px" y, como es la que gana en el telefono, borraba el
+     espacio de la hora y la isla: el logo y los botones quedaban debajo de la
+     barra de estado, medio tapados. */
+  .rp-header {
+    padding: env(safe-area-inset-top, 0px) 12px 0;
+    height: calc(50px + env(safe-area-inset-top, 0px));
+    gap: 6px;
+  }
+  .rp-header-right { gap: 6px; }
+  /* En pantalla angosta no cabe junto con los cinco botones de la derecha, y
+     el logo ya dice de que app es. */
+  .rp-role-badge { display: none; }
+  .rp-brand-logo { height: 28px; }
   .rp-brand  { font-size: 14px; }
   .rp-user-name { display: none; }
   .rp-cierre-label { display: none; }
@@ -626,6 +641,7 @@
   .rp-stats  { padding: 8px 14px; }
   .rp-stat-val { font-size: 11px; }
   .rp-stat-label { font-size: 7px; }
+  .rp-stats  { padding-top: 6px; padding-bottom: 6px; }
   .rp-streak { font-size: 11px; }
   .rp-online-btn { padding: 5px 10px; font-size: 11px; }
 }
