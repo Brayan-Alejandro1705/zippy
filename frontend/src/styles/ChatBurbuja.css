@@ -1,0 +1,82 @@
+/* Chat flotante del mandado */
+
+.cb-burbuja {
+  position: fixed;
+  right: 18px;
+  /* Por encima de la barra de navegacion de abajo del cliente, que mide 64px */
+  bottom: 86px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #FF7A00;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 20px rgba(255, 122, 0, 0.45);
+  cursor: pointer;
+  z-index: 900;
+  transition: transform 0.15s ease;
+}
+.cb-burbuja:hover { transform: scale(1.06); }
+.cb-burbuja:active { transform: scale(0.96); }
+
+.cb-sin-leer {
+  position: absolute;
+  top: -2px; right: -2px;
+  min-width: 22px; height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #fff;
+}
+
+.cb-panel {
+  position: fixed;
+  right: 18px;
+  bottom: 86px;
+  width: 340px;
+  max-width: calc(100vw - 36px);
+  height: 440px;
+  max-height: calc(100vh - 140px);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  z-index: 901;
+}
+
+.cb-panel-header {
+  background: #FF7A00;
+  color: #fff;
+  padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.cb-panel-titulo { font-size: 14.5px; font-weight: 800; }
+.cb-panel-cerrar {
+  background: rgba(255, 255, 255, 0.2);
+  border: none; color: #fff;
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.cb-panel-cerrar:hover { background: rgba(255, 255, 255, 0.35); }
+
+/* El chat de adentro ocupa todo lo que quede */
+.cb-panel-cuerpo { flex: 1; min-height: 0; display: flex; }
+.cb-panel-cuerpo > * { flex: 1; min-height: 0; }
+
+/* En celular ocupa casi toda la pantalla: una ventanita de 340px en un
+   telefono es incomoda para escribir. */
+@media (max-width: 520px) {
+  .cb-panel {
+    right: 10px; left: 10px;
+    bottom: 76px;
+    width: auto;
+    height: calc(100vh - 150px);
+  }
+  .cb-burbuja { right: 14px; bottom: 80px; width: 52px; height: 52px; }
+}

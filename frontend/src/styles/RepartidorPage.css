@@ -361,6 +361,9 @@
 }
 .rp-action-btn:hover { opacity: 0.92; transform: translateY(-1px); }
 .rp-btn--orange { background: #FF7A00; color: white; box-shadow: 0 3px 10px rgba(255,122,0,0.3); }
+/* Escribirle al cliente del mandado: en morado como el resto del mandado,
+   y mas discreto que el boton de avanzar para no competir con el */
+.rp-action-btn--chat { background: #ede9fe; color: #6d28d9; }
 .rp-btn--blue   { background: #3b82f6; color: white; box-shadow: 0 3px 10px rgba(59,130,246,0.3); }
 .rp-btn--green  { background: #10b981; color: white; box-shadow: 0 3px 10px rgba(16,185,129,0.3); }
 

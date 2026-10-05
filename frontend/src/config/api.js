@@ -131,6 +131,11 @@ export const pedidosEspecialesService = {
   misEntregas:  () => api.get('/pedidos-especiales/mis-entregas/'),
   aceptar:      (id) => api.post(`/pedidos-especiales/${id}/aceptar/`),
   entregar:     (id) => api.post(`/pedidos-especiales/${id}/entregar/`),
+  // Chat del mandado. Mismos nombres que en ordenesService para que el
+  // componente del chat sirva igual con los dos.
+  estadoChat:    (id) => api.get(`/pedidos-especiales/${id}/chat-estado/`),
+  mensajes:      (id) => api.get(`/pedidos-especiales/${id}/mensajes/`),
+  enviarMensaje: (id, contenido) => api.post(`/pedidos-especiales/${id}/mensajes/`, { contenido }),
 };
 
 export const clienteService = {

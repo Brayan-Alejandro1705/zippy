@@ -11,7 +11,15 @@ const AVISO = {
   expirado:         'Esta conversación se eliminó una hora después de la entrega.',
 };
 
-const OrdenChat = ({ ordenId }) => {
+/*
+ * Sirve para los dos chats: el de una orden y el de un mandado.
+ *
+ * El 'servicio' se recibe por fuera en vez de decidirlo aqui dentro con un if,
+ * porque los dos exponen los mismos tres metodos (estadoChat, mensajes,
+ * enviarMensaje). Asi este archivo no tiene que saber cuantos tipos de pedido
+ * existen, y el dia que haya un tercero no se toca.
+ */
+const OrdenChat = ({ ordenId, servicio = ordenesService }) => {
   const [mensajes, setMensajes] = useState([]);
   const [estado, setEstado]     = useState(null);
   const [texto, setTexto]       = useState('');
@@ -23,13 +31,13 @@ const OrdenChat = ({ ordenId }) => {
   const cargar = useCallback(async () => {
     try {
       const [est, msgs] = await Promise.all([
-        ordenesService.estadoChat(ordenId),
-        ordenesService.mensajes(ordenId),
+        servicio.estadoChat(ordenId),
+        servicio.mensajes(ordenId),
       ]);
       setEstado(est.data.estado);
       setMensajes(msgs.data);
     } catch { /* sin permiso o sin conexión */ }
-  }, [ordenId]);
+  }, [ordenId, servicio]);
 
   useEffect(() => {
     if (!ordenId) return;
@@ -49,7 +57,7 @@ const OrdenChat = ({ ordenId }) => {
     setSending(true);
     setTexto('');
     try {
-      const { data } = await ordenesService.enviarMensaje(ordenId, contenido);
+      const { data } = await servicio.enviarMensaje(ordenId, contenido);
       setMensajes(prev => [...prev, data]);
     } catch (err) {
       setTexto(contenido);

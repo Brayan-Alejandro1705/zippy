@@ -584,6 +584,32 @@ class SeguimientoOrden(Base):
 # TABLA: MENSAJES DE ORDEN (chat cliente ↔ domiciliario)
 # ============================================================================
 
+class MensajeMandado(Base):
+    """Chat entre el cliente y el repartidor de un mandado.
+
+    Tabla aparte de mensajes_orden a proposito: un mandado no es una orden y
+    forzar las dos cosas en la misma tabla obligaria a dejar las dos llaves
+    foraneas opcionales, con lo que nada impediria un mensaje huerfano o uno
+    colgado de las dos. Son treinta lineas duplicadas a cambio de que la base
+    no pueda guardar algo que no tiene sentido.
+    """
+
+    __tablename__ = "mensajes_mandado"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    pedido_especial_id = Column(UUID(as_uuid=True), ForeignKey("pedidos_especiales.id"), nullable=False, index=True)
+    remitente_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, index=True)
+
+    contenido = Column(Text, nullable=False)
+
+    fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)
+
+    remitente = relationship("Usuario", foreign_keys=[remitente_id])
+
+    def __repr__(self):
+        return f"<MensajeMandado {self.id}>"
+
+
 class MensajeOrden(Base):
     __tablename__ = "mensajes_orden"
 

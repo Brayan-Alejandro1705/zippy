@@ -6,7 +6,7 @@
 # domiciliario.
 # ============================================================================
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 from uuid import UUID
 
@@ -14,9 +14,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from config import get_db
-from models import Usuario, PedidoEspecial, EstadoUsuario, ConfiguracionSistema
+from models import Usuario, PedidoEspecial, EstadoUsuario, ConfiguracionSistema, MensajeMandado
 from routes_auth import get_current_user
-from push import notificar_usuarios
+from push import notificar_usuario, notificar_usuarios
 
 
 # Lo que cobra ZIPPYGO por el mandado, aparte de lo que valga la compra.
@@ -326,3 +326,156 @@ async def cancelar_pedido(
     db.refresh(pedido)
 
     return _a_dict(pedido, db)
+
+
+# ============================================================================
+# CHAT DEL MANDADO
+# ============================================================================
+#
+# En un mandado el chat hace mas falta que en un pedido normal: el repartidor
+# esta parado en la tienda y la lista decia "leche", no cual marca ni de cuantos
+# litros. Sin chat eso se resuelve con una llamada, y muchas veces ni eso.
+#
+# Mismas reglas que el chat de las ordenes, para que la gente no tenga que
+# aprender dos comportamientos distintos: se abre cuando un repartidor toma el
+# mandado, se cierra al entregarlo y se borra una hora despues.
+
+CHAT_HORAS_TRAS_ENTREGA = 1
+
+
+def _puede_ver_chat(pedido: PedidoEspecial, usuario: Usuario):
+    """Solo los dos que estan en la conversacion, y el admin."""
+    if _tipo(usuario) == "admin":
+        return
+    if usuario.id in (pedido.cliente_id, pedido.domiciliario_id):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Este chat no es tuyo",
+    )
+
+
+def _estado_chat(pedido: PedidoEspecial, db: Session) -> str:
+    """sin_domiciliario | activo | cerrado | expirado"""
+    if not pedido.domiciliario_id:
+        return "sin_domiciliario"
+
+    if pedido.estado not in ("entregada", "cancelada"):
+        return "activo"
+
+    referencia = pedido.fecha_entrega or pedido.fecha_creacion
+    if referencia and datetime.utcnow() - referencia >= timedelta(hours=CHAT_HORAS_TRAS_ENTREGA):
+        # Se borra de verdad, no se esconde: es una conversacion entre dos
+        # personas sobre una compra, no hay por que guardarla para siempre.
+        db.query(MensajeMandado).filter(MensajeMandado.pedido_especial_id == pedido.id).delete()
+        db.commit()
+        return "expirado"
+
+    return "cerrado"
+
+
+def _buscar_pedido(pedido_id: UUID, db: Session) -> PedidoEspecial:
+    pedido = db.query(PedidoEspecial).filter(PedidoEspecial.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mandado no encontrado")
+    return pedido
+
+
+@router.get("/{pedido_id}/chat-estado/", summary="Estado del chat del mandado")
+async def estado_chat_mandado(
+    pedido_id: UUID,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pedido = _buscar_pedido(pedido_id, db)
+    _puede_ver_chat(pedido, current_user)
+    estado = _estado_chat(pedido, db)
+    return {"estado": estado, "activo": estado == "activo"}
+
+
+@router.get("/{pedido_id}/mensajes/", response_model=List[dict], summary="Mensajes del mandado")
+async def listar_mensajes_mandado(
+    pedido_id: UUID,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pedido = _buscar_pedido(pedido_id, db)
+    _puede_ver_chat(pedido, current_user)
+
+    # Se consulta el estado antes de listar: si ya expiro, el borrado pasa aqui
+    # y la lista sale vacia, que es justo lo que se quiere.
+    _estado_chat(pedido, db)
+
+    mensajes = db.query(MensajeMandado).filter(
+        MensajeMandado.pedido_especial_id == pedido.id
+    ).order_by(MensajeMandado.fecha_creacion.asc()).all()
+
+    return [
+        {
+            "id": str(m.id),
+            "contenido": m.contenido,
+            "fecha": m.fecha_creacion.isoformat() if m.fecha_creacion else None,
+            "es_mio": m.remitente_id == current_user.id,
+            "remitente": m.remitente.nombre if m.remitente else "",
+        }
+        for m in mensajes
+    ]
+
+
+@router.post("/{pedido_id}/mensajes/", status_code=status.HTTP_201_CREATED, summary="Enviar un mensaje en el mandado")
+async def enviar_mensaje_mandado(
+    pedido_id: UUID,
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pedido = _buscar_pedido(pedido_id, db)
+    _puede_ver_chat(pedido, current_user)
+
+    estado = _estado_chat(pedido, db)
+    if estado != "activo":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Este chat ya no admite mensajes",
+        )
+
+    contenido = (datos.get("contenido") or "").strip()
+    if not contenido:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje esta vacio")
+    if len(contenido) > 1000:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje es demasiado largo")
+
+    mensaje = MensajeMandado(
+        pedido_especial_id=pedido.id,
+        remitente_id=current_user.id,
+        contenido=contenido,
+    )
+    db.add(mensaje)
+    db.commit()
+    db.refresh(mensaje)
+
+    # Avisarle al otro. Sin esto el mensaje se queda esperando a que la otra
+    # persona abra la app por casualidad, que es la mitad del problema que este
+    # chat viene a resolver.
+    try:
+        otro_id = pedido.domiciliario_id if current_user.id == pedido.cliente_id else pedido.cliente_id
+        otro = db.query(Usuario).filter(Usuario.id == otro_id).first() if otro_id else None
+        if otro:
+            notificar_usuario(
+                db, otro,
+                tipo="mensaje_mandado",
+                titulo=f"Mensaje de {current_user.nombre}",
+                mensaje=contenido[:120],
+                relacionado_tabla="pedidos_especiales",
+                relacionado_id=pedido.id,
+            )
+    except Exception as e:
+        print(f"[mandado] no se pudo avisar del mensaje: {e}")
+
+    return {
+        "id": str(mensaje.id),
+        "contenido": mensaje.contenido,
+        "fecha": mensaje.fecha_creacion.isoformat() if mensaje.fecha_creacion else None,
+        "es_mio": True,
+        "remitente": current_user.nombre,
+    }

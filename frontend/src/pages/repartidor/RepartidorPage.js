@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService, negociosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
+import ChatBurbuja from '../../components/ChatBurbuja';
 import CentroAyuda from '../../components/CentroAyuda';
 import EliminarCuenta from '../../components/EliminarCuenta';
 import ZLoader from '../../components/ZLoader';
@@ -662,7 +663,7 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
 };
 
 /* ── Mandados ─────────────────────────────────────────────────────────── */
-const PedidoEspecialCard = ({ pedido, onAdvance }) => {
+const PedidoEspecialCard = ({ pedido, onAdvance, onChat }) => {
   const cfg = ESTADO_CFG[pedido.estado] || ESTADO_CFG['disponible'];
   return (
     <div className="rp-order-card rp-order-card--especial" style={{ borderLeftColor: '#8b5cf6' }}>
@@ -732,6 +733,16 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
       <div className="rp-order-footer">
         <span className="rp-order-total" style={{ color: '#8b5cf6' }}>Mandado</span>
         <div className="rp-order-actions">
+          {/* El chat solo tiene sentido cuando ya lo tomo: antes de eso el
+              cliente no sabe quien le va a escribir. */}
+          {pedido.estado === 'en_camino' && onChat && (
+            <button
+              className="rp-action-btn rp-action-btn--chat"
+              onClick={() => onChat(pedido)}
+            >
+              <Icon name="chat" size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />Escribirle
+            </button>
+          )}
           {cfg.btnLabel && (
             <button
               className={`rp-action-btn ${cfg.btnClass}`}
@@ -830,6 +841,7 @@ const RepartidorPage = () => {
   const [showCierre, setShowCierre] = useState(false);
   const [showCuenta, setShowCuenta] = useState(false);
   const [chatOrden,  setChatOrden]  = useState(null);
+  const [chatMandado, setChatMandado] = useState(null);
   const [showSos,    setShowSos]    = useState(false);
 
   const sheetRef  = useRef(null);
@@ -1270,7 +1282,7 @@ const RepartidorPage = () => {
                 onReport={setReportTarget} reported={reportedMap[item.data.id]} onChat={setChatOrden}
               />
             ) : (
-              <PedidoEspecialCard key={item.data.id} pedido={item.data} onAdvance={advanceEspecial} />
+              <PedidoEspecialCard key={item.data.id} pedido={item.data} onAdvance={advanceEspecial} onChat={setChatMandado} />
             ))
           )}
 
@@ -1297,6 +1309,17 @@ const RepartidorPage = () => {
       <CierreModal open={showCierre} onClose={() => setShowCierre(false)} entregadas={entregadasHoy} ganado={ganado} />
       <CuentaModal open={showCuenta} usuario={usuario} onClose={() => setShowCuenta(false)} onSave={handleCuentaSave} onLogout={handleLogout} />
       <ChatModal orden={chatOrden} onClose={() => setChatOrden(null)} />
+
+      {/* El chat del mandado va flotando: el repartidor esta mirando la lista
+          de lo que tiene que comprar justo cuando le llega la duda. */}
+      {chatMandado && (
+        <ChatBurbuja
+          id={chatMandado.idCompleto}
+          servicio={pedidosEspecialesService}
+          titulo={`Mandado ${chatMandado.id} · ${chatMandado.cliente}`}
+          onCerrar={() => setChatMandado(null)}
+        />
+      )}
     </div>
   );
 };

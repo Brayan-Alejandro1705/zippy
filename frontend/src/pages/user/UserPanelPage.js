@@ -6,6 +6,7 @@ import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
 import CentroAyuda from '../../components/CentroAyuda';
 import ConfirmModal from '../../components/ConfirmModal';
+import ChatBurbuja from '../../components/ChatBurbuja';
 import EliminarCuenta from '../../components/EliminarCuenta';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
@@ -96,7 +97,7 @@ const TABS = [
 // perder plata: de ese punto en adelante toca por soporte.
 const ESTADOS_CANCELABLES = ['Pendiente', 'En validación', 'Confirmado'];
 
-const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo, onCancelar, cancelando }) => {
+const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo, onCancelar, cancelando, onChatMandado }) => {
   // WhatsApp de soporte, para el primer pedido que esta en validacion
   const [wa, setWa] = useState('');
   useEffect(() => {
@@ -153,9 +154,17 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 )}
               </div>
             )}
-            {!['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
+            {/* El seguimiento con mapa es de los pedidos a negocios. Un mandado
+                no tiene tienda de donde salir, y abrir ese modal con el id de un
+                mandado no traia nada: salia un mapa vacio. */}
+            {!p.esEspecial && !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
               <button className="up-track-btn" onClick={() => onTrack(p)}>
                 <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
+              </button>
+            )}
+            {p.esEspecial && p.tieneRepartidor && !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
+              <button className="up-track-btn" onClick={() => onChatMandado(p)}>
+                <Icon name="chat" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribirle al repartidor
               </button>
             )}
             {/* Cancelar: el Centro de Ayuda lo prometia desde el principio,
@@ -857,6 +866,7 @@ const UserPanelPage = () => {
   const [repitiendo, setRepitiendo] = useState(null);
   const [cancelando, setCancelando] = useState(null);
   const [porCancelar, setPorCancelar] = useState(null);
+  const [chatMandado, setChatMandado] = useState(null);
 
   const [pedidos, setPedidos] = useState([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
@@ -916,10 +926,13 @@ const UserPanelPage = () => {
           fechaRaw: e.fecha_creacion,
           estado: ESTADO_UI[e.estado] || 'Pendiente',
           items: (e.items || []).map(it => `${it.descripcion}${it.cantidad ? ` x${it.cantidad}` : ''}`).join(', ') || 'Mandado',
-          total: null,               // los especiales no tienen precio fijo
+          // El total de un mandado es el servicio; lo que valga la compra lo
+          // sabe el repartidor hasta que llega a la tienda.
+          total: e.costo_servicio != null ? Number(e.costo_servicio) : null,
           tienda: 'Mandado',
           direccion: e.direccion,
           esEspecial: true,
+          tieneRepartidor: !!e.domiciliario_id,
         }));
 
         const todos = [...pedidosReales.map(p => ({ ...p, fechaRaw: p.fechaRaw }))]
@@ -1059,7 +1072,7 @@ const UserPanelPage = () => {
   const gastado  = pedidos.filter(p => p.estado === 'Entregado').reduce((s, p) => s + p.total, 0);
 
   const content = {
-    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} />,
+    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} onChatMandado={setChatMandado} />,
     guardados:   <SeccionGuardados addItem={addItem} addToast={addToast} />,
     direcciones: <SeccionDirecciones addToast={addToast} />,
     cuenta:      <SeccionCuenta addToast={addToast} />,
@@ -1119,6 +1132,15 @@ const UserPanelPage = () => {
 
       <SeguimientoModal pedido={trackingPedido} onClose={() => setTrackingPedido(null)} />
       <CalificarModal pedido={calificarPedido} onClose={() => setCalificarPedido(null)} />
+      {chatMandado && (
+        <ChatBurbuja
+          id={chatMandado.idCompleto}
+          servicio={pedidosEspecialesService}
+          titulo={`Mandado ${chatMandado.id}`}
+          onCerrar={() => setChatMandado(null)}
+        />
+      )}
+
       <ConfirmModal
         isOpen={!!porCancelar}
         title="¿Cancelar este pedido?"
