@@ -1,4 +1,4 @@
-name: Actualizar iPhone (Capgo)
+name: Actualizar iPhone
 
 # Manda el frontend nuevo a los iPhone sin pasar por la revision de Apple.
 #
@@ -9,14 +9,19 @@ name: Actualizar iPhone (Capgo)
 # significaba una version nueva y la cola de revision: la primera vez fueron
 # nueve dias.
 #
+# A donde va: a NUESTRO servidor, no a un servicio de pago. El backend recibe el
+# paquete, lo guarda en Supabase y le responde a los celulares que pregunten
+# (ver backend/routes_actualizaciones.py).
+#
 # Que SI viaja por aqui: HTML, CSS y JavaScript. O sea pantallas, textos,
 # arreglos de la app web.
 # Que NO: cualquier cosa nativa (un plugin nuevo, permisos, el icono). Eso
-# necesita compilar de nuevo con "Build iOS" y pasar por Apple otra vez.
+# necesita compilar con "Build iOS" y pasar por Apple otra vez.
 #
 # Secret que necesita (Settings > Secrets and variables > Actions):
-#   CAPGO_TOKEN   llave de la cuenta de Capgo (capgo.app > Settings > API keys,
-#                 con permiso de subida)
+#   ACTUALIZACIONES_TOKEN   la misma clave que esta puesta en Render. Es lo
+#                           unico que impide que cualquiera le mande un
+#                           frontend a la app de todos los clientes.
 #
 # Mientras el secret no exista, el workflow avisa y termina bien, sin romper nada.
 
@@ -28,6 +33,9 @@ on:
       - 'frontend/public/**'
       - 'frontend/package.json'
   workflow_dispatch:
+
+env:
+  SERVIDOR: https://zippy-eedd.onrender.com
 
 jobs:
   publicar:
@@ -42,13 +50,13 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Revisar que exista la llave de Capgo
+      - name: Revisar que exista la llave
         id: llave
         env:
-          CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
+          TOKEN: ${{ secrets.ACTUALIZACIONES_TOKEN }}
         run: |
-          if [ -z "$CAPGO_TOKEN" ]; then
-            echo "Falta el secret CAPGO_TOKEN. No se sube nada."
+          if [ -z "$TOKEN" ]; then
+            echo "Falta el secret ACTUALIZACIONES_TOKEN. No se publica nada."
             echo "hay=no" >> "$GITHUB_OUTPUT"
           else
             echo "hay=si" >> "$GITHUB_OUTPUT"
@@ -68,8 +76,8 @@ jobs:
           CI: 'false'
           REACT_APP_GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY }}
 
-      # Se revisa a mano porque un build vacio o a medias subido por aire deja a
-      # los usuarios de iPhone con una pantalla en blanco, y revertir toma otra
+      # Se revisa a mano porque un build vacio o a medias mandado por aire deja a
+      # los usuarios de iPhone con una pantalla en blanco, y deshacerlo toma otra
       # vuelta completa. Vale mas detenerse aqui.
       - name: Revisar que el build quedo completo
         if: steps.llave.outputs.hay == 'si'
@@ -82,28 +90,48 @@ jobs:
           echo "Build completo:"
           du -sh build
 
-      - name: Subir el paquete a Capgo
+      - name: Comprimir el paquete
         if: steps.llave.outputs.hay == 'si'
-        working-directory: frontend
-        env:
-          CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
+        working-directory: frontend/build
         run: |
           set -e
-          # La version del paquete tiene que ser unica y en formato x.y.z. Se usa
-          # el numero de corrida para que nunca se repita.
+          # El zip se arma DESDE dentro de build/, para que el index.html quede
+          # en la raiz del archivo. Si quedara dentro de una carpeta "build/",
+          # la app no encontraria por donde arrancar.
+          zip -qr "$RUNNER_TEMP/frontend.zip" .
+          unzip -l "$RUNNER_TEMP/frontend.zip" | head -5
+          ls -lh "$RUNNER_TEMP/frontend.zip"
+
+      - name: Publicar en el servidor
+        if: steps.llave.outputs.hay == 'si'
+        env:
+          TOKEN: ${{ secrets.ACTUALIZACIONES_TOKEN }}
+        run: |
+          set -e
+          # La version tiene que ser unica y en formato x.y.z. Se usa el numero
+          # de corrida de GitHub, que nunca se repite.
           VERSION="1.2.${{ github.run_number }}"
-          echo "Subiendo el paquete $VERSION al canal production"
-          npx -y @capgo/cli@latest bundle upload \
-            --apikey "$CAPGO_TOKEN" \
-            --path build \
-            --channel production \
-            --bundle "$VERSION"
+          NOTAS=$(git log -1 --pretty=%s | cut -c1-200)
+          echo "Publicando la version $VERSION"
+          RESPUESTA=$(curl -sS -w '\n%{http_code}' -X POST \
+            -H "x-actualizaciones-token: $TOKEN" \
+            -F "archivo=@$RUNNER_TEMP/frontend.zip;type=application/zip" \
+            -F "version=$VERSION" \
+            -F "plataforma=ios" \
+            -F "notas=$NOTAS" \
+            "$SERVIDOR/api/v1/actualizaciones/publicar")
+          CUERPO=$(echo "$RESPUESTA" | sed '$d')
+          CODIGO=$(echo "$RESPUESTA" | tail -1)
+          echo "$CUERPO"
+          if [ "$CODIGO" != "200" ]; then
+            echo "El servidor respondio $CODIGO; no se publico nada" >&2
+            exit 1
+          fi
+          echo "Listo. Los iPhone lo aplican la proxima vez que abran la app."
 
       - name: Resumen
         if: always()
         run: |
-          if [ "${{ steps.llave.outputs.hay }}" = "si" ]; then
-            echo "El frontend quedo publicado. Los iPhone lo aplican la proxima vez que abran la app."
-          else
-            echo "No se subio nada: falta el secret CAPGO_TOKEN."
+          if [ "${{ steps.llave.outputs.hay }}" != "si" ]; then
+            echo "No se publico nada: falta el secret ACTUALIZACIONES_TOKEN."
           fi

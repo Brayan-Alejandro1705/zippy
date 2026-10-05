@@ -21,10 +21,14 @@ class SupabaseStorageError(Exception):
     pass
 
 
-def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str) -> str:
+def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str, bucket: str = None) -> str:
     """
-    Sube 'contenido' (bytes) al bucket configurado, en la ruta 'ruta_archivo'
+    Sube 'contenido' (bytes) al bucket indicado, en la ruta 'ruta_archivo'
     (ej. 'abc123.jpg'). Devuelve la URL publica del archivo.
+
+    Si no se indica bucket, usa el de productos (como siempre). El parametro
+    se agrego para guardar tambien los paquetes de actualizacion del iPhone
+    en su propio bucket, sin mezclarlos con las fotos.
 
     Requiere que el bucket exista y este marcado como publico en Supabase.
     """
@@ -35,7 +39,7 @@ def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str) -> str
         )
 
     base = settings.SUPABASE_URL.rstrip("/")
-    bucket = settings.SUPABASE_BUCKET_PRODUCTOS
+    bucket = bucket or settings.SUPABASE_BUCKET_PRODUCTOS
     upload_url = f"{base}/storage/v1/object/{bucket}/{ruta_archivo}"
 
     request = urllib.request.Request(
@@ -56,12 +60,12 @@ def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str) -> str
         with urllib.request.urlopen(request, timeout=20) as resp:
             if resp.status not in (200, 201):
                 raise SupabaseStorageError(
-                    f"Supabase Storage respondio {resp.status} al subir la imagen."
+                    f"Supabase Storage respondio {resp.status} al subir el archivo."
                 )
     except urllib.error.HTTPError as e:
         detalle = e.read().decode("utf-8", errors="replace")
         raise SupabaseStorageError(
-            f"Error subiendo imagen a Supabase Storage ({e.code}): {detalle}"
+            f"Error subiendo archivo a Supabase Storage ({e.code}): {detalle}"
         )
     except urllib.error.URLError as e:
         raise SupabaseStorageError(f"No se pudo conectar a Supabase Storage: {e.reason}")

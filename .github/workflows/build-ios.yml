@@ -19,11 +19,16 @@ name: Build iOS
 #                                  GoogleService-Info.plist de Firebase en base64
 #   GOOGLE_MAPS_KEY                (ya existe, lo comparte con el build de Android)
 #
-# Desde la version 1.2 el .ipa lleva el plugin de Capgo, que permite mandarle
+# Desde la version 1.2 el .ipa lleva el actualizador, que permite mandarle
 # pantallas nuevas a los iPhone sin volver a pasar por Apple (ver el workflow
-# "Actualizar iPhone (Capgo)"). Ojo: eso solo sirve para HTML, CSS y JavaScript.
-# Si se agrega o cambia un plugin nativo, hay que compilar aqui otra vez y
-# mandar version nueva a revision.
+# "Actualizar iPhone"). Los paquetes los sirve nuestro propio backend, no un
+# servicio de pago. Ojo: eso solo sirve para HTML, CSS y JavaScript. Si se
+# agrega o cambia un plugin nativo, hay que compilar aqui otra vez y mandar
+# version nueva a revision.
+#
+# Y algo importante: la direccion a la que el iPhone pregunta por
+# actualizaciones queda grabada dentro del .ipa (esta en capacitor.config.ts).
+# Cambiarla despues obliga a compilar y pasar por Apple de nuevo.
 
 on:
   workflow_dispatch:

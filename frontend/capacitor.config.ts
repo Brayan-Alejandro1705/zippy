@@ -9,10 +9,19 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // frontend dentro del .ipa.
 //
 // Eso costaba una revision de Apple por cada boton que cambiara (la primera vez,
-// nueve dias de espera). Capgo lo arregla: en la version empaquetada se activa
-// el actualizador, que descarga el frontend nuevo y lo aplica la proxima vez que
-// abran la app. Apple lo permite porque solo cambia HTML, CSS y JavaScript; un
-// plugin nativo nuevo sigue necesitando version nueva y revision.
+// nueve dias de espera). El actualizador lo arregla: en la version empaquetada
+// descarga el frontend nuevo y lo aplica la proxima vez que abran la app. Apple
+// lo permite porque solo cambia HTML, CSS y JavaScript; un plugin nativo nuevo
+// sigue necesitando version nueva y revision.
+//
+// El plugin es de Capgo pero NO usamos su servicio de pago: apunta a nuestro
+// propio servidor (backend/routes_actualizaciones.py), que guarda los paquetes
+// en el mismo Supabase donde ya viven las fotos de los productos. Cero
+// mensualidad y ninguna dependencia de un tercero.
+//
+// OJO: estas direcciones quedan grabadas dentro del .ipa. Cambiarlas despues
+// obliga a compilar y pasar por Apple otra vez, asi que no son cosa de tocar a
+// la ligera.
 const empaquetado = process.env.CAP_BUNDLED === '1';
 
 const config: CapacitorConfig = {
@@ -30,6 +39,9 @@ const config: CapacitorConfig = {
     // servidor, asi que ahi el actualizador no tendria nada que hacer.
     ...(empaquetado ? {
       CapacitorUpdater: {
+        // Nuestro servidor, no el de Capgo.
+        updateUrl: 'https://zippy-eedd.onrender.com/api/v1/actualizaciones/check',
+        statsUrl: 'https://zippy-eedd.onrender.com/api/v1/actualizaciones/stats',
         // Descarga en segundo plano y aplica al reabrir la app: nadie se queda
         // mirando una barra de progreso por un cambio de pantalla.
         autoUpdate: true,

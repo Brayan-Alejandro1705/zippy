@@ -136,6 +136,14 @@ class Settings:
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
     SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
     SUPABASE_BUCKET_PRODUCTOS = os.getenv("SUPABASE_BUCKET_PRODUCTOS", "productos")
+    # Bucket donde viven los paquetes de actualizacion del iPhone. Aparte de
+    # las fotos a proposito: son archivos de otra naturaleza y conviene
+    # poder borrarlos o vaciarlos sin tocar las imagenes de los productos.
+    SUPABASE_BUCKET_BUNDLES = os.getenv("SUPABASE_BUCKET_BUNDLES", "bundles")
+
+    # Llave con la que GitHub publica un paquete nuevo. Sin ella, nadie puede
+    # publicar: el endpoint responde 503 en vez de quedar abierto.
+    ACTUALIZACIONES_TOKEN = os.getenv("ACTUALIZACIONES_TOKEN", "")
 
 # Instancia global de settings
 settings = Settings()

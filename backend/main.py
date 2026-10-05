@@ -248,6 +248,7 @@ from routes_admin import router as admin_router
 from routes_cliente import router as cliente_router
 from routes_pedidos_especiales import router as pedidos_especiales_router
 from routes_logs import router as logs_router
+from routes_actualizaciones import router as actualizaciones_router
 
 app.include_router(auth_router)
 app.include_router(usuarios_router)
@@ -260,6 +261,8 @@ app.include_router(admin_router)
 app.include_router(cliente_router)
 app.include_router(pedidos_especiales_router)
 app.include_router(logs_router)
+# Actualizaciones del frontend para el iPhone, servidas desde aqui mismo
+app.include_router(actualizaciones_router)
 # ============================================================================
 # MAIN - Ejecutar servidor
 # ============================================================================

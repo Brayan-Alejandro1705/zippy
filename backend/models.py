@@ -702,6 +702,44 @@ class SoporteTicket(Base):
 # TABLA: CONFIGURACIÓN DEL SISTEMA
 # ============================================================================
 
+class BundleApp(Base):
+    """Paquetes de actualizacion del frontend para la app empaquetada (iPhone).
+
+    En Android la app carga las pantallas desde Render, asi que un cambio llega
+    solo. En iPhone no se puede (Apple no permite que una app cargue toda su
+    interfaz desde una web), asi que el frontend va dentro del .ipa y cada
+    cambio costaba una version nueva y la cola de revision de Apple.
+
+    Esta tabla es el indice de los paquetes que la app se descarga por aire:
+    cada fila es un frontend compilado, guardado como .zip en Supabase. La app
+    pregunta "cual es el ultimo" y aqui esta la respuesta.
+
+    El checksum NO es decoracion: la app baja el zip, le saca el SHA-256 y lo
+    compara. Si no coincide, no lo instala. Eso es lo que impide que un archivo
+    corrupto a medio bajar, o cambiado por alguien en el camino, termine
+    reemplazando la app de un cliente.
+    """
+
+    __tablename__ = "bundles_app"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    plataforma = Column(String(20), nullable=False, default="ios", index=True)
+    # Version del paquete, en formato x.y.z (ej. 1.2.14)
+    version = Column(String(30), nullable=False, index=True)
+    url = Column(String(500), nullable=False)
+    checksum = Column(String(64), nullable=False)
+    tamano_bytes = Column(Integer)
+    # Se apaga en vez de borrarse: si un paquete sale malo, se desactiva y la
+    # app vuelve a quedarse con el anterior, pero el registro queda para saber
+    # que paso.
+    activo = Column(Boolean, default=True, nullable=False, index=True)
+    notas = Column(Text)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)
+
+    def __repr__(self):
+        return f"<BundleApp {self.plataforma} {self.version}>"
+
+
 class ConfiguracionSistema(Base):
     __tablename__ = "configuracion_sistema"
 
