@@ -14,8 +14,27 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from config import get_db
-from models import Usuario, PedidoEspecial
+from models import Usuario, PedidoEspecial, EstadoUsuario, ConfiguracionSistema
 from routes_auth import get_current_user
+from push import notificar_usuarios
+
+
+# Lo que cobra ZIPPYGO por el mandado, aparte de lo que valga la compra.
+# Vive en configuracion_sistema para que se cambie desde el panel sin tocar
+# codigo; este numero es solo el respaldo si todavia no se ha configurado.
+COSTO_MANDADO_POR_DEFECTO = 4000
+
+
+def _costo_mandado(db: Session) -> float:
+    fila = db.query(ConfiguracionSistema).filter(
+        ConfiguracionSistema.clave == "costo_mandado"
+    ).first()
+    if fila and fila.valor:
+        try:
+            return float(fila.valor)
+        except ValueError:
+            pass
+    return float(COSTO_MANDADO_POR_DEFECTO)
 
 router = APIRouter(prefix="/api/v1/pedidos-especiales", tags=["Pedidos especiales"])
 
@@ -46,8 +65,12 @@ def _a_dict(p: PedidoEspecial, db: Session) -> dict:
         "idCompleto": str(p.id),
         "estado": p.estado,
         "items": p.items or [],
+        "origen": p.origen or "",
         "direccion": p.direccion,
         "barrio": p.barrio or "",
+        # Lo que el repartidor le cobra al cliente por el servicio, aparte de
+        # lo que valga la compra.
+        "costo_servicio": float(p.costo_servicio) if p.costo_servicio is not None else None,
         "telefono": p.telefono or (cliente.telefono if cliente else ""),
         "notas": p.notas or "",
         "cliente": nombre_cliente or "Cliente",
@@ -100,15 +123,46 @@ async def crear_pedido_especial(
         cliente_id=current_user.id,
         estado="pendiente",
         items=items,
+        origen=(datos.get("origen") or "").strip()[:300] or None,
         direccion=direccion[:500],
         barrio=(datos.get("barrio") or "").strip()[:150] or None,
         telefono=(datos.get("telefono") or "").strip()[:30] or None,
         notas=(datos.get("notas") or "").strip() or None,
+        # Se congela el precio del dia: si manana sube la tarifa, este pedido
+        # conserva lo que se le dijo al cliente.
+        costo_servicio=_costo_mandado(db),
     )
 
     db.add(pedido)
     db.commit()
     db.refresh(pedido)
+
+    # Avisarle a los repartidores. Esto faltaba por completo: el mandado se
+    # guardaba bien y aparecia en la lista, pero nadie se enteraba. El
+    # repartidor solo lo veia si tenia la app abierta y esperaba a que la
+    # pantalla se refrescara sola, asi que un mandado podia quedarse horas ahi.
+    #
+    # Va envuelto en try porque el pedido YA quedo guardado: si falla el aviso,
+    # se pierde el aviso, no el pedido.
+    try:
+        domiciliarios = db.query(Usuario).filter(
+            Usuario.tipo_usuario == "domiciliario",
+            Usuario.estado == EstadoUsuario.ACTIVO,
+            Usuario.fcm_token.isnot(None),
+        ).all()
+        cuantos = len(pedido.items or [])
+        detalle = f"{cuantos} cosa{'s' if cuantos != 1 else ''}"
+        donde = f" desde {pedido.origen}" if pedido.origen else ""
+        notificar_usuarios(
+            db, domiciliarios,
+            tipo="mandado_nuevo",
+            titulo="Mandado nuevo",
+            mensaje=f"Un cliente pide {detalle}{donde} para {pedido.barrio or pedido.direccion}",
+            relacionado_tabla="pedidos_especiales",
+            relacionado_id=pedido.id,
+        )
+    except Exception as e:
+        print(f"[mandado] no se pudo avisar a los repartidores: {e}")
 
     return _a_dict(pedido, db)
 

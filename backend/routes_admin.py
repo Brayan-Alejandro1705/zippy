@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 # Claves con las que se guardan los valores en configuracion_sistema
 CLAVE_WHATSAPP = "whatsapp_soporte"
 CLAVE_DOMICILIO = "costo_domicilio"
+CLAVE_MANDADO = "costo_mandado"
 CLAVE_VERSION_MINIMA = "version_minima_android"
 CLAVE_ACTUALIZACION_OBLIGATORIA = "actualizacion_obligatoria"
 CLAVE_MENSAJE_ACTUALIZACION = "mensaje_actualizacion_app"
@@ -25,6 +26,13 @@ CLAVE_MENSAJE_ACTUALIZACION = "mensaje_actualizacion_app"
 # cien mil casi seguro es un dedazo (un cero de mas).
 DOMICILIO_MINIMO = 0
 DOMICILIO_MAXIMO = 50000
+
+# Lo que cobra ZIPPYGO por un mandado, aparte de lo que valga la compra.
+# Decidido con el equipo (oct 2026): tarifa unica de 4.000, sin cotizar.
+# Un mandado gratis seria un error de dedo, y uno de cien mil tambien.
+MANDADO_POR_DEFECTO = 4000
+MANDADO_MINIMO = 1000
+MANDADO_MAXIMO = 50000
 
 
 # ============================================================================
@@ -350,3 +358,68 @@ async def actualizar_actualizacion(
         "obligatoria": obligatoria,
         "mensaje": mensaje,
     }
+
+
+# ============================================================================
+# COSTO DEL MANDADO
+# ============================================================================
+
+@router.get(
+    "/configuracion/mandado",
+    summary="Obtener el costo del mandado",
+    description="Devuelve la tarifa fija que cobra ZIPPYGO por un mandado, aparte "
+                "de lo que valga la compra. La consulta el cliente antes de pedir "
+                "y el repartidor para saber cuanto cobrar.",
+)
+async def obtener_costo_mandado(db: Session = Depends(get_db)):
+    valor = _obtener_valor(db, CLAVE_MANDADO, "")
+    if not valor:
+        return {"costo_mandado": float(MANDADO_POR_DEFECTO), "configurado": False}
+    try:
+        return {"costo_mandado": float(valor), "configurado": True}
+    except ValueError:
+        # Alguien guardo basura: no se rompe el pedido por eso.
+        return {"costo_mandado": float(MANDADO_POR_DEFECTO), "configurado": False}
+
+
+@router.put(
+    "/configuracion/mandado",
+    summary="Actualizar el costo del mandado",
+    description="Solo administradores.",
+)
+async def actualizar_costo_mandado(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _es_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo un administrador puede cambiar el costo del mandado",
+        )
+
+    crudo = datos.get("costo_mandado", datos.get("valor"))
+    try:
+        costo = float(str(crudo).replace(".", "").replace(",", "."))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El costo debe ser un numero",
+        )
+
+    if not MANDADO_MINIMO <= costo <= MANDADO_MAXIMO:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El costo del mandado debe estar entre {MANDADO_MINIMO} y {MANDADO_MAXIMO}",
+        )
+
+    _guardar_valor(db, CLAVE_MANDADO, str(int(costo)), "Tarifa fija por mandado")
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        accion="Configuración",
+        tabla_afectada="configuracion_sistema",
+        detalle=f"Costo del mandado cambiado a {int(costo)}",
+    )
+    db.commit()
+    return {"costo_mandado": costo, "configurado": True}

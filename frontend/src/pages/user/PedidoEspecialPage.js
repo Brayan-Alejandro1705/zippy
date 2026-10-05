@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import UserLayout from '../../components/UserLayout';
 import { useToast } from '../../context/ToastContext';
 import '../../styles/PedidoEspecial.css';
-import { pedidosEspecialesService } from '../../config/api';
+import { pedidosEspecialesService, mandadoService } from '../../config/api';
 import Icon from '../../components/Icons';
 
 const UNIDADES = ['unidad', 'kg', 'g', 'libra', 'litro', 'ml', 'paquete', 'caja', 'lata', 'botella'];
@@ -20,11 +20,23 @@ const PedidoEspecialPage = () => {
   const { addToast } = useToast();
 
   const [items, setItems] = useState([itemVacio()]);
+  const [origen, setOrigen] = useState('');
   const [direccion, setDireccion] = useState('');
   const [barrio, setBarrio] = useState('');
   const [telefono, setTelefono] = useState('');
   const [notas, setNotas] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // Lo que cobra ZIPPYGO por el mandado. Se pide al servidor y no se escribe
+  // aqui para que cambiarlo sea cosa del panel, no de recompilar la app.
+  const [costo, setCosto] = useState(null);
+
+  useEffect(() => {
+    let activo = true;
+    mandadoService.costo()
+      .then(({ data }) => { if (activo) setCosto(Number(data?.costo_mandado) || null); })
+      .catch(() => { if (activo) setCosto(null); });
+    return () => { activo = false; };
+  }, []);
 
   const agregarItem = () => setItems(prev => [...prev, itemVacio()]);
 
@@ -55,6 +67,7 @@ const PedidoEspecialPage = () => {
           cantidad: i.cantidad,
           unidad: i.unidad,
         })),
+        origen: origen.trim(),
         direccion: direccion.trim(),
         barrio: barrio.trim(),
         telefono: telefono.trim(),
@@ -158,6 +171,17 @@ const PedidoEspecialPage = () => {
           {/* Entrega */}
           <section className="pe-section">
             <h2 className="pe-section-title">Datos de entrega</h2>
+            {/* Antes no se preguntaba de donde, asi que el repartidor aceptaba
+                sin saber si era la tienda de la esquina o la plaza. */}
+            <div className="pe-field">
+              <label className="pe-label">¿De dónde lo traemos?</label>
+              <input
+                className="pe-input"
+                placeholder="Ej: La plaza de mercado, Éxito, la droguería de la 5ta"
+                value={origen}
+                onChange={e => setOrigen(e.target.value)}
+              />
+            </div>
             <div className="pe-field">
               <label className="pe-label">Dirección *</label>
               <input
@@ -212,6 +236,18 @@ const PedidoEspecialPage = () => {
                   </li>
                 ))}
               </ul>
+              {costo != null && (
+                <div className="pe-costo">
+                  <div className="pe-costo-linea">
+                    <span>Servicio del mandado</span>
+                    <strong>${costo.toLocaleString('es-CO')}</strong>
+                  </div>
+                  <p className="pe-costo-nota">
+                    Aparte pagas lo que valgan las cosas que te traigan. El
+                    repartidor te cobra todo junto al entregar, en efectivo.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

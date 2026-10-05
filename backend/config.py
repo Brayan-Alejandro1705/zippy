@@ -213,6 +213,9 @@ def init_db():
                 "ALTER TABLE resenas_calificaciones ADD COLUMN IF NOT EXISTS calificacion_domiciliario INTEGER",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS calificacion_promedio NUMERIC(3,2) DEFAULT 0",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS total_calificaciones INTEGER NOT NULL DEFAULT 0",
+                # Oct 2026: los mandados ya se cobran y preguntan de donde traer
+                "ALTER TABLE pedidos_especiales ADD COLUMN IF NOT EXISTS origen VARCHAR(300)",
+                "ALTER TABLE pedidos_especiales ADD COLUMN IF NOT EXISTS costo_servicio NUMERIC(10,2)",
             ):
                 conn.execute(text(sql))
             conn.commit()

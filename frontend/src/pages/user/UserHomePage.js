@@ -101,6 +101,10 @@ const UserHomePage = () => {
           .map((n, i) => ({
             id: n.id,
             nombre: n.nombre_negocio,
+            // El negocio sube su logo desde su perfil y estaba guardado sin
+            // que nadie lo mostrara: el cliente veia una cajita gris igual
+            // para todos.
+            logo: n.logo || null,
             icon: getIcon(n.categoria),
             color: STORE_COLORS[i % STORE_COLORS.length].bg,
             text: STORE_COLORS[i % STORE_COLORS.length].text,
@@ -376,7 +380,11 @@ const UserHomePage = () => {
                   if (!activa) setTimeout(() => document.getElementById('uh-productos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
                 }}
               >
-                <div className="uh-store-avatar" style={{ background: t.color, color: t.text }}><Icon name={t.icon} size={22} /></div>
+                <div className="uh-store-avatar" style={{ background: t.color, color: t.text }}>
+                  {t.logo
+                    ? <img src={urlImagen(t.logo)} alt={t.nombre} loading="lazy" />
+                    : <Icon name={t.icon} size={22} />}
+                </div>
                 <div className="uh-store-info">
                   <p className="uh-store-name">{t.nombre}</p>
                   {estaAbierto(t)
@@ -430,7 +438,11 @@ const UserHomePage = () => {
                     className={`uh-sidebar-item ${tiendaFiltro === t.nombre ? 'uh-sidebar-item--active' : ''}`}
                     onClick={() => setTiendaFiltro(prev => prev === t.nombre ? '' : t.nombre)}
                   >
-                    <span className="uh-sidebar-icon"><Icon name={t.icon} size={17} /></span>
+                    <span className="uh-sidebar-icon">
+                      {t.logo
+                        ? <img src={urlImagen(t.logo)} alt="" className="uh-sidebar-logo" loading="lazy" />
+                        : <Icon name={t.icon} size={17} />}
+                    </span>
                     <span style={{ fontSize: 12 }}>{t.nombre}</span>
                   </button>
                 ))}

@@ -473,7 +473,98 @@ const SeccionPrecios = () => {
           </button>
         </div>
       </form>
+
+      <SeccionCostoMandado />
     </div>
+  );
+};
+
+// El mandado se cobra con tarifa unica: el repartidor no cotiza. Se decidio
+// asi (oct 2026) porque una tarifa fija no se presta para que nadie se exceda
+// y el cliente sabe cuanto va a pagar antes de pedir.
+const SeccionCostoMandado = () => {
+  const { addToast } = useToast();
+  const [costo, setCosto]         = useState('');
+  const [original, setOriginal]   = useState('');
+  const [configurado, setConfig]  = useState(false);
+  const [cargando, setCargando]   = useState(true);
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    adminService.obtenerMandado()
+      .then(({ data }) => {
+        const valor = String(Math.round(data.costo_mandado ?? 0));
+        setCosto(valor);
+        setOriginal(valor);
+        setConfig(Boolean(data.configurado));
+      })
+      .catch(() => addToast('No se pudo cargar el costo del mandado', 'error'))
+      .finally(() => setCargando(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const guardar = async (e) => {
+    e.preventDefault();
+    const numero = Number(String(costo).replace(/[^\d]/g, ''));
+    if (!numero) { addToast('Escribe un valor válido', 'error'); return; }
+    if (numero > 50000) { addToast('Ese valor parece un error. El máximo es $50.000', 'error'); return; }
+
+    setGuardando(true);
+    try {
+      const { data } = await adminService.actualizarMandado(numero);
+      const valor = String(Math.round(data.costo_mandado));
+      setCosto(valor);
+      setOriginal(valor);
+      setConfig(true);
+      addToast('Costo del mandado actualizado', 'success');
+    } catch (err) {
+      const detalle = err?.response?.data?.detail;
+      addToast(typeof detalle === 'string' ? detalle : 'No se pudo guardar', 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const fmt = (n) => `$${Number(n || 0).toLocaleString('es-CO')}`;
+  const cambio = costo !== original;
+
+  return (
+    <form className="cfg-card" onSubmit={guardar}>
+      <div className="cfg-card-title">Costo del mandado</div>
+      <p className="cfg-notif-desc" style={{ marginBottom: 16 }}>
+        Tarifa única por mandado, aparte de lo que valga la compra. El
+        repartidor no cotiza: cobra siempre este valor, así que el cliente sabe
+        desde el principio cuánto va a pagar. El cambio aplica solo a los
+        mandados nuevos; los que ya estaban pedidos conservan su precio.
+      </p>
+
+      <div className="cfg-field" style={{ maxWidth: 240 }}>
+        <label>Valor por mandado (COP)</label>
+        <input
+          type="number"
+          min="1000"
+          max="50000"
+          step="500"
+          value={costo}
+          disabled={cargando || guardando}
+          onChange={(e) => setCosto(e.target.value)}
+          placeholder="4000"
+        />
+      </div>
+
+      {!cargando && (
+        <p className="cfg-notif-desc" style={{ marginTop: 12 }}>
+          Actualmente se cobra <strong>{fmt(original)}</strong> por mandado.
+          {!configurado && ' (valor por defecto, aún no configurado)'}
+        </p>
+      )}
+
+      <div className="cfg-actions" style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+        <button type="submit" className="cfg-btn-save" disabled={cargando || guardando || !cambio}>
+          {guardando ? 'Guardando…' : 'Guardar precio'}
+        </button>
+      </div>
+    </form>
   );
 };
 

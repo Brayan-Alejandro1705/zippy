@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
 import { useTheme } from '../../context/ThemeContext';
-import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService } from '../../config/api';
+import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService, negociosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
 import CentroAyuda from '../../components/CentroAyuda';
@@ -12,6 +12,7 @@ import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
 import AccountSwitcher from '../../components/AccountSwitcher';
 import { registrarPush } from '../../utils/push';
+import { urlImagen } from '../../utils/media';
 
 const MAP_OPTIONS = {
   disableDefaultUI: false,
@@ -599,8 +600,27 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
         )}
       </div>
 
+      {/* Donde recoger. El repartidor lo necesita antes que nada y la tarjeta
+          no lo decia por ningun lado. */}
+      {orden.negocio && (
+        <p className="rp-order-negocio">
+          {orden.negocioLogo
+            ? <img src={urlImagen(orden.negocioLogo)} alt="" className="rp-negocio-logo" loading="lazy" />
+            : <Icon name="vendedores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />}
+          Recoger en <strong>{orden.negocio}</strong>
+        </p>
+      )}
+
       <div className="rp-order-products">
-        <div className="rp-order-thumb">{orden.emoji}</div>
+        {/* Antes aqui se pintaba el NOMBRE del icono como texto: en la tarjeta
+            salia literalmente la palabra "paquete" dentro de un cuadro gris. */}
+        <div className="rp-order-thumb">
+          {orden.fotoProducto
+            ? <img src={urlImagen(orden.fotoProducto)} alt="" loading="lazy" />
+            : orden.negocioLogo
+              ? <img src={urlImagen(orden.negocioLogo)} alt="" loading="lazy" />
+              : <Icon name={orden.emoji || 'paquete'} size={20} />}
+        </div>
         <div className="rp-order-items">{orden.items}</div>
       </div>
 
@@ -641,7 +661,7 @@ const OrdenCard = ({ orden, onAvanzar, onSelect, selected, onReport, reported, o
   );
 };
 
-/* ── Pedidos especiales del cliente (todavía solo locales, sin backend) ──── */
+/* ── Mandados ─────────────────────────────────────────────────────────── */
 const PedidoEspecialCard = ({ pedido, onAdvance }) => {
   const cfg = ESTADO_CFG[pedido.estado] || ESTADO_CFG['disponible'];
   return (
@@ -658,6 +678,15 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
           </div>
         )}
       </div>
+
+      {/* De donde, antes que a donde: es lo primero que el repartidor
+          necesita saber para decidir si lo toma. */}
+      {pedido.origen && (
+        <p className="rp-especial-origen">
+          <Icon name="vendedores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />
+          Recoger en <strong>{pedido.origen}</strong>
+        </p>
+      )}
 
       <div className="rp-order-addr-row">
         <div>
@@ -688,6 +717,16 @@ const PedidoEspecialCard = ({ pedido, onAdvance }) => {
 
       {pedido.notas && (
         <p className="rp-order-instructions"><Icon name="campana_aviso" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{pedido.notas}</p>
+      )}
+
+      {/* Cuanto cobrar. Antes aqui solo decia "Mandado" y el repartidor no
+          tenia ni idea de que pedirle al cliente. */}
+      {pedido.costo_servicio != null && (
+        <div className="rp-especial-cobro">
+          <span>Cóbrale por el servicio</span>
+          <strong>${Number(pedido.costo_servicio).toLocaleString('es-CO')}</strong>
+          <small>más lo que valga la compra</small>
+        </div>
       )}
 
       <div className="rp-order-footer">
@@ -840,17 +879,23 @@ const RepartidorPage = () => {
 
       const clienteIds  = [...new Set(crudas.map(o => o.cliente_id))];
       const productoIds = [...new Set(crudas.flatMap(o => o.items.map(it => it.producto_id)))];
+      const negocioIds  = [...new Set(crudas.map(o => o.negocio_id).filter(Boolean))];
 
-      const [clientesPairs, productosPairs] = await Promise.all([
+      const [clientesPairs, productosPairs, negociosPairs] = await Promise.all([
         Promise.all(clienteIds.map(id => usuariosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
         Promise.all(productoIds.map(id => productosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
+        // El negocio hace falta para dos cosas: el repartidor necesita saber
+        // DONDE recoger, y el logo evita la cajita gris igual para todos.
+        Promise.all(negocioIds.map(id => negociosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
       ]);
       const clientesMap  = Object.fromEntries(clientesPairs);
       const productosMap = Object.fromEntries(productosPairs);
+      const negociosMap  = Object.fromEntries(negociosPairs);
 
       const mapear = (o, esDisponible) => {
         const cliente = clientesMap[o.cliente_id];
         const primerProducto = productosMap[o.items[0]?.producto_id];
+        const negocio = negociosMap[o.negocio_id];
         return {
           id: `#${o.id.slice(0, 8)}`,
           idCompleto: o.id,
@@ -861,6 +906,9 @@ const RepartidorPage = () => {
           telefono: cliente?.telefono,
           items: o.items.map(it => `${productosMap[it.producto_id]?.nombre || 'Producto'} x${it.cantidad}`).join(', '),
           emoji: getIcon(primerProducto?.categoria),
+          negocio: negocio?.nombre_negocio || null,
+          negocioLogo: negocio?.logo || null,
+          fotoProducto: primerProducto?.imagenes?.[0] || null,
           total: Number(o.total),
           pago: o.metodo_pago,
           instrucciones: o.notas_cliente || null,

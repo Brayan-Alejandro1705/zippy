@@ -153,6 +153,9 @@ export const adminService = {
   obtenerDomicilio:    () => api.get('/admin/configuracion/domicilio'),
   actualizarDomicilio: (costo) =>
     api.put('/admin/configuracion/domicilio', { costo_domicilio: costo }),
+  obtenerMandado:    () => api.get('/admin/configuracion/mandado'),
+  actualizarMandado: (costo) =>
+    api.put('/admin/configuracion/mandado', { costo_mandado: costo }),
   obtenerActualizacion:    () => api.get('/admin/configuracion/actualizacion'),
   actualizarActualizacion: (version_minima, obligatoria, mensaje) =>
     api.put('/admin/configuracion/actualizacion', { version_minima, obligatoria, mensaje }),
@@ -168,6 +171,12 @@ export const soporteService = {
 // MISMO valor que el servidor va a cobrar. El endpoint de lectura es publico.
 export const domicilioService = {
   obtener: () => api.get('/admin/configuracion/domicilio'),
+};
+
+// Lo que cobra ZIPPYGO por un mandado, aparte de lo que valga la compra.
+// Es publico a proposito: el cliente tiene que verlo ANTES de pedir.
+export const mandadoService = {
+  costo: () => api.get('/admin/configuracion/mandado'),
 };
 
 export const usuariosService = {

@@ -795,10 +795,20 @@ class PedidoEspecial(Base):
     # Lista de artículos: [{ "descripcion": "...", "cantidad": 2, "unidad": "kg" }]
     items = Column(JSON, default=[])
 
+    # De donde hay que traerlo. Antes no se preguntaba, asi que el repartidor
+    # aceptaba sin saber si era la tienda de la esquina o la plaza.
+    origen = Column(String(300))
+
     direccion = Column(String(500), nullable=False)
     barrio = Column(String(150))
     telefono = Column(String(30))
     notas = Column(Text)
+
+    # Lo que cobra ZIPPYGO por el mandado, APARTE de lo que valga la compra.
+    # Se guarda en el pedido y no se lee de la configuracion al mostrarlo:
+    # si manana sube la tarifa, los pedidos viejos conservan lo que se pacto
+    # con el cliente ese dia.
+    costo_servicio = Column(DECIMAL(10, 2))
 
     fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)
     fecha_aceptacion = Column(DateTime)
