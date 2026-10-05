@@ -14,12 +14,21 @@ import '../styles/ChatBurbuja.css';
  *
  * Se cierra sola cuando el chat deja de estar activo, no: se queda abierta
  * mostrando el aviso, porque leer lo que se dijo sigue sirviendo.
+ *
+ * Dos botones distintos en el encabezado, a proposito:
+ *   -  minimizar: vuelve a ser la burbuja y el chat sigue ahi, con su contador
+ *      de mensajes sin leer. Es lo que se usa el 90% de las veces, porque el
+ *      repartidor escribe, sigue comprando y vuelve.
+ *   X  cerrar: lo quita de la pantalla del todo.
+ * Antes solo estaba la X y cerraba todo, asi que la burbuja nunca llegaba a
+ * verse: se armaba y se desarmaba sin pasar nunca por ese estado.
  */
 
 const POLL_AVISO_MS = 20000;
 
 const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar }) => {
-  const [abierto, setAbierto] = useState(false);
+  // Arranca abierto: se monta justo cuando la persona toco "Escribirle"
+  const [abierto, setAbierto] = useState(true);
   const [sinLeer, setSinLeer] = useState(0);
   // Cuantos mensajes habia la ultima vez que la persona miro el chat
   const vistos = useRef(0);
@@ -55,11 +64,23 @@ const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar }) => {
       .catch(() => {});
   };
 
-  const cerrar = () => {
-    setAbierto(false);
+  // Marca como leido lo que haya ahora mismo
+  const darPorLeido = () => {
     servicio.mensajes(id)
       .then(({ data }) => { vistos.current = Array.isArray(data) ? data.length : 0; })
       .catch(() => {});
+  };
+
+  // Vuelve a ser burbuja; el chat sigue vivo
+  const minimizar = () => {
+    darPorLeido();
+    setAbierto(false);
+  };
+
+  // Lo quita de la pantalla
+  const cerrarDelTodo = () => {
+    darPorLeido();
+    setAbierto(false);
     if (onCerrar) onCerrar();
   };
 
@@ -81,9 +102,14 @@ const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar }) => {
               <Icon name="chat" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />
               {titulo}
             </span>
-            <button type="button" className="cb-panel-cerrar" onClick={cerrar} aria-label="Cerrar chat">
-              <Icon name="equis" size={16} />
-            </button>
+            <div className="cb-panel-botones">
+              <button type="button" className="cb-panel-btn" onClick={minimizar} aria-label="Minimizar el chat" title="Minimizar">
+                <span className="cb-minimizar" />
+              </button>
+              <button type="button" className="cb-panel-btn" onClick={cerrarDelTodo} aria-label="Cerrar el chat" title="Cerrar">
+                <Icon name="equis" size={16} />
+              </button>
+            </div>
           </div>
           <div className="cb-panel-cuerpo">
             <OrdenChat ordenId={id} servicio={servicio} />
