@@ -340,10 +340,19 @@
 
 .rp-order-footer {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  /* Si los botones no caben en el ancho del telefono, bajan a otro renglon en
+     vez de salirse de la tarjeta. Pasaba con los mandados al agregarles el
+     boton del chat: "Marcar entregado" quedaba cortado por el borde. */
+  flex-wrap: wrap;
 }
 .rp-order-total { font-family: 'Manrope', sans-serif; font-size: 16px; font-weight: 800; color: #FF7A00; }
 
-.rp-order-actions { display: flex; align-items: center; gap: 8px; }
+.rp-order-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+/* El boton de avanzar nunca se corta: si hace falta, se encoge el texto */
+.rp-order-actions .rp-action-btn { flex: 0 1 auto; min-width: 0; }
+/* Escribirle al cliente del mandado, en morado como el resto del mandado */
+.rp-chat-btn { background: #ede9fe; color: #6d28d9; }
+.rp-chat-btn:hover { background: #ddd6fe; }
 .rp-report-btn {
   width: 34px; height: 34px; border-radius: 10px;
   border: none; background: #f1f5f9; cursor: pointer;
@@ -364,9 +373,7 @@
 .rp-action-btn:disabled { opacity: 0.55; cursor: default; transform: none; }
 .rp-action-btn:disabled:hover { opacity: 0.55; transform: none; }
 .rp-btn--orange { background: #FF7A00; color: white; box-shadow: 0 3px 10px rgba(255,122,0,0.3); }
-/* Escribirle al cliente del mandado: en morado como el resto del mandado,
-   y mas discreto que el boton de avanzar para no competir con el */
-.rp-action-btn--chat { background: #ede9fe; color: #6d28d9; }
+
 .rp-btn--blue   { background: #3b82f6; color: white; box-shadow: 0 3px 10px rgba(59,130,246,0.3); }
 .rp-btn--green  { background: #10b981; color: white; box-shadow: 0 3px 10px rgba(16,185,129,0.3); }
 

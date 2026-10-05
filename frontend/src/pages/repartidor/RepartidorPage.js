@@ -735,13 +735,18 @@ const PedidoEspecialCard = ({ pedido, onAdvance, onChat, ocupado }) => {
         <span className="rp-order-total" style={{ color: '#8b5cf6' }}>Mandado</span>
         <div className="rp-order-actions">
           {/* El chat solo tiene sentido cuando ya lo tomo: antes de eso el
-              cliente no sabe quien le va a escribir. */}
+              cliente no sabe quien le va a escribir.
+              Va como icono y no con texto: en un telefono, "Escribirle" mas
+              "Marcar entregado" en el mismo renglon no caben y se salian de la
+              tarjeta. Es el mismo boton que ya usan los pedidos normales. */}
           {pedido.estado === 'en_camino' && onChat && (
             <button
-              className="rp-action-btn rp-action-btn--chat"
+              className="rp-report-btn rp-chat-btn"
               onClick={() => onChat(pedido)}
+              title="Escribirle al cliente"
+              aria-label="Escribirle al cliente"
             >
-              <Icon name="chat" size={15} style={{ verticalAlign: '-2px', marginRight: 5 }} />Escribirle
+              <Icon name="chat" size={17} />
             </button>
           )}
           {cfg.btnLabel && (
