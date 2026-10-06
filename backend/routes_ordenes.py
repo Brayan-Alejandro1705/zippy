@@ -3,7 +3,7 @@
 # ============================================================================
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload, joinedload
 from sqlalchemy import and_, or_, func
 from pydantic import BaseModel
 from typing import Optional
@@ -308,9 +308,37 @@ async def listar_ordenes(
     if estado:
         query = query.filter(Orden.estado == estado)
     
+    # Sin esto SQLAlchemy pide el cliente, el negocio y cada producto de uno en
+    # uno al armar la respuesta: una lista de diez pedidos se convertia en
+    # decenas de consultas.
+    query = query.options(
+        joinedload(Orden.cliente),
+        joinedload(Orden.negocio),
+        selectinload(Orden.items).joinedload(ItemOrden.producto),
+    )
+
     ordenes = query.order_by(Orden.fecha_creacion.desc()).offset(skip).limit(limit).all()
 
     respuesta = [OrdenResponse.from_orm(o) for o in ordenes]
+
+    # Nombres, fotos y logo resueltos aqui. Le ahorra a la app una peticion por
+    # cliente, por producto y por negocio en cada refresco.
+    for r, o in zip(respuesta, ordenes):
+        cliente = o.cliente
+        if cliente:
+            r.cliente_nombre = f"{cliente.nombre} {cliente.apellido or ''}".strip() or None
+            r.cliente_telefono = cliente.telefono
+        if o.negocio:
+            r.negocio_nombre = o.negocio.nombre_negocio
+            r.negocio_logo = o.negocio.logo
+        for item_r, item_o in zip(r.items, o.items):
+            producto = item_o.producto
+            if not producto:
+                continue
+            item_r.producto_nombre = producto.nombre
+            item_r.producto_categoria = producto.categoria
+            imagenes = producto.imagenes or []
+            item_r.producto_imagen = imagenes[0] if imagenes else None
 
     # Al repartidor le mostramos si el cliente es nuevo o ya ha recibido pedidos
     if current_user.tipo_usuario == "domiciliario" and respuesta:

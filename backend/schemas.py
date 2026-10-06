@@ -233,6 +233,12 @@ class ItemOrdenResponse(BaseModel):
     precio_unitario: Decimal
     subtotal: Decimal
     especificaciones: Dict[str, Any]
+    # Datos del producto metidos aqui mismo. Antes la pantalla del repartidor
+    # tenia que pedir cada producto por aparte: con cuatro pedidos eran mas de
+    # diez peticiones cada 15 segundos, y el telefono se arrastraba.
+    producto_nombre: Optional[str] = None
+    producto_imagen: Optional[str] = None
+    producto_categoria: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -283,6 +289,13 @@ class OrdenResponse(BaseModel):
     reporte_motivo: Optional[str] = None
     # Solo para repartidores: cuantos pedidos le han entregado a este cliente
     cliente_pedidos_entregados: Optional[int] = None
+    # Igual que en los items: el nombre del cliente, su telefono y el negocio
+    # donde se recoge vienen ya resueltos, en vez de que la app los pida uno
+    # por uno.
+    cliente_nombre: Optional[str] = None
+    cliente_telefono: Optional[str] = None
+    negocio_nombre: Optional[str] = None
+    negocio_logo: Optional[str] = None
 
     class Config:
         from_attributes = True

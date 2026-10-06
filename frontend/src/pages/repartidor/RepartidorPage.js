@@ -81,6 +81,16 @@ const getIcon = (categoria) => CAT_ICON[(categoria || '').toLowerCase()] || 'paq
 
 const fmt = n => `$${Math.round(n).toLocaleString('es-CO')}`;
 
+// Cada cuanto se le vuelve a preguntar al servidor por pedidos nuevos.
+const REFRESCO_MS = 15000;
+// Cuanto se tiene que mover el repartidor para que la pantalla se entere.
+const METROS_PARA_MOVER = 20;
+
+// Dos listas de pedidos son "la misma" si no cambio nada de lo que se ve. Si
+// no se compara, cada refresco devuelve objetos nuevos y React vuelve a
+// dibujar el mapa entero y todas las tarjetas aunque no haya pasado nada.
+const mismaLista = (a, b) => a.length === b.length && JSON.stringify(a) === JSON.stringify(b);
+
 const haversineKm = (a, b) => {
   if (!a || !b) return 0;
   const R = 6371;
@@ -836,6 +846,9 @@ const RepartidorPage = () => {
 
   const [ordenes,  setOrdenes]  = useState([]);
   const [loading,  setLoading]  = useState(true);
+  // Se perdio la conexion con el servidor: la lista que se ve es la ultima
+  // buena, no se borra.
+  const [sinConexion, setSinConexion] = useState(false);
   const [pedidosEspeciales, setPedidosEspeciales] = useState([]);
   const [selected,  setSelected]  = useState(null);
   const [online,    setOnline]    = useState(true);
@@ -893,14 +906,31 @@ const RepartidorPage = () => {
     return () => { activo = false; };
   }, []);
 
-  /* Geolocalización del repartidor */
+  /*
+   * Geolocalizacion del repartidor.
+   *
+   * El GPS avisa varias veces por segundo cuando va en la moto. Cada aviso
+   * volvia a dibujar el mapa, los marcadores y todas las tarjetas, y ademas
+   * recalculaba distancias creando objetos nuevos: la pantalla se sentia
+   * pesada y el telefono se calentaba. Ahora solo se tiene en cuenta cuando
+   * de verdad se movio (20 metros), que es lo unico que cambia algo en
+   * pantalla.
+   */
+  const ultimaPosRef = useRef(null);
+
   useEffect(() => {
     if (!navigator.geolocation) {
       setDriverPos(GARZON);
       return;
     }
     const id = navigator.geolocation.watchPosition(
-      pos => setDriverPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => {
+        const nueva = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const anterior = ultimaPosRef.current;
+        if (anterior && haversineKm(anterior, nueva) < METROS_PARA_MOVER / 1000) return;
+        ultimaPosRef.current = nueva;
+        setDriverPos(nueva);
+      },
       ()  => setDriverPos(GARZON),   // fallback a Garzón si se deniega
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
@@ -909,103 +939,142 @@ const RepartidorPage = () => {
 
   /* Carga real de pedidos disponibles + mis entregas asignadas */
   const cargarOrdenes = useCallback(async () => {
-    try {
-      const [{ data: disponiblesRaw }, { data: miasRaw }] = await Promise.all([
-        ordenesService.listar({ disponibles: true }),
-        ordenesService.listar(),
-      ]);
-      const crudas = [...disponiblesRaw, ...miasRaw];
+    // allSettled y no all: si una de las dos listas falla, la otra igual
+    // sirve. Con Promise.all un solo bache de señal tumbaba las dos.
+    const [resDisponibles, resMias] = await Promise.allSettled([
+      ordenesService.listar({ disponibles: true }),
+      ordenesService.listar(),
+    ]);
+    setLoading(false);
 
-      // Los nombres de clientes, productos y negocios no cambian entre un
-      // refresco y otro, pero se estaban volviendo a pedir TODOS cada 15
-      // segundos: con cuatro pedidos eran mas de diez peticiones por vuelta.
-      // Eso dejaba el telefono ocupado justo cuando el repartidor tocaba
-      // "Tomar pedido", y el boton se sentia muerto. Ahora solo se pide lo
-      // que no se tenga ya guardado.
-      const cache = datosCache.current;
-      const faltan = (ids, mapa) => ids.filter(id => id && !(id in mapa));
+    const fallaronLasDos = resDisponibles.status === 'rejected' && resMias.status === 'rejected';
+    setSinConexion(fallaronLasDos);
 
-      const clienteIds  = [...new Set(crudas.map(o => o.cliente_id))];
-      const productoIds = [...new Set(crudas.flatMap(o => o.items.map(it => it.producto_id)))];
-      const negocioIds  = [...new Set(crudas.map(o => o.negocio_id).filter(Boolean))];
+    /*
+     * ESTO es lo que hacia que al repartidor se le desaparecieran los pedidos.
+     * Antes, cualquier error —el servidor despertandose, un tunel sin señal,
+     * un 500 suelto— caia en un catch que hacia setOrdenes([]) y le borraba la
+     * pantalla, incluso los pedidos que ya tenia aceptados. Ahora un fallo no
+     * borra nada: se queda lo que habia y se avisa que no hay conexion.
+     */
+    if (fallaronLasDos) return;
 
+    const disponiblesRaw = resDisponibles.status === 'fulfilled' ? (resDisponibles.value.data || []) : null;
+    const miasRaw        = resMias.status === 'fulfilled'        ? (resMias.value.data || [])        : null;
+    const crudas = [...(disponiblesRaw || []), ...(miasRaw || [])];
+
+    // El servidor ya manda el nombre del cliente, el del negocio, el logo y
+    // los productos dentro de la misma respuesta. Esto de aqui es el respaldo
+    // para los pedidos viejos o si alguna vez llega una respuesta sin esos
+    // datos: solo entonces se pide por aparte, y una sola vez, porque queda
+    // guardado.
+    const cache = datosCache.current;
+    const faltan = (ids, mapa) => ids.filter(id => id && !(id in mapa));
+
+    const clienteIds  = [...new Set(crudas.filter(o => !o.cliente_nombre).map(o => o.cliente_id))];
+    const negocioIds  = [...new Set(crudas.filter(o => !o.negocio_nombre).map(o => o.negocio_id).filter(Boolean))];
+    const productoIds = [...new Set(crudas.flatMap(o => (o.items || []).filter(it => !it.producto_nombre).map(it => it.producto_id)))];
+
+    if (clienteIds.length || negocioIds.length || productoIds.length) {
       const [nuevosClientes, nuevosProductos, nuevosNegocios] = await Promise.all([
         Promise.all(faltan(clienteIds, cache.clientes).map(id => usuariosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
         Promise.all(faltan(productoIds, cache.productos).map(id => productosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
-        // El negocio hace falta para dos cosas: el repartidor necesita saber
-        // DONDE recoger, y el logo evita la cajita gris igual para todos.
         Promise.all(faltan(negocioIds, cache.negocios).map(id => negociosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
       ]);
       nuevosClientes.forEach(([id, v]) => { cache.clientes[id] = v; });
       nuevosProductos.forEach(([id, v]) => { cache.productos[id] = v; });
       nuevosNegocios.forEach(([id, v]) => { cache.negocios[id] = v; });
-
-      const clientesMap  = cache.clientes;
-      const productosMap = cache.productos;
-      const negociosMap  = cache.negocios;
-
-      const mapear = (o, esDisponible) => {
-        const cliente = clientesMap[o.cliente_id];
-        const primerProducto = productosMap[o.items[0]?.producto_id];
-        const negocio = negociosMap[o.negocio_id];
-        return {
-          id: `#${o.id.slice(0, 8)}`,
-          idCompleto: o.id,
-          estado: esDisponible ? 'disponible' : (o.estado === 'entregada' ? 'entregada' : (o.estado === 'en_domicilio' ? 'en_domicilio' : 'recogiendo')),
-          fechaCreacion: o.fecha_creacion,
-          direccion: o.direccion_entrega,
-          cliente: cliente?.nombre,
-          telefono: cliente?.telefono,
-          items: o.items.map(it => `${productosMap[it.producto_id]?.nombre || 'Producto'} x${it.cantidad}`).join(', '),
-          emoji: getIcon(primerProducto?.categoria),
-          negocio: negocio?.nombre_negocio || null,
-          negocioLogo: negocio?.logo || null,
-          fotoProducto: primerProducto?.imagenes?.[0] || null,
-          total: Number(o.total),
-          pago: o.metodo_pago,
-          instrucciones: o.notas_cliente || null,
-          codigoRecogida: o.codigo_recogida || null,
-          clienteEntregados: o.cliente_pedidos_entregados ?? null,
-          validadoSoporte: !!o.fecha_validacion,
-          // Punto exacto marcado por el cliente; si no hay, se geocodifica el texto
-          position: o.latitud_entrega != null && o.longitud_entrega != null
-            ? { lat: Number(o.latitud_entrega), lng: Number(o.longitud_entrega) } : null,
-          distancia: null,
-          eta: null,
-        };
-      };
-
-      const disponibles = disponiblesRaw.map(o => mapear(o, true));
-      const mias = miasRaw.map(o => mapear(o, false));
-
-      setOrdenes(prev => {
-        // Conservar posiciones ya geocodificadas para no volver a pedirlas
-        const posMap = Object.fromEntries(prev.map(o => [o.idCompleto, o.position]));
-
-        // Un pedido puede venir en las DOS listas: el servidor todavia lo da
-        // por disponible mientras ya figura como mio. Si se deja duplicado,
-        // aparece dos veces en pantalla y con estados distintos. Manda la
-        // version "mia", que es la que refleja que ya lo tome.
-        const porId = new Map();
-        [...disponibles, ...mias].forEach(o => porId.set(o.idCompleto, o));
-
-        return [...porId.values()].map(o => ({ ...o, position: o.position || posMap[o.idCompleto] || null }));
-      });
-    } catch {
-      setOrdenes([]);
-    } finally {
-      setLoading(false);
     }
+
+    const mapear = (o, esDisponible) => {
+      const cliente = cache.clientes[o.cliente_id];
+      const negocio = cache.negocios[o.negocio_id];
+      const items = o.items || [];
+      const primerItem = items[0];
+      const primerProducto = cache.productos[primerItem?.producto_id];
+      const nombreItem = (it) => it.producto_nombre || cache.productos[it.producto_id]?.nombre || 'Producto';
+      return {
+        id: `#${o.id.slice(0, 8)}`,
+        idCompleto: o.id,
+        estado: esDisponible ? 'disponible' : (o.estado === 'entregada' ? 'entregada' : (o.estado === 'en_domicilio' ? 'en_domicilio' : 'recogiendo')),
+        fechaCreacion: o.fecha_creacion,
+        direccion: o.direccion_entrega,
+        cliente: o.cliente_nombre || cliente?.nombre,
+        telefono: o.cliente_telefono || cliente?.telefono,
+        items: items.map(it => `${nombreItem(it)} x${it.cantidad}`).join(', '),
+        emoji: getIcon(primerItem?.producto_categoria || primerProducto?.categoria),
+        // El negocio hace falta para dos cosas: el repartidor necesita saber
+        // DONDE recoger, y el logo evita la cajita gris igual para todos.
+        negocio: o.negocio_nombre || negocio?.nombre_negocio || null,
+        negocioLogo: o.negocio_logo || negocio?.logo || null,
+        fotoProducto: primerItem?.producto_imagen || primerProducto?.imagenes?.[0] || null,
+        total: Number(o.total),
+        pago: o.metodo_pago,
+        instrucciones: o.notas_cliente || null,
+        codigoRecogida: o.codigo_recogida || null,
+        clienteEntregados: o.cliente_pedidos_entregados ?? null,
+        validadoSoporte: !!o.fecha_validacion,
+        // Punto exacto marcado por el cliente; si no hay, se geocodifica el texto
+        position: o.latitud_entrega != null && o.longitud_entrega != null
+          ? { lat: Number(o.latitud_entrega), lng: Number(o.longitud_entrega) } : null,
+        distancia: null,
+        eta: null,
+      };
+    };
+
+    const disponibles = disponiblesRaw ? disponiblesRaw.map(o => mapear(o, true)) : null;
+    const mias        = miasRaw        ? miasRaw.map(o => mapear(o, false))       : null;
+
+    setOrdenes(prev => {
+      // Conservar posiciones, distancia y tiempo ya calculados
+      const previoPorId = new Map(prev.map(o => [o.idCompleto, o]));
+
+      // Si una de las dos listas no llego, se deja la parte que ya se tenia en
+      // pantalla en vez de borrarla.
+      const listaDisponibles = disponibles || prev.filter(o => o.estado === 'disponible');
+      const listaMias        = mias        || prev.filter(o => o.estado !== 'disponible');
+
+      // Un pedido puede venir en las DOS listas: el servidor todavia lo da
+      // por disponible mientras ya figura como mio. Si se deja duplicado,
+      // aparece dos veces en pantalla y con estados distintos. Manda la
+      // version "mia", que es la que refleja que ya lo tome.
+      const porId = new Map();
+      [...listaDisponibles, ...listaMias].forEach(o => porId.set(o.idCompleto, o));
+
+      const siguiente = [...porId.values()].map(o => {
+        const antes = previoPorId.get(o.idCompleto);
+        return {
+          ...o,
+          position:  o.position  || antes?.position  || null,
+          distancia: o.distancia ?? antes?.distancia ?? null,
+          eta:       o.eta       ?? antes?.eta       ?? null,
+        };
+      });
+
+      // Si no cambio nada, se devuelve la lista anterior tal cual: asi React
+      // no vuelve a dibujar el mapa ni las tarjetas cada 15 segundos.
+      return mismaLista(prev, siguiente) ? prev : siguiente;
+    });
   }, []);
 
   // Antes solo cargaba una vez al montar: si el repartidor ya estaba
   // parado en la pantalla, un pedido nuevo (o uno que otro repartidor
   // libero) nunca aparecia sin cerrar y volver a abrir la app. Ahora
   // refresca cada 15s, igual que ya hacia cargarEspeciales.
+  //
+  // Con la app en segundo plano no se refresca: el repartidor no la esta
+  // mirando y cada vuelta son dos peticiones. Para eso estan las
+  // notificaciones. Al volver a la pantalla se refresca de una, para que no
+  // vea datos viejos mientras llega el siguiente turno del reloj.
   useEffect(() => {
-    cargarOrdenes();
-    const t = setInterval(cargarOrdenes, 15000);
-    return () => clearInterval(t);
+    const visible = () => !document.hidden;
+    const refrescar = () => { if (visible()) cargarOrdenes(); };
+
+    refrescar();
+    const t = setInterval(refrescar, REFRESCO_MS);
+    const alVolver = () => { if (visible()) cargarOrdenes(); };
+    document.addEventListener('visibilitychange', alVolver);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', alVolver); };
   }, [cargarOrdenes]);
 
   // Copia de la lista para el aviso de arriba, que corre fuera del render y no
@@ -1015,27 +1084,40 @@ const RepartidorPage = () => {
   /* Pedidos especiales reales: disponibles + los que este repartidor tomó */
   const cargarEspeciales = useCallback(async () => {
     if (!online) { setPedidosEspeciales([]); return; }
-    try {
-      const [disp, mios] = await Promise.all([
-        pedidosEspecialesService.disponibles().then(r => r.data).catch(() => []),
-        pedidosEspecialesService.misEntregas().then(r => r.data).catch(() => []),
-      ]);
+
+    const [resDisp, resMios] = await Promise.allSettled([
+      pedidosEspecialesService.disponibles(),
+      pedidosEspecialesService.misEntregas(),
+    ]);
+    // Mismo cuento que con los pedidos normales: antes un error dejaba la
+    // lista en cero y los mandados se esfumaban de la pantalla.
+    if (resDisp.status === 'rejected' && resMios.status === 'rejected') return;
+
+    const disp  = resDisp.status  === 'fulfilled' ? (resDisp.value.data  || []) : null;
+    const mios  = resMios.status === 'fulfilled' ? (resMios.value.data || []) : null;
+
+    setPedidosEspeciales(prev => {
       // los que tomó primero (en curso), luego los disponibles
-      const enCurso = mios.filter(p => p.estado === 'en_camino');
+      const enCurso = mios
+        ? mios.filter(p => p.estado === 'en_camino')
+        : prev.filter(p => p.estado !== 'disponible');
       const idsEnCurso = new Set(enCurso.map(p => p.idCompleto));
-      const disponibles = disp
-        .filter(p => !idsEnCurso.has(p.idCompleto))
-        .map(p => ({ ...p, estado: 'disponible' }));
-      setPedidosEspeciales([...enCurso, ...disponibles]);
-    } catch {
-      setPedidosEspeciales([]);
-    }
+      const disponibles = (disp
+        ? disp.map(p => ({ ...p, estado: 'disponible' }))
+        : prev.filter(p => p.estado === 'disponible')
+      ).filter(p => !idsEnCurso.has(p.idCompleto));
+
+      const siguiente = [...enCurso, ...disponibles];
+      return mismaLista(prev, siguiente) ? prev : siguiente;
+    });
   }, [online]);
 
   useEffect(() => {
-    cargarEspeciales();
-    const t = setInterval(cargarEspeciales, 15000);
-    return () => clearInterval(t);
+    const refrescar = () => { if (!document.hidden) cargarEspeciales(); };
+    refrescar();
+    const t = setInterval(refrescar, REFRESCO_MS);
+    document.addEventListener('visibilitychange', refrescar);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', refrescar); };
   }, [cargarEspeciales]);
 
   /* Geocodificar direcciones pendientes una vez cargado el mapa */
@@ -1059,11 +1141,20 @@ const RepartidorPage = () => {
   /* Recalcular distancia/ETA cuando cambia la posición del repartidor o las órdenes se geocodifican */
   useEffect(() => {
     if (!driverPos) return;
-    setOrdenes(prev => prev.map(o => {
-      if (!o.position) return o;
-      const distancia = haversineKm(driverPos, o.position);
-      return { ...o, distancia, eta: Math.max(1, Math.round((distancia / 25) * 60)) };
-    }));
+    setOrdenes(prev => {
+      let cambio = false;
+      const siguiente = prev.map(o => {
+        if (!o.position) return o;
+        const distancia = haversineKm(driverPos, o.position);
+        const eta = Math.max(1, Math.round((distancia / 25) * 60));
+        // Menos de 50 metros de diferencia no cambia nada de lo que se lee en
+        // pantalla; devolver el mismo objeto evita redibujar la tarjeta.
+        if (o.distancia != null && Math.abs(o.distancia - distancia) < 0.05 && o.eta === eta) return o;
+        cambio = true;
+        return { ...o, distancia, eta };
+      });
+      return cambio ? siguiente : prev;
+    });
     // Solo recalcular cuando se mueve el repartidor, no en cada render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [driverPos]);
@@ -1283,6 +1374,15 @@ const RepartidorPage = () => {
           </span>
         </div>
       </div>
+
+      {/* Se perdio la señal. Se avisa en vez de borrar la lista: lo que esta
+          en pantalla es lo ultimo que confirmo el servidor. */}
+      {sinConexion && (
+        <div className="rp-sin-conexion">
+          <Icon name="alerta" size={14} style={{ verticalAlign: '-2px', marginRight: 6 }} />
+          Sin conexión. Estos son los últimos pedidos que alcanzamos a ver.
+        </div>
+      )}
 
       <div className="rp-body">
 

@@ -118,6 +118,15 @@
 .rp-stat-label { font-size: 9px; color: #7c8aa3; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
 .rp-stat-div   { width: 1px; height: 30px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
 
+/* ── Aviso de sin conexion ───────────────────────────────── */
+.rp-sin-conexion {
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px; font-weight: 700;
+  text-align: center; padding: 6px 12px;
+  flex-shrink: 0;
+}
+
 /* ── Streak banner ───────────────────────────────────────── */
 .rp-streak {
   background: linear-gradient(90deg, #fef3c7, #fde68a);
