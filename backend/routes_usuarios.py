@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import bcrypt
 
 from config import get_db, settings
@@ -504,7 +504,10 @@ async def listar_vendedores(
             "ciudad": negocio_ciudad or "",
             "productos": total_productos,
             "estado": "Activo" if u.estado == "activo" else "Suspendido",
-            "fechaRegistro": u.fecha_creacion.strftime("%Y-%m-%d") if u.fecha_creacion else "",
+            # Restadas las 5 horas de Colombia: la base guarda en hora universal
+            # y sin esto quien se registraba despues de las 7 de la noche
+            # aparecia con la fecha del dia siguiente.
+            "fechaRegistro": (u.fecha_creacion - timedelta(hours=5)).strftime("%Y-%m-%d") if u.fecha_creacion else "",
         })
 
     return {

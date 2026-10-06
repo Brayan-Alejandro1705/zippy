@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import { fechaCorta, minutosDesde } from '../../utils/fechas';
 import '../../styles/VendorOrdenes.css';
 import Icon from '../../components/Icons';
 
@@ -26,15 +27,7 @@ const BORDER = { 'En camino':'#FF7A00', 'Entregada':'#22c55e', 'Cancelada':'#ef4
 const BADGE  = { 'En camino':'vo-badge--camino', 'Entregada':'vo-badge--entregada', 'Cancelada':'vo-badge--cancelada', 'Pendiente':'vo-badge--pendiente' };
 
 const fmtFull  = n => `$${Math.round(n).toLocaleString('es-CO')}`;
-const fmtFecha = iso => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-// El servidor manda la fecha en UTC sin la Z al final; sin agregarla, el
-// navegador la lee como hora local y el calculo sale corrido cinco horas.
-const minutosDesde = (iso) => {
-  if (!iso) return 0;
-  const limpio = iso.endsWith('Z') ? iso : `${iso}Z`;
-  return Math.max(0, Math.round((Date.now() - new Date(limpio).getTime()) / 60000));
-};
+const fmtFecha = fechaCorta;
 
 // A partir de aqui el cliente ya se esta preguntando si alguien vio su pedido
 const MINUTOS_PARA_ALERTA = 10;

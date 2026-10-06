@@ -85,6 +85,12 @@ const fmt = n => `$${Math.round(n).toLocaleString('es-CO')}`;
 const REFRESCO_MS = 15000;
 // Cuanto se tiene que mover el repartidor para que la pantalla se entere.
 const METROS_PARA_MOVER = 20;
+// Cada cuanto se le manda la ubicacion al servidor para el seguimiento del cliente.
+const ENVIO_UBICACION_MS = 15000;
+// Cuantos pedidos se traen por lista. El servidor por defecto manda 20, y un
+// repartidor con buen dia pasaba de ahi: los primeros se caian de la lista y
+// "Ganado hoy" empezaba a bajar solo.
+const LIMITE_PEDIDOS = 100;
 
 // Dos listas de pedidos son "la misma" si no cambio nada de lo que se ve. Si
 // no se compara, cada refresco devuelve objetos nuevos y React vuelve a
@@ -765,7 +771,7 @@ const PedidoEspecialCard = ({ pedido, onAdvance, onChat, ocupado }) => {
               onClick={() => onAdvance(pedido)}
               disabled={ocupado}
             >
-              {cfg.btnLabel}
+              {ocupado ? 'Un momento…' : cfg.btnLabel}
             </button>
           )}
         </div>
@@ -863,10 +869,49 @@ const RepartidorPage = () => {
   const [chatOrden,  setChatOrden]  = useState(null);
   const [chatMandado, setChatMandado] = useState(null);
   const especialesRef = useRef([]);
-  // Pedido al que se le acaba de tocar el boton, para bloquearlo y avisar
-  const [ocupado, setOcupado] = useState(null);
+  // Pedidos a los que se les acaba de tocar el boton, para bloquear ESE boton
+  // y avisar. Es un conjunto y no un solo id porque antes, con un pedido en
+  // vuelo, el boton de los demas se tragaba el toque sin decir nada.
+  const [ocupados, setOcupados] = useState(() => new Set());
+  const marcarOcupado = (id, si) => setOcupados(prev => {
+    const siguiente = new Set(prev);
+    if (si) siguiente.add(id); else siguiente.delete(id);
+    return siguiente;
+  });
   // Nombres y fotos ya consultados; no cambian entre refrescos
   const datosCache = useRef({ clientes: {}, productos: {}, negocios: {} });
+
+  /*
+   * Lo que el repartidor acaba de tocar, con la hora.
+   *
+   * Sin esto el boton "rebotaba": el refresco de cada 15 segundos puede estar
+   * ya en vuelo cuando el repartidor toca "Aceptar". La respuesta llega medio
+   * segundo despues, trae el pedido como todavia disponible —porque salio del
+   * servidor ANTES del toque— y pisa el cambio. En pantalla se veia
+   * Recogiendo -> Disponible -> Recogiendo, y lo natural es volver a tocar.
+   *
+   * Ahora toda respuesta se compara con la hora del toque: si el toque es mas
+   * nuevo que la peticion, manda el toque.
+   */
+  const cambiosLocales = useRef(new Map());
+
+  const marcarCambioLocal = (id, estado) => {
+    cambiosLocales.current.set(id, { estado, cuando: Date.now() });
+  };
+  const olvidarCambioLocal = (id) => { cambiosLocales.current.delete(id); };
+  // Aplica sobre la respuesta del servidor los toques que son mas nuevos que
+  // ella. Los que ya tienen mas de un minuto se descartan: a esas alturas el
+  // servidor ya es la verdad.
+  const conCambiosLocales = (lista, pedidaEn) => {
+    const pendientes = cambiosLocales.current;
+    if (pendientes.size === 0) return lista;
+    const viejo = Date.now() - 60000;
+    pendientes.forEach((v, id) => { if (v.cuando < viejo) pendientes.delete(id); });
+    return lista.map(o => {
+      const local = pendientes.get(o.idCompleto);
+      return local && local.cuando > pedidaEn ? { ...o, estado: local.estado } : o;
+    });
+  };
   const [showSos,    setShowSos]    = useState(false);
 
   const sheetRef  = useRef(null);
@@ -886,7 +931,10 @@ const RepartidorPage = () => {
     const id = String(datos?.relacionado_id || '');
     if (!id) return false;
     const enLista = especialesRef.current.find(p => String(p.idCompleto) === id);
-    setChatMandado(enLista || { idCompleto: id, id, cliente: '' });
+    // Sin `id` corto el titulo queda solo "Mandado": mejor eso que mostrarle
+    // el UUID de 36 caracteres. En cuanto el mandado llegue en el siguiente
+    // refresco, el efecto de abajo le pone el numero y el nombre del cliente.
+    setChatMandado(enLista || { idCompleto: id, id: null, cliente: '' });
     return true;
   }), []);
 
@@ -917,6 +965,10 @@ const RepartidorPage = () => {
    * pantalla.
    */
   const ultimaPosRef = useRef(null);
+  // Lo mira el envio de ubicacion de aqui abajo sin tener que re-suscribirse
+  // al GPS cada vez que cambia la lista de pedidos.
+  const hayEntregaRef = useRef(false);
+  const ultimoEnvioRef = useRef(0);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -927,7 +979,22 @@ const RepartidorPage = () => {
       (pos) => {
         const nueva = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         const anterior = ultimaPosRef.current;
-        if (anterior && haversineKm(anterior, nueva) < METROS_PARA_MOVER / 1000) return;
+        const sePudoMover = !anterior || haversineKm(anterior, nueva) >= METROS_PARA_MOVER / 1000;
+
+        /*
+         * Compartir la ubicacion con el cliente para que vea al repartidor en
+         * su seguimiento. Va DENTRO del GPS y no en un efecto aparte: el
+         * efecto se disparaba con cada cambio de `ordenes`, y desde que la
+         * lista deja de cambiar cuando no pasa nada, dejaba de enviarse
+         * mientras el repartidor estuviera quieto o esperando en el negocio.
+         * Aqui el GPS sigue avisando aunque nada mas cambie.
+         */
+        if (hayEntregaRef.current && Date.now() - ultimoEnvioRef.current >= ENVIO_UBICACION_MS) {
+          ultimoEnvioRef.current = Date.now();
+          usuariosService.actualizarPerfil({ latitud: nueva.lat, longitud: nueva.lng }).catch(() => {});
+        }
+
+        if (!sePudoMover) return;   // menos de 20 m: no se redibuja la pantalla
         ultimaPosRef.current = nueva;
         setDriverPos(nueva);
       },
@@ -939,16 +1006,23 @@ const RepartidorPage = () => {
 
   /* Carga real de pedidos disponibles + mis entregas asignadas */
   const cargarOrdenes = useCallback(async () => {
+    // La hora a la que se pidio: todo toque posterior a esto le gana a la
+    // respuesta, que ya salio del servidor antes del toque.
+    const pedidaEn = Date.now();
+
     // allSettled y no all: si una de las dos listas falla, la otra igual
     // sirve. Con Promise.all un solo bache de señal tumbaba las dos.
     const [resDisponibles, resMias] = await Promise.allSettled([
-      ordenesService.listar({ disponibles: true }),
-      ordenesService.listar(),
+      ordenesService.listar({ disponibles: true, limit: LIMITE_PEDIDOS }),
+      ordenesService.listar({ limit: LIMITE_PEDIDOS }),
     ]);
     setLoading(false);
 
     const fallaronLasDos = resDisponibles.status === 'rejected' && resMias.status === 'rejected';
-    setSinConexion(fallaronLasDos);
+    // Basta con que falle UNA para avisar: justo ahi es cuando media pantalla
+    // es informacion vieja. Antes solo avisaba si fallaban las dos, que es el
+    // caso en que no hay nada viejo que avisar.
+    setSinConexion(resDisponibles.status === 'rejected' || resMias.status === 'rejected');
 
     /*
      * ESTO es lo que hacia que al repartidor se le desaparecieran los pedidos.
@@ -981,9 +1055,13 @@ const RepartidorPage = () => {
         Promise.all(faltan(productoIds, cache.productos).map(id => productosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
         Promise.all(faltan(negocioIds, cache.negocios).map(id => negociosService.obtener(id).then(({ data }) => [id, data]).catch(() => [id, null]))),
       ]);
-      nuevosClientes.forEach(([id, v]) => { cache.clientes[id] = v; });
-      nuevosProductos.forEach(([id, v]) => { cache.productos[id] = v; });
-      nuevosNegocios.forEach(([id, v]) => { cache.negocios[id] = v; });
+      // Solo se guarda lo que de verdad llego. Antes se guardaba el fallo
+      // como null y, como la clave ya existia, no se volvia a pedir en toda
+      // la sesion: un bache de señal dejaba ese pedido sin nombre ni telefono
+      // del cliente hasta cerrar y abrir la app.
+      nuevosClientes.forEach(([id, v]) => { if (v) cache.clientes[id] = v; });
+      nuevosProductos.forEach(([id, v]) => { if (v) cache.productos[id] = v; });
+      nuevosNegocios.forEach(([id, v]) => { if (v) cache.negocios[id] = v; });
     }
 
     const mapear = (o, esDisponible) => {
@@ -1051,9 +1129,13 @@ const RepartidorPage = () => {
         };
       });
 
+      // Lo que el repartidor acaba de tocar manda sobre una respuesta que
+      // salio del servidor antes del toque.
+      const conToques = conCambiosLocales(siguiente, pedidaEn);
+
       // Si no cambio nada, se devuelve la lista anterior tal cual: asi React
       // no vuelve a dibujar el mapa ni las tarjetas cada 15 segundos.
-      return mismaLista(prev, siguiente) ? prev : siguiente;
+      return mismaLista(prev, conToques) ? prev : conToques;
     });
   }, []);
 
@@ -1067,19 +1149,32 @@ const RepartidorPage = () => {
   // notificaciones. Al volver a la pantalla se refresca de una, para que no
   // vea datos viejos mientras llega el siguiente turno del reloj.
   useEffect(() => {
-    const visible = () => !document.hidden;
-    const refrescar = () => { if (visible()) cargarOrdenes(); };
+    // El .catch es por si algo revienta armando la lista: que se salte ese
+    // refresco, no que quede un error suelto sin dueño.
+    const refrescar = () => { if (!document.hidden) cargarOrdenes().catch(() => {}); };
 
     refrescar();
     const t = setInterval(refrescar, REFRESCO_MS);
-    const alVolver = () => { if (visible()) cargarOrdenes(); };
-    document.addEventListener('visibilitychange', alVolver);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', alVolver); };
+    document.addEventListener('visibilitychange', refrescar);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', refrescar); };
   }, [cargarOrdenes]);
 
   // Copia de la lista para el aviso de arriba, que corre fuera del render y no
   // puede leer el estado directamente sin quedarse con una version vieja.
   useEffect(() => { especialesRef.current = pedidosEspeciales; }, [pedidosEspeciales]);
+
+  // Si el chat se abrio por una notificacion antes de que llegara el mandado,
+  // se le completa el numero y el nombre del cliente en cuanto aparezca.
+  useEffect(() => {
+    if (!chatMandado || chatMandado.id) return;
+    const enLista = pedidosEspeciales.find(p => String(p.idCompleto) === String(chatMandado.idCompleto));
+    if (enLista) setChatMandado(enLista);
+  }, [pedidosEspeciales, chatMandado]);
+
+  // Lo mismo para el envio de ubicacion, que vive dentro del GPS.
+  useEffect(() => {
+    hayEntregaRef.current = ordenes.some(o => o.estado === 'en_domicilio' || o.estado === 'recogiendo');
+  }, [ordenes]);
 
   /* Pedidos especiales reales: disponibles + los que este repartidor tomó */
   const cargarEspeciales = useCallback(async () => {
@@ -1098,9 +1193,7 @@ const RepartidorPage = () => {
 
     setPedidosEspeciales(prev => {
       // los que tomó primero (en curso), luego los disponibles
-      const enCurso = mios
-        ? mios.filter(p => p.estado === 'en_camino')
-        : prev.filter(p => p.estado !== 'disponible');
+      const enCurso = (mios || prev).filter(p => p.estado === 'en_camino');
       const idsEnCurso = new Set(enCurso.map(p => p.idCompleto));
       const disponibles = (disp
         ? disp.map(p => ({ ...p, estado: 'disponible' }))
@@ -1113,7 +1206,7 @@ const RepartidorPage = () => {
   }, [online]);
 
   useEffect(() => {
-    const refrescar = () => { if (!document.hidden) cargarEspeciales(); };
+    const refrescar = () => { if (!document.hidden) cargarEspeciales().catch(() => {}); };
     refrescar();
     const t = setInterval(refrescar, REFRESCO_MS);
     document.addEventListener('visibilitychange', refrescar);
@@ -1155,21 +1248,10 @@ const RepartidorPage = () => {
       });
       return cambio ? siguiente : prev;
     });
-    // Solo recalcular cuando se mueve el repartidor, no en cada render
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [driverPos]);
-
-  /* Compartir la ubicación real con el backend mientras hay una entrega en curso,
-     para que el cliente pueda verla en su seguimiento. Throttled a 1 envío cada 15s. */
-  const lastSentRef = useRef(0);
-  useEffect(() => {
-    if (!driverPos) return;
-    const tieneActiva = ordenes.some(o => o.estado === 'en_domicilio' || o.estado === 'recogiendo');
-    if (!tieneActiva) return;
-    const ahora = Date.now();
-    if (ahora - lastSentRef.current < 15000) return;
-    lastSentRef.current = ahora;
-    usuariosService.actualizarPerfil({ latitud: driverPos.lat, longitud: driverPos.lng }).catch(() => {});
+    // Depende tambien de `ordenes` para que un pedido recien llegado tenga su
+    // distancia enseguida: antes, con el repartidor quieto, se quedaba sin
+    // kilometros ni tiempo hasta que se moviera. No se cicla porque el propio
+    // setOrdenes devuelve la lista anterior cuando no hay nada que cambiar.
   }, [driverPos, ordenes]);
 
   /*
@@ -1185,35 +1267,46 @@ const RepartidorPage = () => {
    * tarjeta vuelve a su sitio y se explica por que.
    */
   const aceptar = async (orden) => {
-    if (ocupado) return;
-    setOcupado(orden.idCompleto);
-    setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: 'recogiendo' } : o));
+    const id = orden.idCompleto;
+    if (ocupados.has(id)) return;
+    marcarOcupado(id, true);
+    marcarCambioLocal(id, 'recogiendo');
+    setOrdenes(prev => prev.map(o => o.idCompleto === id ? { ...o, estado: 'recogiendo' } : o));
 
     try {
-      await ordenesService.actualizar(orden.idCompleto, { domiciliario_id: usuario.id });
-      cargarOrdenes();
+      await ordenesService.actualizar(id, { domiciliario_id: usuario.id });
+      await cargarOrdenes().catch(() => {});
     } catch (err) {
-      setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: 'disponible' } : o));
+      olvidarCambioLocal(id);
+      setOrdenes(prev => prev.map(o => o.idCompleto === id ? { ...o, estado: 'disponible' } : o));
       alert(err.response?.data?.detail || 'No se pudo aceptar el pedido. Puede que ya lo haya tomado otro repartidor.');
-      cargarOrdenes();
+      await cargarOrdenes().catch(() => {});
     } finally {
-      setOcupado(null);
+      olvidarCambioLocal(id);
+      marcarOcupado(id, false);
     }
   };
 
   const marcarEntregado = async (orden) => {
-    if (ocupado) return;
-    setOcupado(orden.idCompleto);
+    const id = orden.idCompleto;
+    if (ocupados.has(id)) return;
+    marcarOcupado(id, true);
     const antes = orden.estado;
-    setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: 'entregada' } : o));
+    marcarCambioLocal(id, 'entregada');
+    setOrdenes(prev => prev.map(o => o.idCompleto === id ? { ...o, estado: 'entregada' } : o));
     try {
-      await ordenesService.actualizar(orden.idCompleto, { estado: 'entregada' });
-      cargarOrdenes();
+      await ordenesService.actualizar(id, { estado: 'entregada' });
+      await cargarOrdenes().catch(() => {});
     } catch (err) {
-      setOrdenes(prev => prev.map(o => o.idCompleto === orden.idCompleto ? { ...o, estado: antes } : o));
+      olvidarCambioLocal(id);
+      setOrdenes(prev => prev.map(o => o.idCompleto === id ? { ...o, estado: antes } : o));
       alert(err.response?.data?.detail || 'No se pudo marcar como entregado.');
+      // Tambien aqui: si fallo porque el servidor ya lo tenia en otro estado,
+      // lo que quedo en pantalla es una suposicion nuestra.
+      await cargarOrdenes().catch(() => {});
     } finally {
-      setOcupado(null);
+      olvidarCambioLocal(id);
+      marcarOcupado(id, false);
     }
   };
 
@@ -1223,25 +1316,26 @@ const RepartidorPage = () => {
   };
 
   const advanceEspecial = async (pedido) => {
-    if (ocupado) return;
-    setOcupado(pedido.idCompleto);
+    const id = pedido.idCompleto;
+    if (ocupados.has(id)) return;
+    marcarOcupado(id, true);
     const antes = pedido.estado;
     const siguiente = pedido.estado === 'disponible' ? 'en_camino' : 'entregada';
-    setPedidosEspeciales(prev => prev.map(p => p.idCompleto === pedido.idCompleto ? { ...p, estado: siguiente } : p));
+    setPedidosEspeciales(prev => prev.map(p => p.idCompleto === id ? { ...p, estado: siguiente } : p));
 
     try {
       if (antes === 'disponible') {
-        await pedidosEspecialesService.aceptar(pedido.idCompleto);
+        await pedidosEspecialesService.aceptar(id);
       } else if (antes === 'en_camino') {
-        await pedidosEspecialesService.entregar(pedido.idCompleto);
+        await pedidosEspecialesService.entregar(id);
       }
-      cargarEspeciales();
+      await cargarEspeciales().catch(() => {});
     } catch (err) {
-      setPedidosEspeciales(prev => prev.map(p => p.idCompleto === pedido.idCompleto ? { ...p, estado: antes } : p));
+      setPedidosEspeciales(prev => prev.map(p => p.idCompleto === id ? { ...p, estado: antes } : p));
       alert(err?.response?.data?.detail || 'No se pudo actualizar el mandado.');
-      cargarEspeciales();
+      await cargarEspeciales().catch(() => {});
     } finally {
-      setOcupado(null);
+      marcarOcupado(id, false);
     }
   };
 
@@ -1475,10 +1569,10 @@ const RepartidorPage = () => {
               <OrdenCard
                 key={item.data.idCompleto} orden={item.data} onAvanzar={avanzar} onSelect={setSelected} selected={selected}
                 onReport={setReportTarget} reported={reportedMap[item.data.id]} onChat={setChatOrden}
-                ocupado={ocupado === item.data.idCompleto}
+                ocupado={ocupados.has(item.data.idCompleto)}
               />
             ) : (
-              <PedidoEspecialCard key={item.data.idCompleto} pedido={item.data} onAdvance={advanceEspecial} onChat={setChatMandado} ocupado={ocupado === item.data.idCompleto} />
+              <PedidoEspecialCard key={item.data.idCompleto} pedido={item.data} onAdvance={advanceEspecial} onChat={setChatMandado} ocupado={ocupados.has(item.data.idCompleto)} />
             ))
           )}
 
@@ -1512,7 +1606,7 @@ const RepartidorPage = () => {
         <ChatBurbuja
           id={chatMandado.idCompleto}
           servicio={pedidosEspecialesService}
-          titulo={`Mandado ${chatMandado.id}${chatMandado.cliente ? ` · ${chatMandado.cliente}` : ''}`}
+          titulo={chatMandado.id ? `Mandado ${chatMandado.id}${chatMandado.cliente ? ` · ${chatMandado.cliente}` : ''}` : 'Mandado'}
           onCerrar={() => setChatMandado(null)}
         />
       )}

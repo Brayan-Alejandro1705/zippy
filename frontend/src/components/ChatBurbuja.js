@@ -38,10 +38,15 @@ const ChatBurbuja = ({ id, servicio, titulo = 'Chat', onCerrar, arrancaAbierto =
   // aunque estuviera minimizada. Llega como un numero que sube, y no como un
   // si/no, para que tambien funcione la segunda vez que toca un aviso.
   useEffect(() => {
-    if (!abrirSenal) return;
+    if (!abrirSenal || !id || !servicio) return;
     setAbierto(true);
     setSinLeer(0);
-  }, [abrirSenal]);
+    // Tambien se da por leido lo que haya: si no, al volver a minimizar el
+    // contador volvia a marcar como nuevos mensajes que ya se leyeron.
+    servicio.mensajes(id)
+      .then(({ data }) => { vistos.current = Array.isArray(data) ? data.length : 0; })
+      .catch(() => {});
+  }, [abrirSenal, id, servicio]);
 
   // Mientras esta cerrada, se revisa de vez en cuando si llegaron mensajes.
   // Cada 20 segundos y no cada 4 como el chat abierto: cerrada no hay nadie

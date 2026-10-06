@@ -3,6 +3,7 @@ import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { negociosService, ordenesService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import { fechaServidor } from '../../utils/fechas';
 import '../../styles/VendorPagos.css';
 import '../../styles/VendorOrdenes.css';
 import '../../styles/VendorProductos.css';
@@ -48,7 +49,10 @@ const VendorPagosPage = () => {
   const inicioMes = new Date();
   inicioMes.setDate(1);
   inicioMes.setHours(0, 0, 0, 0);
-  const completadasEsteMes = completadas.filter(o => new Date(o.fecha_creacion) >= inicioMes);
+  // fechaServidor y no new Date: el servidor manda la hora universal sin la Z,
+  // y sin corregirla un pedido del 30 a las 8 de la noche contaba en el mes
+  // siguiente.
+  const completadasEsteMes = completadas.filter(o => (fechaServidor(o.fecha_creacion)?.getTime() || 0) >= inicioMes.getTime());
 
   const brutoEsteMes    = completadasEsteMes.reduce((s, o) => s + Number(o.total), 0);
   const totalHistorico  = completadas.reduce((s, o) => s + Number(o.total), 0);

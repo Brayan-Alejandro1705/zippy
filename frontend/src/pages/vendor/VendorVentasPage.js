@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import { fechaCorta, fechaServidor } from '../../utils/fechas';
 import '../../styles/VendorVentas.css';
 import '../../styles/VendorOrdenes.css';
 
@@ -42,7 +43,7 @@ const fmt = (n) => {
   return `$${Math.round(n).toLocaleString('es-CO')}`;
 };
 const fmtFull = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
-const fmtFecha = iso => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const fmtFecha = fechaCorta;
 const capitalizar = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
 const STEPS = ['Recibido', 'Preparado', 'En camino', 'Entregado'];
@@ -237,7 +238,7 @@ const VendorVentasPage = () => {
         }
         const chart = dias.map(d => {
           const ventasDia = mapeadas
-            .filter(o => o.estado === 'Completada' && new Date(o.fechaRaw).toDateString() === d.toDateString())
+            .filter(o => o.estado === 'Completada' && fechaServidor(o.fechaRaw)?.toDateString() === d.toDateString())
             .reduce((s, o) => s + o.subtotal, 0);
           return { dia: DIA_CORTO[d.getDay()], diaLargo: DIA_LARGO[d.getDay()], ventas: ventasDia };
         });
@@ -265,7 +266,7 @@ const VendorVentasPage = () => {
   const inicioMes = new Date();
   inicioMes.setDate(1);
   inicioMes.setHours(0, 0, 0, 0);
-  const completadasEsteMes = completadas.filter(o => new Date(o.fechaRaw) >= inicioMes);
+  const completadasEsteMes = completadas.filter(o => (fechaServidor(o.fechaRaw)?.getTime() || 0) >= inicioMes.getTime());
   const ingresosEsteMes = completadasEsteMes.reduce((s, o) => s + o.subtotal, 0);
   const porOrden = completadasEsteMes.length > 0 ? ingresosEsteMes / completadasEsteMes.length : 0;
 

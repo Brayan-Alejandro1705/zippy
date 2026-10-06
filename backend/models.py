@@ -343,7 +343,10 @@ class Orden(Base):
     cliente = relationship("Usuario", foreign_keys=[cliente_id], back_populates="ordenes_cliente")
     negocio = relationship("Negocio", back_populates="ordenes")
     domiciliario = relationship("Usuario", foreign_keys=[domiciliario_id], back_populates="ordenes_domiciliario")
-    items = relationship("ItemOrden", back_populates="orden", cascade="all, delete-orphan")
+    # order_by para que los productos salgan siempre en el mismo orden: sin
+    # esto Postgres los puede devolver distinto en cada consulta y la lista
+    # de la tarjeta del repartidor se reordenaba sola.
+    items = relationship("ItemOrden", back_populates="orden", cascade="all, delete-orphan", order_by="ItemOrden.fecha_creacion, ItemOrden.id")
     transacciones = relationship("Transaccion", back_populates="orden")
     resenas = relationship("ResenaCalificacion", back_populates="orden")
     seguimientos = relationship("SeguimientoOrden", back_populates="orden", cascade="all, delete-orphan")

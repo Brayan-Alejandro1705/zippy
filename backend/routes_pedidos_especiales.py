@@ -173,7 +173,12 @@ async def crear_pedido_especial(
             relacionado_tabla="pedidos_especiales",
             relacionado_id=pedido.id,
         )
+        # notificar_usuarios solo hace db.add(); sin este commit la fila del
+        # historial se descarta al cerrar la sesion y el aviso solo existia
+        # como push.
+        db.commit()
     except Exception as e:
+        db.rollback()
         print(f"[mandado] no se pudo avisar a los repartidores: {e}")
 
     return _a_dict(pedido, db)
@@ -481,7 +486,10 @@ async def enviar_mensaje_mandado(
                 relacionado_tabla="pedidos_especiales",
                 relacionado_id=pedido.id,
             )
+            # Igual que arriba: sin commit la notificacion no queda guardada.
+            db.commit()
     except Exception as e:
+        db.rollback()
         print(f"[mandado] no se pudo avisar del mensaje: {e}")
 
     return {

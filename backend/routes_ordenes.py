@@ -337,8 +337,9 @@ async def listar_ordenes(
                 continue
             item_r.producto_nombre = producto.nombre
             item_r.producto_categoria = producto.categoria
-            imagenes = producto.imagenes or []
-            item_r.producto_imagen = imagenes[0] if imagenes else None
+            imagenes = producto.imagenes
+            if isinstance(imagenes, list) and imagenes and isinstance(imagenes[0], str):
+                item_r.producto_imagen = imagenes[0]
 
     # Al repartidor le mostramos si el cliente es nuevo o ya ha recibido pedidos
     if current_user.tipo_usuario == "domiciliario" and respuesta:

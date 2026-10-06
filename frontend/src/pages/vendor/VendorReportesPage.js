@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import { fechaServidor } from '../../utils/fechas';
 import '../../styles/VendorReportes.css';
 
 const DIA_ABR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -22,8 +23,10 @@ const pctChange = (curr, prev) => {
 };
 
 const enRango = (fechaIso, desde, hasta) => {
-  const t = new Date(fechaIso).getTime();
-  return t >= desde && t < hasta;
+  // El servidor manda la hora universal sin la Z; fechaServidor la corrige a
+  // hora de Colombia. Sin eso los cortes de periodo salian cinco horas antes.
+  const t = fechaServidor(fechaIso)?.getTime();
+  return t != null && t >= desde && t < hasta;
 };
 
 const ChartTooltip = ({ active, payload, label }) => {
@@ -99,7 +102,7 @@ const VendorReportesPage = () => {
     chartData = dias.map(d => ({
       dia: DIA_ABR[d.getDay()],
       ventas: ordenesRaw
-        .filter(o => o.estado === 'entregada' && new Date(o.fecha_creacion).toDateString() === d.toDateString())
+        .filter(o => o.estado === 'entregada' && fechaServidor(o.fecha_creacion)?.toDateString() === d.toDateString())
         .reduce((s, o) => s + Number(o.total), 0),
     }));
   } else {

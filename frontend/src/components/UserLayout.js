@@ -81,6 +81,12 @@ const UserLayout = ({ children, onSearch }) => {
   }), []);
 
   const idChat = chatPorAviso || mandadoActivo?.idCompleto || null;
+  // El numero corto del mandado (#PE4829). Si el chat se abrio por una
+  // notificacion y el pedido todavia no ha llegado del servidor, no hay numero
+  // corto: antes se mostraba el UUID entero de 36 caracteres en el titulo.
+  const codigoChat = mandadoActivo && String(mandadoActivo.idCompleto) === String(idChat)
+    ? mandadoActivo.id
+    : null;
 
   const isCart    = location.pathname === '/tienda/carrito' || location.pathname === '/tienda/checkout';
   const activeNav = NAV_ITEMS.find(n => location.pathname === n.path)?.path || '/tienda';
@@ -168,7 +174,7 @@ const UserLayout = ({ children, onSearch }) => {
         <ChatBurbuja
           id={idChat}
           servicio={pedidosEspecialesService}
-          titulo={`Mandado ${idChat}`}
+          titulo={codigoChat ? `Mandado ${codigoChat}` : 'Mandado'}
           arrancaAbierto={false}
           abrirSenal={abrirSenal}
           onCerrar={() => { setChatPorAviso(null); setMandadoActivo(null); }}
