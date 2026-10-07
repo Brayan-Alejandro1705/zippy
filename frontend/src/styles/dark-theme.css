@@ -593,3 +593,7 @@
 .dark-theme .rp-role-card--active { background-color: #1a2030; border-color: #FF7A00; }
 .dark-theme .rp-error { background-color: #3a1a1a; border-color: #5a2020; color: #f87171; }
 .dark-theme .rp-strength-bar { background-color: #334155; }
+/* Perfil sin sesión */
+.dark-theme .up-sin-sesion-titulo { color: #f1f5f9; }
+.dark-theme .up-sin-sesion-texto  { color: #94a3b8; }
+.dark-theme .up-sin-sesion-icono  { background-color: #1e293b; }

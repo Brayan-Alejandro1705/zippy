@@ -871,6 +871,13 @@ const UserPanelPage = () => {
   const [calificarPedido, setCalificarPedido] = useState(null);
 
   const usuario  = JSON.parse(localStorage.getItem('usuario') || '{}');
+  // Sin sesion esta pantalla mostraba un perfil inventado ("Usuario",
+  // usuario@zippy.com, 0 pedidos) con botones de editar y cerrar sesion que no
+  // hacian nada. Parecia que la app se hubiera dañado o que la cuenta se
+  // hubiera borrado, cuando lo unico que pasa es que no hay sesion: la tienda
+  // se puede ver sin cuenta a proposito (Apple no deja exigir registro para
+  // mirar), pero el perfil no existe hasta que alguien entra.
+  const haySesion = !!localStorage.getItem('access_token');
 
   useEffect(() => {
     let activo = true;
@@ -1066,6 +1073,28 @@ const UserPanelPage = () => {
   };
   const inicial  = (usuario.nombre || 'U').charAt(0).toUpperCase();
   const gastado  = pedidos.filter(p => p.estado === 'Entregado').reduce((s, p) => s + p.total, 0);
+
+  if (!haySesion) {
+    return (
+      <UserLayout>
+        <div className="up-sin-sesion">
+          <div className="up-sin-sesion-icono"><Icon name="perfil" size={34} /></div>
+          <h2 className="up-sin-sesion-titulo">Entra a tu cuenta</h2>
+          <p className="up-sin-sesion-texto">
+            Aquí aparecen tus pedidos, tus direcciones y lo que has guardado.
+            Puedes seguir mirando la tienda sin cuenta, pero para pedir
+            necesitas entrar.
+          </p>
+          <button className="up-sin-sesion-btn" onClick={() => navigate('/login')}>
+            Iniciar sesión
+          </button>
+          <button className="up-sin-sesion-link" onClick={() => navigate('/register')}>
+            No tengo cuenta, quiero crear una
+          </button>
+        </div>
+      </UserLayout>
+    );
+  }
 
   const content = {
     pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} />,
