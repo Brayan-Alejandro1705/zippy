@@ -275,3 +275,16 @@
   .ulo-header     { padding: 0 32px; height: 62px; }
   .ulo-brand      { font-size: 20px; }
 }
+
+/* ── Aviso de sin conexión ───────────────────────────────── */
+/* Se usa tambien fuera de UserLayout; vive aqui porque este es el unico
+   archivo de estilos que carga en todas las pantallas del cliente. */
+.aviso-sin-red {
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px 12px;
+  flex-shrink: 0;
+}

@@ -6,6 +6,7 @@ import Icon from './Icons';
 import AccountSwitcher from './AccountSwitcher';
 import { registrarPush, alTocarNotificacion } from '../utils/push';
 import ChatBurbuja from './ChatBurbuja';
+import AvisoSinConexion from './AvisoSinConexion';
 import { pedidosEspecialesService } from '../config/api';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
@@ -136,6 +137,8 @@ const UserLayout = ({ children, onSearch }) => {
         </button>
 
       </header>
+
+      <AvisoSinConexion />
 
       {/* ── Contenido ──────────────────────────────────── */}
       <main className="ulo-main" style={{ paddingBottom: `calc(${totalItems > 0 && !isCart ? 140 : 80}px + env(safe-area-inset-bottom, 0px))` }}>

@@ -75,7 +75,16 @@ const config: CapacitorConfig = {
   ...(empaquetado ? {} : {
     server: {
       url: 'https://zippygo-app.onrender.com',
-      cleartext: false
+      cleartext: false,
+      // Si el telefono no logra cargar la pantalla, se muestra esta pagina
+      // nuestra (va dentro del APK) en vez del aviso gris de Android
+      // "Pagina web no disponible · net::ERR_INTERNET_DISCONNECTED".
+      //
+      // Es el respaldo para el primer arranque: despues de la primera vez que
+      // la app abre bien, de esto se encarga public/sw.js sin necesidad de
+      // compilar nada. Este cambio solo toma efecto en una version nueva
+      // subida a Play Store.
+      errorPath: 'sin-internet.html'
     }
   })
 };

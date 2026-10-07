@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ZIPPYGO · Sin conexión</title>
+  <!--
+    Esta pagina reemplaza el aviso gris de Android ("Pagina web no disponible,
+    net::ERR_INTERNET_DISCONNECTED"), que parece que la app estuviera rota.
+    La sirve el service worker (public/sw.js) cuando la carga de la pantalla
+    falla por falta de internet.
+
+    Todo va aqui dentro a proposito: sin tipografias, imagenes ni scripts de
+    afuera, porque justamente no hay red para traerlos.
+  -->
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 18px;
+      padding: 32px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      text-align: center;
+      background: #fff7ed;
+      color: #1f2937;
+    }
+    .marca {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 15px; letter-spacing: 2px;
+      color: #c2410c;
+    }
+    .marca span { width: 10px; height: 10px; border-radius: 50%; background: #FF7A00; }
+    .icono {
+      width: 96px; height: 96px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: #ffedd5;
+      margin-bottom: 4px;
+    }
+    .icono svg { width: 48px; height: 48px; }
+    h1 { font-size: 22px; font-weight: 800; margin: 0; }
+    p { font-size: 15px; line-height: 1.5; margin: 0; max-width: 320px; color: #4b5563; }
+    button {
+      margin-top: 6px;
+      border: none; border-radius: 999px;
+      padding: 14px 34px;
+      font-family: inherit; font-size: 16px; font-weight: 800;
+      color: #fff; background: #FF7A00;
+      box-shadow: 0 6px 16px rgba(255,122,0,0.35);
+      cursor: pointer;
+    }
+    button:active { transform: translateY(1px); }
+    button[disabled] { opacity: 0.6; box-shadow: none; }
+    .nota { font-size: 13px; color: #9ca3af; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #111827; color: #f3f4f6; }
+      p { color: #9ca3af; }
+      .icono { background: #1f2937; }
+      .marca { color: #fdba74; }
+    }
+  </style>
+</head>
+<body>
+  <div class="marca"><span></span>ZIPPYGO</div>
+
+  <div class="icono" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#FF7A00" stroke-width="1.8" stroke-linecap="round">
+      <path d="M2 8.8a16 16 0 0 1 20 0" opacity=".35" />
+      <path d="M5 12.3a11 11 0 0 1 14 0" opacity=".6" />
+      <path d="M8.5 15.8a6 6 0 0 1 7 0" />
+      <circle cx="12" cy="19.5" r="1.1" fill="#FF7A00" stroke="none" />
+      <path d="M3 3l18 18" stroke="#FF7A00" stroke-width="1.8" />
+    </svg>
+  </div>
+
+  <h1>Te quedaste sin internet</h1>
+  <p>No es la app: es la señal. Revisa los datos o el wifi y vuelve a intentar; tus pedidos siguen guardados.</p>
+
+  <button id="reintentar" type="button">Reintentar</button>
+  <p class="nota" id="nota">Se reconecta sola apenas vuelva la señal.</p>
+
+  <script>
+    (function () {
+      var boton = document.getElementById('reintentar');
+      var nota = document.getElementById('nota');
+
+      function volverAEntrar() {
+        boton.disabled = true;
+        boton.textContent = 'Conectando…';
+        // replace y no reload: asi este aviso no queda en el historial y el
+        // boton "atras" del telefono no devuelve aqui.
+        window.location.replace('/');
+      }
+
+      boton.addEventListener('click', function () {
+        if (navigator.onLine === false) {
+          nota.textContent = 'Todavía no hay señal. Revisa los datos o el wifi.';
+          return;
+        }
+        volverAEntrar();
+      });
+
+      // Apenas el telefono recupera la red, se entra solo: el repartidor que
+      // salio de un tunel no tiene que acordarse de tocar nada.
+      window.addEventListener('online', volverAEntrar);
+    })();
+  </script>
+</body>
+</html>
