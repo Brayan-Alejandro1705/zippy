@@ -4,6 +4,7 @@ import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { CartProvider } from './context/CartContext';
 import UserHomePage from './pages/user/UserHomePage';
+import BienvenidaPage from './pages/BienvenidaPage';
 import UserCartPage from './pages/user/UserCartPage';
 import UserCheckoutPage from './pages/user/UserCheckoutPage';
 import UserPanelPage from './pages/user/UserPanelPage';
@@ -73,9 +74,10 @@ const RootRedirect = () => {
   if (isAuthenticated()) {
     return <Navigate to={homeRouteFor(getStoredTipoUsuario())} replace />;
   }
-  // Sin sesion se entra directo a la tienda: Apple (5.1.1) no permite exigir
-  // registro para ver negocios y productos, solo para pedir.
-  return <Navigate to="/tienda" replace />;
+  // Sin sesion, lo primero es la bienvenida: crear cuenta o entrar. Desde ahi
+  // se puede seguir a la tienda sin cuenta, porque Apple (5.1.1) no permite
+  // exigir registro para ver negocios y productos, solo para pedir.
+  return <Navigate to="/bienvenida" replace />;
 };
 
 // Evita que alguien ya logueado vuelva a ver la pantalla de login/registro.
@@ -99,6 +101,7 @@ const App = () => (
       <CartProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/bienvenida" element={<PublicOnlyRoute><BienvenidaPage /></PublicOnlyRoute>} />
           <Route path="/login"    element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
           <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
           <Route path="/verificar" element={<VerificarCuentaPage />} />
