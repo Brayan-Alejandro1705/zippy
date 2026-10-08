@@ -308,7 +308,14 @@ async def listar_ordenes(
                 Orden.estado.in_(["confirmada", "en_preparacion", "lista_para_retirar"])
             )
         else:
-            query = query.filter(Orden.domiciliario_id == current_user.id)
+            # Los cancelados o rechazados no son trabajo del repartidor. Sin
+            # este filtro le seguian apareciendo como "Recogiendo" para
+            # siempre, porque la pantalla trata como recogiendo todo lo que no
+            # este entregado ni en camino.
+            query = query.filter(
+                Orden.domiciliario_id == current_user.id,
+                Orden.estado.notin_(["cancelada", "rechazada"]),
+            )
 
     else:  # admin puede ver todas
         pass

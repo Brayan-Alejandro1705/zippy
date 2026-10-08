@@ -722,6 +722,9 @@ async def eliminar_cuenta(
     negocio = db.query(Negocio).filter(Negocio.vendedor_id == usuario.id).first()
     if negocio:
         negocio.estado = EstadoNegocio.INACTIVO
+        # Y sus pedidos en curso se cancelan: nadie los va a preparar.
+        from pedidos_utils import cancelar_pedidos_de_negocio
+        cancelar_pedidos_de_negocio(db, negocio)
 
     # Datos accesorios que no son soporte contable: se borran de verdad.
     # Ojo: Favorito referencia al usuario por cliente_id, no por usuario_id.

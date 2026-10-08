@@ -11,6 +11,7 @@ from datetime import datetime
 
 from config import get_db, settings
 from models import Negocio, Usuario, Producto, Orden
+from pedidos_utils import cancelar_pedidos_de_negocio
 from schemas import NegocioCreate, NegocioUpdate, NegocioResponse
 from routes_auth import get_current_user
 
@@ -270,6 +271,10 @@ async def eliminar_negocio(
     # Marcar como inactivo
     negocio.estado = "inactivo"
     negocio.fecha_ultima_actualizacion = datetime.utcnow()
+
+    # Sus pedidos en curso no se pueden quedar esperando a un negocio que ya
+    # no existe.
+    cancelar_pedidos_de_negocio(db, negocio)
     
     db.commit()
 
