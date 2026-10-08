@@ -89,6 +89,8 @@ def _a_dict(p: PedidoEspecial, db: Session) -> dict:
         "domiciliario_id": str(p.domiciliario_id) if p.domiciliario_id else None,
         "fecha": _fecha_colombia(p.fecha_creacion),
         "fecha_creacion": p.fecha_creacion.isoformat() if p.fecha_creacion else None,
+        # Para que el repartidor pueda contar los mandados que entrego hoy
+        "fecha_entrega": p.fecha_entrega.isoformat() if p.fecha_entrega else None,
     }
 
 

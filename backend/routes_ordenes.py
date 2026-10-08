@@ -492,6 +492,13 @@ async def actualizar_orden(
                 )
 
         orden.estado = orden_actualizada.estado
+
+        # La hora de entrega no se estaba guardando nunca. Por eso el contador
+        # del repartidor ("Entregados", "Ganado hoy") tenia que guiarse por la
+        # fecha en que se CREO el pedido: uno pedido anoche y entregado hoy no
+        # le contaba, y uno pedido a las 11:50 p.m. le contaba al dia anterior.
+        if orden_actualizada.estado == "entregada" and not orden.fecha_entrega:
+            orden.fecha_entrega = datetime.utcnow()
         
         # Registrar seguimiento
         seguimiento = SeguimientoOrden(

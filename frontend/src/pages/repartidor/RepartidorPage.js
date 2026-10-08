@@ -891,6 +891,8 @@ const RepartidorPage = () => {
   const [showCuenta, setShowCuenta] = useState(false);
   const [chatOrden,  setChatOrden]  = useState(null);
   const [chatMandado, setChatMandado] = useState(null);
+  // Mandados que este repartidor entrego hoy (solo el numero)
+  const [mandadosHoy, setMandadosHoy] = useState(0);
   const especialesRef = useRef([]);
   // Pedidos a los que se les acaba de tocar el boton, para bloquear ESE boton
   // y avisar. Es un conjunto y no un solo id porque antes, con un pedido en
@@ -1103,6 +1105,7 @@ const RepartidorPage = () => {
         // dejo el pedido listo.
         estadoServidor: o.estado,
         fechaCreacion: o.fecha_creacion,
+        fechaEntrega: o.fecha_entrega || null,
         direccion: o.direccion_entrega,
         cliente: o.cliente_nombre || cliente?.nombre,
         telefono: o.cliente_telefono || cliente?.telefono,
@@ -1230,6 +1233,14 @@ const RepartidorPage = () => {
       const siguiente = [...enCurso, ...disponibles];
       return mismaLista(prev, siguiente) ? prev : siguiente;
     });
+
+    // Los mandados entregados hoy no se muestran en la lista, pero si cuentan
+    // en "Entregados": antes no sumaban nunca y el repartidor que hacia solo
+    // mandados veia el contador en cero todo el dia.
+    if (mios) {
+      const hechosHoy = mios.filter(p => p.estado === 'entregada' && esHoy(p.fecha_entrega || p.fecha_creacion)).length;
+      setMandadosHoy(hechosHoy);
+    }
   }, [online]);
 
   useEffect(() => {
@@ -1428,7 +1439,11 @@ const RepartidorPage = () => {
 
   const disponibles = ordenes.filter(o => o.estado === 'disponible');
   const enCamino     = ordenes.filter(o => o.estado === 'en_domicilio' || o.estado === 'recogiendo');
-  const entregadasHoy = ordenes.filter(o => o.estado === 'entregada' && esHoy(o.fechaCreacion));
+  // Cuenta por la hora en que se ENTREGO, no por la hora en que se pidio: un
+  // pedido de anoche entregado hoy es trabajo de hoy. Los pedidos entregados
+  // antes de que el servidor guardara esa hora no la tienen, y para esos se
+  // sigue mirando la fecha del pedido.
+  const entregadasHoy = ordenes.filter(o => o.estado === 'entregada' && esHoy(o.fechaEntrega || o.fechaCreacion));
   const activeOrden  = enCamino[0];
   const ganado    = entregadasHoy.reduce((s, o) => s + o.total * COMISION_PCT, 0);
   const especialesActivos = pedidosEspeciales.filter(p => p.estado !== 'entregada');
@@ -1471,7 +1486,7 @@ const RepartidorPage = () => {
         </div>
         <div className="rp-stat-div"/>
         <div className="rp-stat">
-          <span className="rp-stat-val">{entregadasHoy.length}</span>
+          <span className="rp-stat-val">{entregadasHoy.length + mandadosHoy}</span>
           <span className="rp-stat-label">Entregados</span>
         </div>
         <div className="rp-stat-div"/>
