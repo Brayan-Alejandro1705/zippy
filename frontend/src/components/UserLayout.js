@@ -7,16 +7,25 @@ import AccountSwitcher from './AccountSwitcher';
 import { registrarPush, alTocarNotificacion } from '../utils/push';
 import ChatBurbuja from './ChatBurbuja';
 import AvisoSinConexion from './AvisoSinConexion';
-import { pedidosEspecialesService } from '../config/api';
+import { pedidosEspecialesService, ordenesService } from '../config/api';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 const hayCuenta = () => !!localStorage.getItem('access_token');
 
+// Pedidos y Ayuda vivian escondidos como pestañas dentro del Perfil: para ver
+// por donde iba un pedido habia que entrar a Perfil y luego buscar la pestaña.
+// Ahora estan a un toque desde cualquier pantalla. Cinco es el tope que cabe
+// comodo en un celular; para meter un sexto habria que sacar alguno.
 const NAV_ITEMS = [
-  { path: '/tienda',                 icon: 'inicio',       label: 'Inicio'    },
-  { path: '/tienda/pedido-especial', icon: 'solicitudes',  label: 'Mandado'   },
-  { path: '/tienda/perfil',          icon: 'perfil',       label: 'Perfil'    },
+  { path: '/tienda',                 icon: 'inicio',        label: 'Inicio'  },
+  { path: '/tienda/pedido-especial', icon: 'solicitudes',   label: 'Mandado' },
+  { path: '/tienda/pedidos',         icon: 'paquete',       label: 'Pedidos' },
+  { path: '/tienda/perfil',          icon: 'perfil',        label: 'Perfil'  },
+  { path: '/tienda/ayuda',           icon: 'interrogacion', label: 'Ayuda'   },
 ];
+
+// Estados en los que un pedido ya termino y no cuenta como "en curso"
+const ORDEN_TERMINADA = ['entregada', 'cancelada'];
 
 const UserLayout = ({ children, onSearch }) => {
   const navigate  = useNavigate();
@@ -39,21 +48,37 @@ const UserLayout = ({ children, onSearch }) => {
    * el cliente vuelva a mirar.
    */
   const [mandadoActivo, setMandadoActivo] = useState(null);
+  // Cuantos pedidos y mandados van en curso: es el numero rojo sobre "Pedidos"
+  const [enCurso, setEnCurso] = useState(0);
 
   useEffect(() => {
     if (!hayCuenta()) return;
     let activo = true;
 
     const revisar = () => {
-      pedidosEspecialesService.misPedidos()
-        .then(({ data }) => {
-          if (!activo) return;
+      Promise.allSettled([
+        pedidosEspecialesService.misPedidos(),
+        ordenesService.listar({ limit: 50 }),
+      ]).then(([resMandados, resOrdenes]) => {
+        if (!activo) return;
+        let cuenta = 0;
+
+        if (resMandados.status === 'fulfilled') {
+          const data = resMandados.value.data;
           const lista = Array.isArray(data) ? data : (data?.items || []);
           // El chat existe desde que un repartidor lo toma y hasta que lo entrega
-          const enCurso = lista.find(p => p.domiciliario_id && !['entregada', 'cancelada'].includes(p.estado));
-          setMandadoActivo(enCurso || null);
-        })
-        .catch(() => { if (activo) setMandadoActivo(null); });
+          const conRepartidor = lista.find(p => p.domiciliario_id && !ORDEN_TERMINADA.includes(p.estado));
+          setMandadoActivo(conRepartidor || null);
+          cuenta += lista.filter(p => !ORDEN_TERMINADA.includes(p.estado)).length;
+        }
+        if (resOrdenes.status === 'fulfilled') {
+          const lista = Array.isArray(resOrdenes.value.data) ? resOrdenes.value.data : [];
+          cuenta += lista.filter(o => !ORDEN_TERMINADA.includes(o.estado)).length;
+        }
+        // Si fallaron las dos se deja el numero que habia: un bache de señal
+        // no debe borrar el aviso de que hay un pedido andando.
+        if (resMandados.status === 'fulfilled' || resOrdenes.status === 'fulfilled') setEnCurso(cuenta);
+      });
     };
 
     revisar();
@@ -89,7 +114,11 @@ const UserLayout = ({ children, onSearch }) => {
     ? mandadoActivo.id
     : null;
 
-  const isCart    = location.pathname === '/tienda/carrito' || location.pathname === '/tienda/checkout';
+  // La barra flotante de "Ver mi carrito" solo acompaña mientras se mira la
+  // tienda. En Pedidos, Perfil y Ayuda quedaba encima del contenido —tapaba el
+  // boton de "Ver seguimiento"— y ahi no aporta: el carrito sigue arriba, en
+  // el icono del encabezado.
+  const enVitrina = location.pathname === '/tienda';
   const activeNav = NAV_ITEMS.find(n => location.pathname === n.path)?.path || '/tienda';
 
 
@@ -141,12 +170,12 @@ const UserLayout = ({ children, onSearch }) => {
       <AvisoSinConexion />
 
       {/* ── Contenido ──────────────────────────────────── */}
-      <main className="ulo-main" style={{ paddingBottom: `calc(${totalItems > 0 && !isCart ? 140 : 80}px + env(safe-area-inset-bottom, 0px))` }}>
+      <main className="ulo-main" style={{ paddingBottom: `calc(${totalItems > 0 && enVitrina ? 140 : 80}px + env(safe-area-inset-bottom, 0px))` }}>
         {children}
       </main>
 
       {/* ── Barra flotante del carrito ─────────────────── */}
-      {totalItems > 0 && !isCart && (
+      {totalItems > 0 && enVitrina && (
         <button className="ulo-cart-bar" onClick={() => navigate('/tienda/carrito')}>
           <div className="ulo-cart-bar-l">
             <span className="ulo-cart-bar-badge">{totalItems}</span>
@@ -167,7 +196,12 @@ const UserLayout = ({ children, onSearch }) => {
             className={`ulo-nav-item ${activeNav === item.path ? 'ulo-nav-item--active' : ''}`}
             onClick={() => navigate(item.path)}
           >
-            <span className="ulo-nav-icon"><Icon name={item.icon} size={22} /></span>
+            <span className="ulo-nav-icon">
+              <Icon name={item.icon} size={22} />
+              {item.path === '/tienda/pedidos' && enCurso > 0 && (
+                <span className="ulo-nav-badge">{enCurso > 9 ? '9+' : enCurso}</span>
+              )}
+            </span>
             <span className="ulo-nav-label">{item.label}</span>
           </button>
         ))}

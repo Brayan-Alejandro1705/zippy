@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { CartProvider } from './context/CartContext';
 import UserHomePage from './pages/user/UserHomePage';
 import BienvenidaPage from './pages/BienvenidaPage';
+import AyudaPage from './pages/user/AyudaPage';
 import UserCartPage from './pages/user/UserCartPage';
 import UserCheckoutPage from './pages/user/UserCheckoutPage';
 import UserPanelPage from './pages/user/UserPanelPage';
@@ -133,6 +134,8 @@ const App = () => (
           <Route path="/tienda/carrito"  element={<UserCartPage />} />
           <Route path="/tienda/checkout" element={<UserCheckoutPage />} />
           <Route path="/tienda/perfil"          element={<UserPanelPage />} />
+          <Route path="/tienda/pedidos"         element={<UserPanelPage vista="pedidos" />} />
+          <Route path="/tienda/ayuda"           element={<AyudaPage />} />
           <Route path="/tienda/pedido-especial" element={<PedidoEspecialPage />} />
           <Route path="/repartidor"             element={<RepartidorPage />} />
           <Route path="/" element={<RootRedirect />} />

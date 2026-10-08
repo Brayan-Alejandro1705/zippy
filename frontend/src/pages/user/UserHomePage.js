@@ -28,7 +28,9 @@ const useCountdown = () => {
   return time;
 };
 const pad = n => String(n).padStart(2, '0');
-const TIENDAS_VISIBLES = 4;
+// En el celular cada tienda ocupa todo el ancho (ver .uh-stores-row), asi que
+// con tres ya se llena buena parte de la pantalla; el resto sale con "Ver todas".
+const TIENDAS_VISIBLES = 3;
 // Se puede mirar la tienda sin cuenta; guardar y pedir si piden sesion
 const hayCuenta = () => !!localStorage.getItem('access_token');
 
@@ -388,10 +390,12 @@ const UserHomePage = () => {
                 <div className="uh-store-info">
                   <p className="uh-store-name">{t.nombre}</p>
                   {estaAbierto(t)
-                    ? <p className="uh-store-count">{t.count} producto{t.count !== 1 ? 's' : ''}</p>
+                    ? <p className="uh-store-count"><span className="uh-store-abierta">Abierto</span> · {t.count} producto{t.count !== 1 ? 's' : ''}</p>
                     : <p className="uh-store-count uh-store-count--cerrada">{textoCerrado(t)}</p>}
                 </div>
-                {tiendaFiltro === t.nombre && <span className="uh-store-check">✓</span>}
+                {tiendaFiltro === t.nombre
+                  ? <span className="uh-store-check">✓</span>
+                  : <span className="uh-store-flecha" aria-hidden="true">›</span>}
               </button>
             ))}
           </div>

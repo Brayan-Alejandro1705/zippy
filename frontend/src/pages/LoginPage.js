@@ -87,11 +87,13 @@ const LoginPage = () => {
             <div className="lp-logo-mark">Z</div>
             <span className="lp-logo-name">ZIPPY</span>
           </div>
-          <span className="lp-badge">Admin Panel</span>
         </div>
 
         <h2 className="lp-title">Bienvenido de nuevo</h2>
-        <p className="lp-sub">Accede a tu panel de administración</p>
+        {/* Decia "Admin Panel" y "Accede a tu panel de administración", pero por
+            esta pantalla entran sobre todo clientes: se dejo un texto que le
+            sirve a cualquiera de los cuatro tipos de cuenta. */}
+        <p className="lp-sub">Entra a tu cuenta de ZIPPYGO</p>
 
         <form onSubmit={handleLogin} noValidate>
           {error && (
@@ -114,7 +116,7 @@ const LoginPage = () => {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="admin@zippy.com"
+                placeholder="tucorreo@ejemplo.com"
                 disabled={loading}
                 autoComplete="email"
               />

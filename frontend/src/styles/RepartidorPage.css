@@ -781,3 +781,18 @@
 }
 .rp-especial-cobro strong { font-size: 18px; color: #15803d; }
 .rp-especial-cobro small { font-size: 12px; color: #4b7f5c; width: 100%; }
+
+/* ── Avisos de la recogida en la tarjeta del pedido ──────── */
+.rp-order-codigo { font-weight: 600; line-height: 1.45; padding: 10px 12px; border-radius: 10px; }
+.rp-order-codigo b { font-weight: 800; }
+.rp-order-codigo .rp-order-codigo-num {
+  display: block; font-size: 26px; font-weight: 900; letter-spacing: 2px;
+  color: #7c2d12; margin: 4px 0 2px;
+}
+.rp-order-codigo small { display: block; font-size: 12px; font-weight: 600; color: #a16207; margin-top: 2px; }
+.rp-order-espera {
+  font-size: 13px; line-height: 1.45; color: #1e40af;
+  background: #dbeafe; border: 1.5px dashed #60a5fa; border-radius: 10px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.rp-order-espera strong { display: block; font-weight: 800; }

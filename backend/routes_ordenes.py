@@ -110,6 +110,15 @@ async def crear_orden(
             detail="Negocio no encontrado"
         )
 
+    # Una tienda eliminada o suspendida no recibe pedidos, aunque el cliente
+    # todavia tenga un producto suyo en el carrito desde antes.
+    vendedor = db.query(Usuario).filter(Usuario.id == negocio.vendedor_id).first()
+    if negocio.estado != "activo" or not vendedor or vendedor.estado != EstadoUsuario.ACTIVO:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{negocio.nombre_negocio} ya no esta recibiendo pedidos. Quita sus productos del carrito para continuar."
+        )
+
     # No dejar crear ordenes si la tienda esta fuera de su horario configurado
     if not negocio.esta_abierto():
         detalle = f"{negocio.nombre_negocio} esta cerrado en este momento."

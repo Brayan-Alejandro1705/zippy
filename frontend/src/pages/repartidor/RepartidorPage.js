@@ -600,8 +600,31 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
         )}
       </div>
 
-      {orden.estado === 'recogiendo' && orden.codigoRecogida && (
-        <p className="rp-order-codigo">🔑 Muéstrale este código al vendedor: <strong>{orden.codigoRecogida}</strong></p>
+      {/*
+        Mientras el pedido esta en "Recogiendo" el repartidor NO tiene boton:
+        quien lo pasa a "En camino" es el vendedor, al escribir el codigo en
+        su pantalla. Es un candado a proposito —evita marcar como recogido algo
+        que no se recogio—, pero la tarjeta no lo explicaba y parecia que
+        faltaba el boton de entregar. Ahora dice que se esta esperando.
+      */}
+      {orden.estado === 'recogiendo' && (
+        orden.estadoServidor !== 'lista_para_retirar' ? (
+          <p className="rp-order-espera">
+            <strong>⏳ El negocio todavía lo está preparando.</strong>
+            Ve acercándote; aquí te mostramos qué hacer cuando esté listo.
+          </p>
+        ) : orden.codigoRecogida ? (
+          <p className="rp-order-codigo">
+            ✅ <b>Ya está listo.</b> Muéstrale este código al vendedor:
+            <strong className="rp-order-codigo-num">{orden.codigoRecogida}</strong>
+            <small>Cuando el negocio lo confirme, aquí te aparece el botón para entregar.</small>
+          </p>
+        ) : (
+          <p className="rp-order-codigo">
+            ✅ <b>Ya está listo.</b> Pídele al vendedor que confirme la entrega en su pantalla.
+            <small>Cuando lo confirme, aquí te aparece el botón para entregar.</small>
+          </p>
+        )
       )}
 
       {orden.instrucciones && (
@@ -1075,6 +1098,10 @@ const RepartidorPage = () => {
         id: `#${o.id.slice(0, 8)}`,
         idCompleto: o.id,
         estado: esDisponible ? 'disponible' : (o.estado === 'entregada' ? 'entregada' : (o.estado === 'en_domicilio' ? 'en_domicilio' : 'recogiendo')),
+        // El estado tal cual lo tiene el servidor. `estado` de arriba junta
+        // varios en "recogiendo"; este hace falta para saber si el negocio ya
+        // dejo el pedido listo.
+        estadoServidor: o.estado,
         fechaCreacion: o.fecha_creacion,
         direccion: o.direccion_entrega,
         cliente: o.cliente_nombre || cliente?.nombre,

@@ -13,7 +13,7 @@ from uuid import UUID
 from datetime import datetime, timedelta
 
 from config import get_db
-from models import Producto, Negocio, Usuario
+from models import Producto, Negocio, Usuario, EstadoUsuario
 from schemas import ProductoCreate, ProductoUpdate, ProductoResponse, OfertaCreate
 from routes_auth import get_current_user
 from storage_supabase import subir_archivo, SupabaseStorageError
@@ -200,9 +200,21 @@ async def listar_productos(
     - **limit**: Cantidad de productos a retornar
     """
     
-    query = db.query(Producto).filter(
-        Producto.es_visible == True,
-        Producto.estado == "activo"
+    # Un producto solo se ofrece si su tienda sigue en pie. Antes se miraba
+    # unicamente el producto, asi que al eliminar una tienda (o al suspender o
+    # eliminar a su vendedor) los productos seguian en la vitrina sin dueño:
+    # salian con el nombre "Tienda" y un cliente podia pedirlos aunque ya no
+    # hubiera nadie para prepararlos.
+    query = (
+        db.query(Producto)
+        .join(Negocio, Producto.negocio_id == Negocio.id)
+        .join(Usuario, Negocio.vendedor_id == Usuario.id)
+        .filter(
+            Producto.es_visible == True,  # noqa: E712
+            Producto.estado == "activo",
+            Negocio.estado == "activo",
+            Usuario.estado == EstadoUsuario.ACTIVO,
+        )
     )
     
     # Aplicar filtros

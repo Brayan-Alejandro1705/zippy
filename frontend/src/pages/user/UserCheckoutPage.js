@@ -8,6 +8,7 @@ import { ENVIO_POR_TIENDA } from '../../constants/envio';
 import { estaAbierto, textoCerrado } from '../../utils/horario';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
+import SelectorUbicacion from '../../components/SelectorUbicacion';
 
 const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
@@ -67,6 +68,54 @@ const UserCheckoutPage = () => {
   }, []);
 
   const dirElegida = direcciones.find(d => d.id === dirId) || null;
+
+  /*
+   * Elegir o agregar la direccion SIN salir del pedido.
+   *
+   * Antes, para agregar una direccion habia que irse al Perfil: el enlace
+   * sacaba al cliente de la compra, caia en la pestaña equivocada y despues
+   * tenia que encontrar el camino de vuelta al carrito. Ahora sube una hoja
+   * desde abajo, se elige o se agrega ahi mismo, y la compra sigue donde iba.
+   *
+   * hojaDir: null (cerrada) | 'elegir' | 'nueva'
+   */
+  const [hojaDir, setHojaDir]       = useState(null);
+  const [dirMarcada, setDirMarcada] = useState(null);
+  const [formDir, setFormDir]       = useState({ etiqueta: '', direccion: '', referencia: '' });
+  const [ubicDir, setUbicDir]       = useState(null);
+  const [guardandoDir, setGuardandoDir] = useState(false);
+
+  const abrirHojaDir = () => {
+    setDirMarcada(dirId);
+    setHojaDir(direcciones.length === 0 ? 'nueva' : 'elegir');
+  };
+
+  const guardarDireccionNueva = async (e) => {
+    e.preventDefault();
+    if (guardandoDir) return;
+    if (!formDir.etiqueta.trim() || !formDir.direccion.trim()) return;
+    if (!ubicDir) { addToast('Marca en el mapa dónde queda, para que el repartidor llegue exacto', 'error'); return; }
+    setGuardandoDir(true);
+    try {
+      const { data } = await clienteService.agregarDireccion({
+        etiqueta: formDir.etiqueta.trim(),
+        direccion: formDir.direccion.trim(),
+        referencia: formDir.referencia.trim(),
+        lat: ubicDir.lat,
+        lng: ubicDir.lng,
+      });
+      setDirecciones(prev => [...prev, data]);
+      setDirId(data.id);
+      setFormDir({ etiqueta: '', direccion: '', referencia: '' });
+      setUbicDir(null);
+      setHojaDir(null);
+      addToast('Dirección guardada', 'success');
+    } catch {
+      addToast('No se pudo guardar la dirección. Intenta de nuevo.', 'error');
+    } finally {
+      setGuardandoDir(false);
+    }
+  };
 
   const tiendas    = [...new Set(items.map(i => i.tienda))];
   const envioTotal = tiendas.length * envioUnitario;
@@ -141,7 +190,7 @@ const UserCheckoutPage = () => {
       } else {
         addToast('¡Orden confirmada! Recibirás un correo de confirmación.', 'success');
       }
-      navigate('/tienda/perfil');
+      navigate('/tienda/pedidos');
     } catch (err) {
       const detail = err.response?.data?.detail;
       let msg = 'No se pudo confirmar la orden. Intenta de nuevo.';
@@ -208,39 +257,29 @@ const UserCheckoutPage = () => {
           <p className="ucho-section-label">Dirección de entrega</p>
           {cargandoDirs ? (
             <p className="ucho-address-text">Cargando direcciones...</p>
-          ) : direcciones.length === 0 ? (
-            <div className="ucho-address ucho-address--vacia">
-              <span className="ucho-address-icon"><Icon name="ubicacion" size={18} /></span>
-              <div>
-                <p className="ucho-address-text">No tienes direcciones guardadas</p>
-                <button
-                  className="ucho-address-change"
-                  onClick={() => navigate('/tienda/perfil?tab=direcciones')}
-                >
-                  Agregar una dirección
-                </button>
-              </div>
-            </div>
           ) : (
-            <div className="ucho-address-list">
-              {direcciones.map(d => (
-                <label
-                  key={d.id}
-                  className={`ucho-address-opt ${dirId === d.id ? 'ucho-address-opt--sel' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="direccion"
-                    checked={dirId === d.id}
-                    onChange={() => setDirId(d.id)}
-                  />
-                  <span>
-                    <strong>{d.etiqueta || 'Direccion'}</strong>
-                    <em>{d.dir}</em>
-                    {d.referencia && <small>{d.referencia}</small>}
-                  </span>
-                </label>
-              ))}
+            <div className="ucho-address">
+              <span className="ucho-address-icon"><Icon name="ubicacion" size={18} /></span>
+              <div className="ucho-address-info">
+                {dirElegida ? (
+                  <>
+                    <p className="ucho-address-text">{dirElegida.etiqueta || 'Dirección'}</p>
+                    <p className="ucho-address-sub">{dirElegida.dir}{dirElegida.referencia ? ` · ${dirElegida.referencia}` : ''}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="ucho-address-text">Sin dirección</p>
+                    <p className="ucho-address-sub">Dinos a dónde llevarlo</p>
+                  </>
+                )}
+              </div>
+              <button
+                type="button"
+                className={`ucho-address-btn ${dirElegida ? 'ucho-address-btn--borde' : ''}`}
+                onClick={abrirHojaDir}
+              >
+                {dirElegida ? 'Cambiar' : '+ Agregar'}
+              </button>
             </div>
           )}
         </div>
@@ -298,10 +337,88 @@ const UserCheckoutPage = () => {
             ? 'Procesando...'
             : itemsCerrados.length > 0
               ? 'Hay productos no disponibles'
-              : (!dirElegida ? 'Agrega una direccion' : 'Confirmar Orden')}
+              : (!dirElegida ? 'Agrega una dirección' : 'Confirmar Orden')}
         </button>
         <p className="ucho-confirm-note">Recibirás confirmación en tu correo</p>
       </div>
+
+      {/* Hoja para elegir o agregar la direccion */}
+      {hojaDir && (
+        <div className="ucho-hoja-velo" onClick={() => setHojaDir(null)}>
+          <div className="ucho-hoja" role="dialog" aria-label="Dirección de entrega" onClick={e => e.stopPropagation()}>
+            <div className="ucho-hoja-asa" />
+
+            {hojaDir === 'elegir' ? (
+              <>
+                <p className="ucho-hoja-titulo">¿A dónde lo llevamos?</p>
+                <div className="ucho-address-list">
+                  {direcciones.map(d => (
+                    <label
+                      key={d.id}
+                      className={`ucho-address-opt ${dirMarcada === d.id ? 'ucho-address-opt--sel' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="direccion"
+                        checked={dirMarcada === d.id}
+                        onChange={() => setDirMarcada(d.id)}
+                      />
+                      <span>
+                        <strong>{d.etiqueta || 'Dirección'}</strong>
+                        <em>{d.dir}</em>
+                        {d.referencia && <small>{d.referencia}</small>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <button type="button" className="ucho-hoja-nueva" onClick={() => setHojaDir('nueva')}>
+                  + Agregar nueva dirección
+                </button>
+                <button
+                  type="button"
+                  className="ucho-btn-confirm ucho-hoja-ok"
+                  disabled={!dirMarcada}
+                  onClick={() => { setDirId(dirMarcada); setHojaDir(null); }}
+                >
+                  Usar esta dirección
+                </button>
+              </>
+            ) : (
+              <form onSubmit={guardarDireccionNueva} className="ucho-hoja-form">
+                <p className="ucho-hoja-titulo">Nueva dirección</p>
+                <input
+                  placeholder="Nombre (Casa, Trabajo...)"
+                  value={formDir.etiqueta}
+                  onChange={e => setFormDir(p => ({ ...p, etiqueta: e.target.value }))}
+                  required
+                />
+                <input
+                  placeholder="Dirección completa"
+                  value={formDir.direccion}
+                  onChange={e => setFormDir(p => ({ ...p, direccion: e.target.value }))}
+                  required
+                />
+                <input
+                  placeholder="Referencia (casa azul, frente al parque...)"
+                  value={formDir.referencia}
+                  onChange={e => setFormDir(p => ({ ...p, referencia: e.target.value }))}
+                />
+                <SelectorUbicacion direccion={formDir.direccion} valor={ubicDir} onChange={setUbicDir} />
+                <button type="submit" className="ucho-btn-confirm ucho-hoja-ok" disabled={guardandoDir}>
+                  {guardandoDir ? 'Guardando…' : 'Guardar y usar esta dirección'}
+                </button>
+                <button
+                  type="button"
+                  className="ucho-hoja-volver"
+                  onClick={() => setHojaDir(direcciones.length > 0 ? 'elegir' : null)}
+                >
+                  {direcciones.length > 0 ? 'Volver a mis direcciones' : 'Cancelar'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

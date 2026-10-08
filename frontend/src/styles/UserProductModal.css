@@ -177,3 +177,14 @@
 }
 .upm-add-btn:hover { opacity: 0.92; }.upm-cerrado-banner { font-size: 12px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 8px 12px; border-radius: 8px; margin: 8px 0; }
 .upm-add-btn--disabled, .upm-add-btn--disabled:hover { background: #cbd5e1; color: #64748b; cursor: not-allowed; box-shadow: none; opacity: 1; }
+
+/* ── Pie de la ficha en pantallas angostas ───────────────── */
+/* Con precios de cinco cifras ("Agregar · $50.000") el boton se salia por el
+   borde derecho. El precio suelto de la izquierda se quita en el celular
+   porque repite lo que ya dice el boton, y el boton puede encogerse. */
+.upm-footer  { box-sizing: border-box; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+.upm-add-btn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) {
+  .upm-footer { padding-left: 14px; padding-right: 14px; gap: 10px; }
+  .upm-footer-price { display: none; }
+}

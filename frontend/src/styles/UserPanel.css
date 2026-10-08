@@ -607,3 +607,8 @@
   color: #FF7A00; text-decoration: underline;
   padding: 6px; cursor: pointer;
 }
+
+/* ── Cabecera de las pantallas Pedidos y Ayuda ───────────── */
+.up-pedidos-cabecera { padding: 20px 16px 4px; }
+.up-pedidos-titulo   { font-size: 22px; font-weight: 800; margin: 0; color: #1e293b; }
+.up-pedidos-resumen  { font-size: 13px; color: #64748b; margin: 4px 0 0; }

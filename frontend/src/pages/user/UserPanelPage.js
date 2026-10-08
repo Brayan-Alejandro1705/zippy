@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker } from '@react-google-maps/api';
 import UserLayout from '../../components/UserLayout';
 import OrdenChat from '../../components/OrdenChat';
 import ZLoader from '../../components/ZLoader';
-import CentroAyuda from '../../components/CentroAyuda';
 import ConfirmModal from '../../components/ConfirmModal';
 import EliminarCuenta from '../../components/EliminarCuenta';
 import { useCart } from '../../context/CartContext';
@@ -76,13 +75,22 @@ const ESTADO_STYLE = {
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
 /* ── Tabs ────────────────────────────────────────────────── */
+// Pedidos y Ayuda salieron de aqui: ahora tienen boton propio en la barra de
+// abajo (ver NAV_ITEMS en UserLayout).
 const TABS = [
-  { id: 'pedidos',     icon: 'paquete',   label: 'Pedidos'    },
   { id: 'guardados',   icon: 'corazon',   label: 'Guardados'  },
   { id: 'direcciones', icon: 'ubicacion', label: 'Direcciones'},
   { id: 'cuenta',      icon: 'config',    label: 'Cuenta'     },
-  { id: 'ayuda',       icon: 'interrogacion', label: 'Ayuda'  },
 ];
+
+// "359 minutos" no le dice nada a nadie; "casi 6 horas" si.
+const esperaLegible = (min) => {
+  if (min < 60) return `${min} minuto${min === 1 ? '' : 's'}`;
+  const horas = Math.round(min / 60);
+  if (horas < 24) return `${horas} hora${horas === 1 ? '' : 's'}`;
+  const dias = Math.round(horas / 24);
+  return `${dias} día${dias === 1 ? '' : 's'}`;
+};
 
 /* ── Pedidos ─────────────────────────────────────────────── */
 // Estados en los que el cliente todavia puede cancelar. Una vez el negocio
@@ -137,10 +145,10 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
             )}
             {p.estado === 'Pendiente' && minutosDesde(p.fechaRaw) >= MINUTOS_PARA_SOPORTE && (
               <div className="up-aviso-espera">
-                <b>El negocio todavía no ha confirmado tu pedido.</b> Lleva {minutosDesde(p.fechaRaw)} minutos esperando. Puedes cancelarlo aquí mismo o escribirnos y lo movemos nosotros.
+                <b>El negocio todavía no ha confirmado tu pedido.</b> Lleva {esperaLegible(minutosDesde(p.fechaRaw))} esperando. Puedes cancelarlo aquí mismo o escribirnos y lo movemos nosotros.
                 {wa && (
                   <a
-                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hola, mi pedido ${p.id} en ZIPPYGO lleva ${minutosDesde(p.fechaRaw)} minutos sin confirmar.`)}`}
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hola, mi pedido ${p.id} en ZIPPYGO lleva ${esperaLegible(minutosDesde(p.fechaRaw))} sin confirmar.`)}`}
                     target="_blank" rel="noopener noreferrer"
                     className="up-aviso-link"
                   ><Icon name="whatsapp" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribir a soporte</a>
@@ -855,18 +863,24 @@ const SeccionCuenta = ({ addToast }) => {
 };
 
 /* ── Main page ───────────────────────────────────────────── */
-const UserPanelPage = () => {
+// vista: 'perfil' (Guardados / Direcciones / Cuenta) o 'pedidos'. Son dos
+// pantallas de la barra de abajo que comparten este componente porque las dos
+// necesitan la lista de pedidos y sus ventanas de seguimiento y calificacion.
+const UserPanelPage = ({ vista = 'perfil' }) => {
   const navigate    = useNavigate();
   const { addItem } = useCart();
   const { addToast }= useToast();
-  const [tab, setTab] = useState('pedidos');
+  // /tienda/perfil?tab=direcciones abre esa pestaña. Antes el enlace existia
+  // pero nadie leia el parametro, y siempre caia en la primera pestaña.
+  const [searchParams] = useSearchParams();
+  const tabPedida = searchParams.get('tab');
+  const [tab, setTab] = useState(TABS.some(t => t.id === tabPedida) ? tabPedida : 'guardados');
   const [repitiendo, setRepitiendo] = useState(null);
   const [cancelando, setCancelando] = useState(null);
   const [porCancelar, setPorCancelar] = useState(null);
 
   const [pedidos, setPedidos] = useState([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
-  const [numGuardados, setNumGuardados] = useState(0);
   const [trackingPedido, setTrackingPedido] = useState(null);
   const [calificarPedido, setCalificarPedido] = useState(null);
 
@@ -949,15 +963,6 @@ const UserPanelPage = () => {
         if (activo) setLoadingPedidos(false);
       }
     })();
-    return () => { activo = false; };
-  }, []);
-
-  // Contador de productos guardados para la cabecera
-  useEffect(() => {
-    let activo = true;
-    clienteService.favoritos()
-      .then(({ data }) => { if (activo) setNumGuardados((data || []).length); })
-      .catch(() => { if (activo) setNumGuardados(0); });
     return () => { activo = false; };
   }, []);
 
@@ -1072,7 +1077,6 @@ const UserPanelPage = () => {
     navigate('/login');
   };
   const inicial  = (usuario.nombre || 'U').charAt(0).toUpperCase();
-  const gastado  = pedidos.filter(p => p.estado === 'Entregado').reduce((s, p) => s + p.total, 0);
 
   if (!haySesion) {
     return (
@@ -1081,9 +1085,9 @@ const UserPanelPage = () => {
           <div className="up-sin-sesion-icono"><Icon name="perfil" size={34} /></div>
           <h2 className="up-sin-sesion-titulo">Entra a tu cuenta</h2>
           <p className="up-sin-sesion-texto">
-            Aquí aparecen tus pedidos, tus direcciones y lo que has guardado.
-            Puedes seguir mirando la tienda sin cuenta, pero para pedir
-            necesitas entrar.
+            {vista === 'pedidos'
+              ? 'Aquí vas a ver tus pedidos y por dónde van. Puedes seguir mirando la tienda sin cuenta, pero para pedir necesitas entrar.'
+              : 'Aquí aparecen tus direcciones y lo que has guardado. Puedes seguir mirando la tienda sin cuenta, pero para pedir necesitas entrar.'}
           </p>
           <button className="up-sin-sesion-btn" onClick={() => navigate('/login')}>
             Iniciar sesión
@@ -1097,12 +1101,50 @@ const UserPanelPage = () => {
   }
 
   const content = {
-    pedidos:     <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} />,
     guardados:   <SeccionGuardados addItem={addItem} addToast={addToast} />,
     direcciones: <SeccionDirecciones addToast={addToast} />,
     cuenta:      <SeccionCuenta addToast={addToast} />,
-    ayuda:       <CentroAyuda perfil="cliente" />,
   };
+
+  // Ventanas que comparten las dos vistas
+  const ventanas = (
+    <>
+      <SeguimientoModal pedido={trackingPedido} onClose={() => setTrackingPedido(null)} />
+      <CalificarModal pedido={calificarPedido} onClose={() => setCalificarPedido(null)} />
+      <ConfirmModal
+        isOpen={!!porCancelar}
+        title="¿Cancelar este pedido?"
+        message={porCancelar
+          ? `Vamos a cancelar el pedido ${porCancelar.id} de ${porCancelar.tienda}. Si el negocio ya empezó a prepararlo, el servidor no lo va a permitir y te lo decimos.`
+          : ''}
+        confirmLabel="Sí, cancelar"
+        cancelLabel="No, dejarlo"
+        danger
+        onConfirm={handleCancelar}
+        onCancel={() => setPorCancelar(null)}
+      />
+    </>
+  );
+
+  if (vista === 'pedidos') {
+    const andando = pedidos.filter(p => !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado)).length;
+    return (
+      <UserLayout>
+        <div className="up-pedidos-cabecera">
+          <h1 className="up-pedidos-titulo">Mis pedidos</h1>
+          {!loadingPedidos && pedidos.length > 0 && (
+            <p className="up-pedidos-resumen">
+              {andando > 0 ? `${andando} en curso · ` : ''}{pedidos.length} en total
+            </p>
+          )}
+        </div>
+        <div className="up-content">
+          <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} />
+        </div>
+        {ventanas}
+      </UserLayout>
+    );
+  }
 
   return (
     <UserLayout>
@@ -1116,23 +1158,6 @@ const UserPanelPage = () => {
         <div className="up-profile-actions">
           <button className="up-profile-edit" onClick={() => setTab('cuenta')} aria-label="Editar perfil"><Icon name="editar" size={17} /></button>
           <button className="up-profile-logout" onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={17} /></button>
-        </div>
-
-        <div className="up-stats">
-          <div className="up-stat">
-            <span className="up-stat-val">{pedidos.length}</span>
-            <span className="up-stat-label">Pedidos</span>
-          </div>
-          <div className="up-stat-div" />
-          <div className="up-stat">
-            <span className="up-stat-val">{fmt(gastado)}</span>
-            <span className="up-stat-label">Gastado</span>
-          </div>
-          <div className="up-stat-div" />
-          <div className="up-stat">
-            <span className="up-stat-val">{numGuardados}</span>
-            <span className="up-stat-label">Guardados</span>
-          </div>
         </div>
       </div>
 
@@ -1155,20 +1180,7 @@ const UserPanelPage = () => {
         {content[tab]}
       </div>
 
-      <SeguimientoModal pedido={trackingPedido} onClose={() => setTrackingPedido(null)} />
-      <CalificarModal pedido={calificarPedido} onClose={() => setCalificarPedido(null)} />
-      <ConfirmModal
-        isOpen={!!porCancelar}
-        title="¿Cancelar este pedido?"
-        message={porCancelar
-          ? `Vamos a cancelar el pedido ${porCancelar.id} de ${porCancelar.tienda}. Si el negocio ya empezó a prepararlo, el servidor no lo va a permitir y te lo decimos.`
-          : ''}
-        confirmLabel="Sí, cancelar"
-        cancelLabel="No, dejarlo"
-        danger
-        onConfirm={handleCancelar}
-        onCancel={() => setPorCancelar(null)}
-      />
+      {ventanas}
     </UserLayout>
   );
 };

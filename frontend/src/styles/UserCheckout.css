@@ -198,3 +198,76 @@
 .dark-theme .ucho-address-opt--sel { border-color: #FF7A00; background: #2a2016; }
 .dark-theme .ucho-address-opt strong { color: #e2e8f0; }
 .dark-theme .ucho-address-opt em { color: #cbd5e1; }
+/* ── Encabezado debajo de la hora ────────────────────────── */
+/* Sin esto "Volver" quedaba encima del reloj y el titulo encima de los iconos
+   de señal. Va aqui al final, y con !important en el celular, porque la regla
+   de pantalla pequeña de arriba pone un padding fijo y borraba este espacio:
+   el mismo tropiezo que tuvo el encabezado del repartidor. */
+.ucho-header { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+@media (max-width: 480px) {
+  .ucho-header { padding-top: calc(12px + env(safe-area-inset-top, 0px)) !important; }
+}
+
+/* ── Direccion de entrega: caja con boton ────────────────── */
+.ucho-address { align-items: center; }
+.ucho-address-info { flex: 1; min-width: 0; }
+.ucho-address-info .ucho-address-text { margin-bottom: 2px; }
+.ucho-address-sub { font-size: 12.5px; color: #64748b; line-height: 1.35; overflow-wrap: anywhere; }
+.ucho-address-btn {
+  flex-shrink: 0;
+  border: 1.5px solid #FF7A00; border-radius: 999px;
+  background: #FF7A00; color: #fff;
+  padding: 9px 15px;
+  font-family: inherit; font-size: 13px; font-weight: 800;
+  white-space: nowrap; cursor: pointer;
+}
+.ucho-address-btn--borde { background: transparent; color: #FF7A00; }
+.ucho-address-btn:active { transform: translateY(1px); }
+
+/* ── Hoja que sube desde abajo ───────────────────────────── */
+.ucho-hoja-velo {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(2, 6, 23, 0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.ucho-hoja {
+  width: 100%; max-width: 560px;
+  max-height: 88vh; overflow-y: auto;
+  background: #fff;
+  border-radius: 22px 22px 0 0;
+  padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  animation: ucho-subir 0.2s ease-out;
+}
+@keyframes ucho-subir { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.ucho-hoja-asa { width: 40px; height: 4px; border-radius: 2px; background: #cbd5e1; margin: 0 auto 12px; }
+.ucho-hoja-titulo { font-size: 17px; font-weight: 800; color: #1e293b; margin: 0 0 12px; }
+.ucho-hoja-nueva {
+  width: 100%; margin-top: 10px;
+  border: 1.5px dashed #FF7A00; border-radius: 12px; background: transparent;
+  color: #FF7A00; font-family: inherit; font-size: 14px; font-weight: 800;
+  padding: 13px; cursor: pointer;
+}
+.ucho-hoja-ok { width: 100%; margin: 12px 0 0; }
+.ucho-hoja-volver {
+  width: 100%; margin-top: 6px;
+  border: none; background: none; color: #64748b;
+  font-family: inherit; font-size: 13.5px; font-weight: 700;
+  padding: 10px; cursor: pointer;
+}
+.ucho-hoja-form { display: flex; flex-direction: column; gap: 10px; }
+.ucho-hoja-form .ucho-hoja-titulo { margin-bottom: 2px; }
+.ucho-hoja-form input {
+  width: 100%; box-sizing: border-box;
+  border: 1.5px solid #e2e8f0; border-radius: 10px;
+  padding: 12px; font-family: inherit; font-size: 15px;
+  background: #fff; color: #1e293b;
+}
+.ucho-hoja-form input:focus { outline: none; border-color: #FF7A00; }
+
+.dark-theme .ucho-hoja { background: #1e293b; }
+.dark-theme .ucho-hoja-asa { background: #475569; }
+.dark-theme .ucho-hoja-titulo { color: #f1f5f9; }
+.dark-theme .ucho-address-sub { color: #94a3b8; }
+.dark-theme .ucho-hoja-form input { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+.dark-theme .ucho-hoja-volver { color: #94a3b8; }

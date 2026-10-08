@@ -752,3 +752,19 @@
   .uh-filter-btn { flex: 0 0 auto; }
   .uh-sort-sel   { flex: 1 1 auto; min-width: 0; }
 }
+/* ── Tiendas a todo el ancho en el celular ───────────────── */
+/* Antes iban dos por fila: el nombre se partia en dos o tres renglones y no
+   quedaba sitio para decir si estaba abierta. Una por fila se lee de corrido
+   y es un blanco mas facil de tocar. */
+.uh-store-abierta { color: #059669; font-weight: 700; }
+.uh-store-flecha  { color: #94a3b8; font-size: 22px; font-weight: 300; flex-shrink: 0; line-height: 1; }
+@media (max-width: 640px) {
+  .uh-stores-row   { grid-template-columns: 1fr; gap: 10px; }
+  .uh-store-card   { padding: 14px 16px; gap: 14px; }
+  .uh-store-avatar { width: 54px; height: 54px; border-radius: 15px; }
+  .uh-store-name   { font-size: 16px; }
+  .uh-store-count  { font-size: 13px; }
+  .uh-store-info .uh-store-name { -webkit-line-clamp: 1; }
+}
+.dark-theme .uh-store-abierta { color: #34d399; }
+.dark-theme .uh-store-flecha  { color: #64748b; }
