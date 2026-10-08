@@ -114,6 +114,14 @@ async def startup_event():
     except Exception as e:
         print(f"⚠️ Advertencia al inicializar BD: {e}")
     
+    # Vigilante de pedidos que ningun negocio acepta (avisa al dueño)
+    try:
+        import asyncio
+        from vigilante_pedidos import vigilar_pedidos
+        asyncio.create_task(vigilar_pedidos())
+    except Exception as e:
+        print(f"⚠️ No se pudo arrancar el vigilante de pedidos: {e}")
+
     print("✅ TOUTAIN API está lista")
 
 @app.on_event("shutdown")

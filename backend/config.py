@@ -105,6 +105,13 @@ class Settings:
     # configura, se usa el mismo remitente: mejor avisar ahi que no avisar.
     EMAIL_ALERTAS = os.getenv("EMAIL_ALERTAS", "")
 
+    # Aviso al WhatsApp del dueño cuando un negocio no acepta un pedido.
+    # CallMeBot es un servicio gratis para mandarse mensajes a uno mismo:
+    # se activa escribiendole desde WhatsApp y devuelve la clave. Si estas dos
+    # variables no estan, el aviso se manda solo por correo (EMAIL_ALERTAS).
+    CALLMEBOT_TELEFONO = os.getenv("CALLMEBOT_TELEFONO", "")
+    CALLMEBOT_APIKEY = os.getenv("CALLMEBOT_APIKEY", "")
+
     # WhatsApp (Cloud API de Meta). Sin token ni phone id no se manda nada
     # y queda dicho en el registro: el codigo puede estar en produccion
     # antes de que la cuenta de Meta este lista.
@@ -207,6 +214,8 @@ def init_db():
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS fecha_validacion TIMESTAMP",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS reporte_motivo VARCHAR(60)",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS fecha_reporte TIMESTAMP",
+                # Oct 2026: cuando se le aviso al dueño que el negocio no acepto
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS alerta_sin_confirmar TIMESTAMP",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reportes_cliente INTEGER NOT NULL DEFAULT 0",
                 # Oct 2026: el cliente califica al repartidor que le llevo el pedido
                 "ALTER TABLE resenas_calificaciones ADD COLUMN IF NOT EXISTS domiciliario_id UUID REFERENCES usuarios(id)",

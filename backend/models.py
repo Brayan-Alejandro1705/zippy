@@ -335,6 +335,9 @@ class Orden(Base):
     requiere_validacion = Column(Boolean, default=False, nullable=False)
     fecha_validacion = Column(DateTime)
     reporte_motivo = Column(String(60))
+    # Cuando se le aviso al dueño que el negocio no habia aceptado el pedido.
+    # Sirve para avisar una sola vez por pedido (ver vigilante_pedidos.py).
+    alerta_sin_confirmar = Column(DateTime)
     fecha_reporte = Column(DateTime)
     
     fecha_ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
