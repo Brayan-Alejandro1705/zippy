@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Descarga ZIPPYGO</title>
+<meta name="description" content="Descarga ZIPPYGO, la app de domicilios de Garzón, en App Store o Google Play.">
+<meta property="og:title" content="Descarga ZIPPYGO">
+<meta property="og:description" content="La app de domicilios de Garzón. Disponible en iPhone y Android.">
+<meta property="og:image" content="https://brayan-alejandro1705.github.io/zippy/logo-zippy.jpg">
+<meta name="theme-color" content="#FD5001">
+<style>
+  :root { --naranja: #FD5001; --texto: #1f1f1f; --suave: #6b6b6b; --fondo: #ffffff; --borde: #e6e6e6; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         background: var(--fondo); color: var(--texto); padding: 24px 16px; }
+  .tarjeta { width: 100%; max-width: 360px; text-align: center; }
+  .logo { width: 170px; height: auto; display: block; margin: 0 auto 8px; }
+  h1 { font-size: 22px; margin: 4px 0 6px; font-weight: 600; }
+  .sub { color: var(--suave); margin: 0 0 26px; font-size: 15px; }
+  .cargando { display: flex; flex-direction: column; align-items: center; gap: 12px; color: var(--suave); font-size: 15px; margin-bottom: 22px; }
+  .rueda { width: 30px; height: 30px; border-radius: 50%; border: 3px solid var(--borde); border-top-color: var(--naranja); animation: girar 0.9s linear infinite; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .rueda { animation: none; } }
+  .botones { display: flex; flex-direction: column; gap: 12px; }
+  .boton { display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none;
+           padding: 14px 16px; border-radius: 12px; font-size: 16px; font-weight: 600; }
+  .boton svg { width: 22px; height: 22px; flex: none; }
+  .primario { background: var(--naranja); color: #fff; }
+  .secundario { border: 1.5px solid var(--borde); color: var(--texto); }
+  .pie { margin-top: 28px; font-size: 12px; color: var(--suave); }
+  .pie a { color: var(--suave); }
+  .oculto { display: none; }
+</style>
+</head>
+<body>
+<main class="tarjeta">
+  <img class="logo" src="logo-zippy.jpg" alt="Logo de ZIPPYGO">
+  <h1>Descarga ZIPPYGO</h1>
+  <p class="sub">Domicilios en Garzón, desde tu celular</p>
+
+  <div class="cargando oculto" id="cargando">
+    <div class="rueda" aria-hidden="true"></div>
+    <span id="texto-cargando">Abriendo la tienda…</span>
+  </div>
+
+  <div class="botones" id="botones">
+    <a class="boton primario" id="btn-ios" href="https://apps.apple.com/co/app/zippygo/id6813688875">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.59 1.1 8.75.73 1.05 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.29-3.52zM14.2 6.13c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.67-.92 2.66.97.08 1.96-.49 2.56-1.21z"/></svg>
+      Descargar en App Store
+    </a>
+    <a class="boton secundario" id="btn-android" href="https://play.google.com/store/apps/details?id=com.zippygo.app">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.6 2.3c-.2.2-.3.6-.3 1v17.4c0 .4.1.8.3 1l9.7-9.7L3.6 2.3zm10.8 10.8l2.6 2.6-11 6.3 8.4-8.9zm0-2.2L6 2l11 6.3-2.6 2.6zm3.9-1.6l3 1.7c.8.5.8 1.6 0 2.1l-3 1.7-2.8-2.8 2.8-2.7z"/></svg>
+      Descargar en Google Play
+    </a>
+  </div>
+
+  <p class="pie">ZIPPYgo S.A.S. · Garzón, Huila · <a href="privacidad.html">Privacidad</a> · <a href="terminos.html">Términos</a></p>
+</main>
+
+<script>
+  (function () {
+    var IOS = "https://apps.apple.com/co/app/zippygo/id6813688875";
+    var ANDROID = "https://play.google.com/store/apps/details?id=com.zippygo.app";
+    var ua = navigator.userAgent || "";
+    var esIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var esAndroid = /Android/i.test(ua);
+    var destino = esIOS ? IOS : (esAndroid ? ANDROID : null);
+
+    if (esAndroid) {
+      document.getElementById("btn-android").className = "boton primario";
+      document.getElementById("btn-ios").className = "boton secundario";
+      document.getElementById("botones").insertBefore(
+        document.getElementById("btn-android"), document.getElementById("btn-ios"));
+    }
+
+    if (destino) {
+      document.getElementById("texto-cargando").textContent =
+        esIOS ? "Abriendo App Store…" : "Abriendo Google Play…";
+      document.getElementById("cargando").classList.remove("oculto");
+      setTimeout(function () { window.location.replace(destino); }, 600);
+      setTimeout(function () { document.getElementById("cargando").classList.add("oculto"); }, 3500);
+    }
+  })();
+</script>
+</body>
+</html>
