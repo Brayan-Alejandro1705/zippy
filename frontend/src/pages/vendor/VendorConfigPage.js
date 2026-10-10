@@ -170,7 +170,7 @@ const SeccionTienda = () => {
 
         <div className="vc-card-footer">
           <button type="submit" className="vc-btn-save" disabled={saving}>
-            {saving ? '⏳ Guardando...' : '✓ Guardar'}
+            {saving ? 'Guardando...' : '✓ Guardar'}
           </button>
         </div>
       </div>
@@ -224,7 +224,7 @@ const SeccionTienda = () => {
 
         <div className="vc-card-footer">
           <button type="submit" className="vc-btn-save" disabled={saving}>
-            {saving ? '⏳ Guardando...' : '✓ Guardar'}
+            {saving ? 'Guardando...' : '✓ Guardar'}
           </button>
         </div>
       </div>
@@ -417,7 +417,7 @@ const SeccionNotificaciones = () => {
         desc="Elige qué eventos te generan alertas"
         footer={
           <button className="vc-btn-save" onClick={handleSave} disabled={saving}>
-            {saving ? '⏳ Guardando...' : '✓ Guardar preferencias'}
+            {saving ? 'Guardando...' : '✓ Guardar preferencias'}
           </button>
         }
       >

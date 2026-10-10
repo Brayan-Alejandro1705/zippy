@@ -5,6 +5,8 @@ import { productosService, negociosService } from '../../config/api';
 import { useToast } from '../../context/ToastContext';
 import ZLoader from '../../components/ZLoader';
 import '../../styles/VendorProductos.css';
+import Icon from '../../components/Icons';
+import { cx, titulo, subtitulo, btn, chip, chipsFila } from '../../ui/tw';
 import { urlImagen } from '../../utils/media';
 
 const productoDeApi = (p) => ({
@@ -20,13 +22,6 @@ const productoDeApi = (p) => ({
   pausado: !p.es_visible,
   vendidos: p.total_vendidos || 0,
 });
-
-const CATEGORY_ICONS = {
-  'Bebidas':    '☕',
-  'Panadería':  '🥐',
-  'Pastelería': '🍰',
-};
-const DEFAULT_CAT_ICON = '🛍️';
 
 const FILTROS = [
   { id: 'todos',      label: 'Todos'      },
@@ -117,7 +112,7 @@ const OfertaModal = ({ producto, onClose, onCreada, onCancelada }) => {
     <div className="vp-modal-overlay" onClick={onClose}>
       <div className="vp-modal" onClick={e => e.stopPropagation()}>
         <div className="vp-modal-header">
-          <h3>🏷️ Oferta · {producto.nombre}</h3>
+          <h3>Oferta · {producto.nombre}</h3>
           <button className="vp-modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -258,40 +253,37 @@ const VendorProductosPage = () => {
 
   return (
     <VendorLayout searchPlaceholder="Buscar producto..." onSearch={setQuery}>
-      <div className="vp-header">
-        <div>
-          <h1 className="vp-title">Mis Productos</h1>
-          <p className="vp-subtitle">{filtrados.length} producto{filtrados.length !== 1 ? 's' : ''} en tu catálogo</p>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className={titulo}>Mis Productos</h1>
+          <p className={subtitulo}>{filtrados.length} producto{filtrados.length !== 1 ? 's' : ''} en tu catálogo</p>
         </div>
-        <button className="vp-new-btn" onClick={() => navigate('/vendor/productos/nuevo')}>
-          + Nuevo Producto
+        {/* En celulares pequenos solo "+ Nuevo" para que no empuje el titulo */}
+        <button className={cx(btn.principal, 'shrink-0 shadow-md shadow-zippy/30')} onClick={() => navigate('/vendor/productos/nuevo')}>
+          + Nuevo<span className="hidden sm:inline">&nbsp;producto</span>
         </button>
       </div>
 
       {stockBajoCount > 0 && (
-        <div className="vp-banner">
-          <span className="vp-banner-icon">⚠️</span>
-          <span className="vp-banner-text">
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border-[1.5px] border-l-4 border-solid border-amber-200 border-l-amber-500 bg-amber-50 p-3 text-amber-800 dark:border-amber-500/30 dark:border-l-amber-500 dark:bg-amber-500/10 dark:text-amber-200">
+          <span className="shrink-0 text-amber-600"><Icon name="alerta" size={20} /></span>
+          <span className="min-w-0 flex-1 text-[13.5px] leading-snug">
             Tienes <strong>{stockBajoCount}</strong> producto{stockBajoCount !== 1 ? 's' : ''} por agotarse
           </span>
-          <button className="vp-banner-btn" onClick={() => setFiltro('stock-bajo')}>Ver productos</button>
+          <button className={cx(btn.principal, 'border-0 bg-amber-500 px-3 py-1.5 text-[13px] hover:bg-amber-600')} onClick={() => setFiltro('stock-bajo')}>Ver productos</button>
         </div>
       )}
 
-      <div className="vp-toolbar">
-        <div className="vp-filters">
+      <div className="mb-4 flex flex-col gap-2.5">
+        <div className={chipsFila}>
           {FILTROS.map(f => (
-            <button
-              key={f.id}
-              className={`vp-filter-btn ${filtro === f.id ? 'vp-filter-btn--active' : ''}`}
-              onClick={() => setFiltro(f.id)}
-            >
-              {f.label} <span className="vp-filter-count">{counts[f.id]}</span>
+            <button key={f.id} className={chip(filtro === f.id)} onClick={() => setFiltro(f.id)}>
+              {f.label} <span className="ml-1 rounded-full bg-black/10 px-1.5 text-[11px]">{counts[f.id]}</span>
             </button>
           ))}
         </div>
-        <div className="vp-toolbar-right">
-          <select className="vp-sort-select" value={orden} onChange={e => setOrden(e.target.value)}>
+        <div className="vp-toolbar-right flex w-full items-center gap-2 sm:w-auto">
+          <select className="vp-sort-select min-w-0 flex-1" value={orden} onChange={e => setOrden(e.target.value)}>
             {ORDENES.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
           </select>
           <div className="vp-view-toggle">
@@ -317,7 +309,7 @@ const VendorProductosPage = () => {
         </div>
       ) : filtrados.length === 0 ? (
         <div className="vp-empty">
-          <div className="vp-empty-icon">📦</div>
+          <div className="vp-empty-icon text-slate-400"><Icon name="paquete" size={40} /></div>
           <p>No se encontraron productos.</p>
         </div>
       ) : vista === 'grid' ? (
@@ -335,7 +327,7 @@ const VendorProductosPage = () => {
                     </>
                   ) : (
                     <div className="vp-photo-placeholder">
-                      <span className="vp-photo-icon-emoji">{CATEGORY_ICONS[p.categoria] || DEFAULT_CAT_ICON}</span>
+                      <span className="vp-photo-icon-emoji flex h-14 w-14 items-center justify-center rounded-2xl bg-white/70 text-indigo-400 dark:bg-white/10"><Icon name="paquete" size={28} /></span>
                       <span className="vp-photo-cat-label">{p.categoria}</span>
                     </div>
                   )}
@@ -346,7 +338,7 @@ const VendorProductosPage = () => {
                   {p.enOferta ? (
                     <p className="vp-precio">
                       {fmt(p.precio)} <span style={{ textDecoration: 'line-through', color: '#9ca3af', fontSize: 13, fontWeight: 400 }}>{fmt(p.precioOriginal)}</span>
-                      <span className="vp-oferta-badge">🔥 En oferta</span>
+                      <span className="vp-oferta-badge">En oferta</span>
                     </p>
                   ) : (
                     <p className="vp-precio">{fmt(p.precio)}</p>
@@ -361,20 +353,20 @@ const VendorProductosPage = () => {
                     </span>
                   </div>
                   <div className="vp-sold">
-                    <span className="vp-sold-icon">🔥</span> {p.vendidos} vendidos esta semana
+                    <span className="vp-sold-icon inline-flex"><Icon name="carrito" size={13} /></span> {p.vendidos} vendidos esta semana
                   </div>
-                  <div className="vp-actions">
+                  <div className="vp-actions flex-wrap [&>button]:inline-flex [&>button]:min-w-[80px] [&>button]:items-center [&>button]:justify-center [&>button]:gap-1">
                     <button className="vp-action-btn vp-action-btn--edit" onClick={() => navigate(`/vendor/productos/${p.id}/editar`)}>
-                      ✏️ Editar
+                      <Icon name="editar" size={14} /> Editar
                     </button>
                     <button
                       className={`vp-action-btn ${p.pausado ? 'vp-action-btn--activate' : 'vp-action-btn--pause'}`}
                       onClick={() => togglePausado(p.id)}
                     >
-                      {p.pausado ? '▶ Activar' : '⏸ Pausar'}
+                      {p.pausado ? 'Activar' : 'Pausar'}
                     </button>
                     <button className="vp-action-btn" onClick={() => setOfertaModalProd(p)}>
-                      🏷️ {p.enOferta ? 'Ver oferta' : 'Crear oferta'}
+                      <Icon name="rayo" size={14} /> {p.enOferta ? 'Ver oferta' : 'Oferta'}
                     </button>
                   </div>
                 </div>
@@ -390,7 +382,7 @@ const VendorProductosPage = () => {
             return (
               <div key={p.id} className={`vp-list-row ${lowStock ? 'vp-list-row--low-stock' : ''} ${p.pausado ? 'vp-list-row--pausado' : ''}`}>
                 <div className="vp-list-photo">
-                  {p.foto ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" /> : <span className="vp-list-icon">{CATEGORY_ICONS[p.categoria] || DEFAULT_CAT_ICON}</span>}
+                  {p.foto ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" /> : <span className="vp-list-icon text-indigo-400"><Icon name="paquete" size={22} /></span>}
                 </div>
                 <div className="vp-list-info">
                   <p className="vp-list-nombre">{p.nombre}</p>
@@ -414,20 +406,20 @@ const VendorProductosPage = () => {
                   </span>
                 </div>
                 <div className="vp-list-sold">
-                  <span className="vp-sold-icon">🔥</span> {p.vendidos} vendidos
+                  <span className="vp-sold-icon inline-flex"><Icon name="carrito" size={13} /></span> {p.vendidos} vendidos
                 </div>
                 <div className="vp-list-actions">
                   <button className="vp-action-btn vp-action-btn--edit" onClick={() => navigate(`/vendor/productos/${p.id}/editar`)}>
-                    ✏️ Editar
+                    <Icon name="editar" size={14} /> Editar
                   </button>
                   <button
                     className={`vp-action-btn ${p.pausado ? 'vp-action-btn--activate' : 'vp-action-btn--pause'}`}
                     onClick={() => togglePausado(p.id)}
                   >
-                    {p.pausado ? '▶ Activar' : '⏸ Pausar'}
+                    {p.pausado ? 'Activar' : 'Pausar'}
                   </button>
                   <button className="vp-action-btn" onClick={() => setOfertaModalProd(p)}>
-                    🏷️ {p.enOferta ? 'Ver oferta' : 'Crear oferta'}
+                    <Icon name="rayo" size={14} /> {p.enOferta ? 'Ver oferta' : 'Oferta'}
                   </button>
                 </div>
               </div>

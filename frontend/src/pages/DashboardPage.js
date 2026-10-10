@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import ConfirmModal from '../components/ConfirmModal';
+import ResumenNegocio from '../components/ResumenNegocio';
 import '../styles/Usuarios.css';
 
 const MOCK_STATS = {
@@ -73,6 +74,8 @@ const DashboardPage = () => {
 
   return (
     <Layout>
+      <ResumenNegocio />
+
       {/* Stats */}
       <div className="us-stats">
         <div className="us-stat-card">

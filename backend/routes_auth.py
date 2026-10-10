@@ -163,7 +163,10 @@ def get_current_user(
     summary="Registrar nuevo usuario",
     description="Crea una nueva cuenta de usuario"
 )
-@limiter.limit("5/hour")
+# 50 por hora por IP: en Garzon muchos clientes salen a internet con la misma
+# IP (misma red WiFi o la IP compartida del operador). Con 5 se bloqueaba a
+# gente real despues de los primeros registros.
+@limiter.limit("50/hour")
 async def registro(request: Request, usuario: UsuarioCreate, db: Session = Depends(get_db)):
     """
     Registra un nuevo usuario en TOUTAIN
@@ -292,7 +295,7 @@ async def registro(request: Request, usuario: UsuarioCreate, db: Session = Depen
     summary="Iniciar sesión",
     description="Inicia sesión con email y contraseña"
 )
-@limiter.limit("8/minute")
+@limiter.limit("50/minute")
 async def login(request: Request, credenciales: LoginRequest, db: Session = Depends(get_db)):
     """
     Inicia sesión y retorna JWT tokens
@@ -375,7 +378,7 @@ async def login(request: Request, credenciales: LoginRequest, db: Session = Depe
     summary="Verificar cuenta con el código enviado",
     description="Confirma el código de verificación (email o SMS) y activa la sesión"
 )
-@limiter.limit("5/minute")
+@limiter.limit("50/minute")
 async def verificar_codigo(request: Request, datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
     codigo = (datos.get("codigo") or "").strip()
@@ -441,7 +444,7 @@ async def verificar_codigo(request: Request, datos: dict, db: Session = Depends(
     summary="Reenviar código de verificación",
     description="Genera y reenvía un nuevo código de verificación por el mismo canal"
 )
-@limiter.limit("3/minute")
+@limiter.limit("50/minute")
 async def reenviar_codigo(request: Request, datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
     tipo_usuario = (datos.get("tipo_usuario") or "").strip()
@@ -488,7 +491,7 @@ async def reenviar_codigo(request: Request, datos: dict, db: Session = Depends(g
     summary="Solicitar restablecer contraseña",
     description="Envía un código de 6 dígitos (por el mismo canal de verificación) para restablecer la contraseña"
 )
-@limiter.limit("3/hour")
+@limiter.limit("50/hour")
 async def olvide_password(request: Request, datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
     tipo_usuario = (datos.get("tipo_usuario") or "").strip()
@@ -531,7 +534,7 @@ async def olvide_password(request: Request, datos: dict, db: Session = Depends(g
     summary="Restablecer contraseña con código",
     description="Confirma el código recibido y establece una nueva contraseña"
 )
-@limiter.limit("5/hour")
+@limiter.limit("50/hour")
 async def restablecer_password(request: Request, datos: dict, db: Session = Depends(get_db)):
     email = (datos.get("email") or "").strip()
     tipo_usuario = (datos.get("tipo_usuario") or "").strip()

@@ -4,6 +4,7 @@ import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { productosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import Icon from '../../components/Icons';
 import '../../styles/VendorProductos.css';
 import { useCategoriasProducto } from '../../hooks/useCategoriasProducto';
 
@@ -133,7 +134,7 @@ const VendorEditarProductoPage = () => {
         <div className="vnp-wrapper">
           <div className="vnp-card">
             <div className="vnp-body" style={{ textAlign: 'center', padding: '48px 20px' }}>
-              <span style={{ fontSize: 48 }}>📦</span>
+              <span className="text-slate-400"><Icon name="paquete" size={48} /></span>
               <p style={{ color: '#64748b', marginTop: 12 }}>Producto no encontrado</p>
               <button className="vnp-btn-next" style={{ marginTop: 20 }}
                 onClick={() => navigate('/vendor/productos')}>
@@ -152,7 +153,7 @@ const VendorEditarProductoPage = () => {
         <div className="vnp-card">
 
           {/* Header */}
-          <div className="vnp-card-header">
+          <div className="vnp-card-header gap-3 px-4 xs:px-6">
             <div>
               <h2 className="vnp-card-title">Editar Producto</h2>
               <p className="vnp-card-sub">Modifica los datos de tu producto</p>
@@ -166,7 +167,7 @@ const VendorEditarProductoPage = () => {
             </div>
           </div>
 
-          <div className="vnp-body">
+          <div className="vnp-body p-4 xs:p-6">
             {step === 1 ? (
               <>
                 <Field label="Nombre del producto" error={tried && errors.nombre}>
@@ -196,7 +197,7 @@ const VendorEditarProductoPage = () => {
                   )}
                 </Field>
 
-                <div className="vnp-field-row">
+                <div className="vnp-field-row [&>*]:min-w-0 [&_input]:box-border [&_input]:w-full [&_input]:min-w-0">
                   <Field label="Precio (COP)" error={tried && errors.precio}>
                     <input
                       name="precio" type="number" min="0" value={form.precio} onChange={handleChange}
@@ -225,7 +226,7 @@ const VendorEditarProductoPage = () => {
                     {preview
                       ? <img src={preview} alt="preview" className="vnp-preview" />
                       : <>
-                          <span className="vnp-drop-icon">📷</span>
+                          <span className="vnp-drop-icon text-slate-400"><Icon name="paquete" size={34} /></span>
                           <span className="vnp-drop-text">Cambiar foto</span>
                           <span className="vnp-drop-sub">Arrastra o haz click · JPG, PNG, WEBP</span>
                         </>
@@ -254,7 +255,7 @@ const VendorEditarProductoPage = () => {
                   <div className="vnp-preview-photo">
                     {preview
                       ? <img src={preview} alt="preview" className="vnp-preview-sm" />
-                      : <span className="vnp-preview-no-photo">📦</span>
+                      : <span className="vnp-preview-no-photo text-slate-400"><Icon name="paquete" size={30} /></span>
                     }
                   </div>
                   <div className="vnp-preview-info">
@@ -291,7 +292,7 @@ const VendorEditarProductoPage = () => {
           </div>
 
           {/* Footer */}
-          <div className="vnp-footer">
+          <div className="vnp-footer px-4 xs:px-6">
             <button className="vnp-btn-back"
               onClick={() => step === 1 ? navigate('/vendor/productos') : setStep(1)}>
               Atrás

@@ -1500,14 +1500,12 @@ const RepartidorPage = () => {
         <div className="rp-stat">
           <span className="rp-stat-val">
             {calificacion?.total > 0
-              ? <>{Number(calificacion.promedio).toFixed(1)} <Icon name="estrella" size={14} style={{ verticalAlign: '-1px' }} /></>
+              ? <>{Number(calificacion.promedio).toFixed(1)} <Icon name="estrella" size={14} style={{ verticalAlign: '-1px' }} /><span className="ml-0.5 text-[10px] font-semibold opacity-60">({calificacion.total})</span></>
               : '—'}
           </span>
-          <span className="rp-stat-label">
-            {calificacion?.total > 0
-              ? `Calificación (${calificacion.total})`
-              : 'Calificación'}
-          </span>
+          {/* El numero de calificaciones va junto a la nota: "Calificación (12)"
+              no cabia en celulares pequenos */}
+          <span className="rp-stat-label">Calificación</span>
         </div>
       </div>
 
@@ -1634,7 +1632,8 @@ const RepartidorPage = () => {
 
       <button
         type="button" aria-label="Emergencia" onClick={() => setShowSos(true)}
-        style={{ position: 'fixed', right: 14, top: 'calc(72px + env(safe-area-inset-top, 0px))', zIndex: 60, width: 54, height: 54, borderRadius: '50%', border: 0, background: '#dc2626', color: '#fff', fontWeight: 900, fontSize: 14, fontFamily: 'inherit', boxShadow: '0 6px 18px rgba(220,38,38,.45)', cursor: 'pointer' }}
+        // Debajo de la barra de numeros (antes quedaba encima y tapaba "Calificación")
+        className="fixed right-3 top-[calc(108px+env(safe-area-inset-top))] z-[60] h-12 w-12 cursor-pointer rounded-full border-0 bg-red-600 font-[inherit] text-[13px] font-black text-white shadow-[0_6px_18px_rgba(220,38,38,.45)] xs:h-[54px] xs:w-[54px] xs:text-sm"
       >SOS</button>
       <SosModal open={showSos} onClose={() => setShowSos(false)} usuario={usuario} driverPos={driverPos} orden={enCamino[0] || null} />
       <ReportModal orden={reportTarget} onClose={() => setReportTarget(null)} onSubmit={handleReportSubmit} />

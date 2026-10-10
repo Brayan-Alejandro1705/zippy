@@ -168,7 +168,11 @@ const RegisterPage = () => {
         },
       });
     } catch (err) {
-      setError(extractErrorMessage(err.response?.data, 'Error al crear la cuenta'));
+      if (err.response?.status === 429) {
+        setError('Hay muchos registros desde tu misma red. Espera unos minutos e intenta de nuevo.');
+      } else {
+        setError(extractErrorMessage(err.response?.data, 'Error al crear la cuenta'));
+      }
       triggerShake();
     } finally {
       setLoading(false);

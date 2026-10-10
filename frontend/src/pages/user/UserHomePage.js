@@ -383,9 +383,11 @@ const UserHomePage = () => {
                 }}
               >
                 <div className="uh-store-avatar" style={{ background: t.color, color: t.text }}>
+                  {/* Sin logo, la inicial del nombre: con el cubo de antes todas
+                      las tiendas sin logo se veian iguales. */}
                   {t.logo
                     ? <img src={urlImagen(t.logo)} alt={t.nombre} loading="lazy" />
-                    : <Icon name={t.icon} size={22} />}
+                    : <span className="uh-store-inicial">{(t.nombre || '?').trim().charAt(0).toUpperCase()}</span>}
                 </div>
                 <div className="uh-store-info">
                   <p className="uh-store-name">{t.nombre}</p>
@@ -523,20 +525,22 @@ const UserHomePage = () => {
                     <div className="uh-info">
                       <p className="uh-nombre">{p.nombre}</p>
                       <p className="uh-tienda">{p.tienda}</p>
-                      <div className="uh-card-footer">
-                        <div>
+                      {/* En celular el precio va arriba y los botones abajo a todo el ancho:
+                          en una tarjeta de ~150 px no caben precio + corazon + "Agregar" en una fila */}
+                      <div className="uh-card-footer flex-col items-stretch gap-2 md:flex-row md:items-center">
+                        <div className="min-w-0">
                           <p className="uh-precio">{fmt(p.precio)}</p>
                           {p.enOferta && p.precioOriginal && (
                             <p className="uh-precio-original">{fmt(p.precioOriginal)}</p>
                           )}
                         </div>
-                        <div className="uh-card-actions" onClick={e => e.stopPropagation()}>
+                        <div className="uh-card-actions flex w-full items-center gap-1.5 md:w-auto" onClick={e => e.stopPropagation()}>
                           <button
                             className={`uh-btn-save ${saved.has(p.id) ? 'uh-btn-save--on' : ''}`}
                             onClick={() => toggleSave(p.id)}
                           ><Icon name="corazon" size={18} filled={saved.has(p.id)} /></button>
                           <button
-                            className={`uh-btn-cart ${inCart(p.id) ? 'uh-btn-cart--added' : ''} ${!estaAbierto(p) ? 'uh-btn-cart--disabled' : ''}`}
+                            className={`uh-btn-cart min-w-0 flex-1 justify-center md:flex-none ${inCart(p.id) ? 'uh-btn-cart--added' : ''} ${!estaAbierto(p) ? 'uh-btn-cart--disabled' : ''}`}
                             onClick={() => handleAdd(p)}
                             disabled={!estaAbierto(p)}
                           >

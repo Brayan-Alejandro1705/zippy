@@ -648,8 +648,9 @@
   .rp-cierre-btn { padding: 5px 8px; }
   .rp-mapa   { height: 210px; }
   .rp-stats  { padding: 8px 14px; }
-  .rp-stat-val { font-size: 11px; }
-  .rp-stat-label { font-size: 7px; }
+  /* 11 px / 7 px no se alcanzaban a leer en la moto; se sube un poco */
+  .rp-stat-val { font-size: 14px; }
+  .rp-stat-label { font-size: 8.5px; letter-spacing: 0.2px; }
   .rp-stats  { padding-top: 6px; padding-bottom: 6px; }
   .rp-streak { font-size: 11px; }
   .rp-online-btn { padding: 5px 10px; font-size: 11px; }

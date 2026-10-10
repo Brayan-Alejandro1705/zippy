@@ -79,23 +79,24 @@ const UserCartPage = () => {
                 )}
 
                 {tiendaItems.map(item => (
-                  <div key={item.id} className="uc-item">
+                  <div key={item.id} className="uc-item flex-wrap gap-y-2.5 sm:flex-nowrap">
                     <div className="uc-item-img">
                       {item.foto
                         ? <img src={urlImagen(item.foto)} alt={item.nombre} loading="lazy" />
                         : <Icon name="paquete" size={24} strokeWidth={1.3} />}
                     </div>
-                    <div className="uc-item-info">
+                    <div className="uc-item-info basis-[calc(100%-64px)] sm:basis-auto">
                       <p className="uc-item-name">{item.nombre}</p>
                       <p className="uc-item-tienda">{item.tienda}</p>
                       <p className="uc-item-price">{fmt(item.precio)}</p>
                     </div>
-                    <div className="uc-qty">
+                    {/* En celular los controles bajan a una segunda fila debajo del nombre */}
+                    <div className="uc-qty ml-14 sm:ml-0">
                       <button className="uc-qty-btn" onClick={() => updateQty(item.id, item.qty - 1)}>−</button>
                       <span className="uc-qty-num">{item.qty}</span>
                       <button className="uc-qty-btn uc-qty-btn--plus" onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
                     </div>
-                    <p className="uc-item-total">{fmt(item.precio * item.qty)}</p>
+                    <p className="uc-item-total ml-auto sm:ml-0">{fmt(item.precio * item.qty)}</p>
                     <button className="uc-remove" onClick={() => removeItem(item.id)}>✕</button>
                   </div>
                 ))}

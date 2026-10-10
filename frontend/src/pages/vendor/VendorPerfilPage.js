@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import VendorLayout from '../../components/VendorLayout';
+import Icon from '../../components/Icons';
 import { useToast } from '../../context/ToastContext';
 import { negociosService, productosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
@@ -113,11 +114,11 @@ const VendorPerfilPage = () => {
       <form className="vpf-card" onSubmit={handleSave}>
         <div className="vpf-photo-section">
           <div className="vpf-photo">
-            {fotoUrl ? <img src={fotoUrl} alt="Foto del negocio" /> : <span className="vpf-photo-placeholder">🏪</span>}
+            {fotoUrl ? <img src={fotoUrl} alt="Foto del negocio" /> : <span className="vpf-photo-placeholder text-slate-400"><Icon name="negocios" size={40} /></span>}
           </div>
           <div>
             <label className="vpf-upload-btn">
-              📷 Cambiar foto del negocio
+              Cambiar foto del negocio
               <input type="file" accept="image/*" onChange={handleFoto} hidden />
             </label>
             <p className="vpf-photo-hint">JPG o PNG, máximo 5MB. Recomendado 800x600px.</p>

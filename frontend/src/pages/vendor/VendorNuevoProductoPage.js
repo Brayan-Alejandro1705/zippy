@@ -4,6 +4,7 @@ import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import Icon from '../../components/Icons';
 import '../../styles/VendorProductos.css';
 import { useCategoriasProducto } from '../../hooks/useCategoriasProducto';
 
@@ -99,7 +100,7 @@ const VendorNuevoProductoPage = () => {
         <div className="vnp-card">
 
           {/* Header */}
-          <div className="vnp-card-header">
+          <div className="vnp-card-header gap-3 px-4 xs:px-6">
             <div>
               <h2 className="vnp-card-title">Nuevo Producto</h2>
               <p className="vnp-card-sub">Añade a tu catálogo</p>
@@ -113,7 +114,7 @@ const VendorNuevoProductoPage = () => {
             </div>
           </div>
 
-          <div className="vnp-body">
+          <div className="vnp-body p-4 xs:p-6">
             {step === 1 ? (
               <>
                 <Field label="Nombre del producto" error={tried && errors.nombre}>
@@ -143,7 +144,7 @@ const VendorNuevoProductoPage = () => {
                   )}
                 </Field>
 
-                <div className="vnp-field-row">
+                <div className="vnp-field-row [&>*]:min-w-0 [&_input]:box-border [&_input]:w-full [&_input]:min-w-0">
                   <Field label="Precio (COP)" error={tried && errors.precio}>
                     <input
                       name="precio" type="number" min="0" value={form.precio} onChange={handleChange}
@@ -172,7 +173,7 @@ const VendorNuevoProductoPage = () => {
                     {preview
                       ? <img src={preview} alt="preview" className="vnp-preview" />
                       : <>
-                          <span className="vnp-drop-icon">📷</span>
+                          <span className="vnp-drop-icon text-slate-400"><Icon name="paquete" size={34} /></span>
                           <span className="vnp-drop-text">Selecciona foto</span>
                           <span className="vnp-drop-sub">Arrastra o haz click · JPG, PNG, WEBP</span>
                         </>
@@ -202,7 +203,7 @@ const VendorNuevoProductoPage = () => {
                   <div className="vnp-preview-photo">
                     {preview
                       ? <img src={preview} alt="preview" className="vnp-preview-sm" />
-                      : <span className="vnp-preview-no-photo">📦</span>
+                      : <span className="vnp-preview-no-photo text-slate-400"><Icon name="paquete" size={30} /></span>
                     }
                   </div>
                   <div className="vnp-preview-info">
@@ -239,7 +240,7 @@ const VendorNuevoProductoPage = () => {
           </div>
 
           {/* Footer */}
-          <div className="vnp-footer">
+          <div className="vnp-footer px-4 xs:px-6">
             <button className="vnp-btn-back"
               onClick={() => step === 1 ? navigate('/vendor/productos') : setStep(1)}>
               Atrás

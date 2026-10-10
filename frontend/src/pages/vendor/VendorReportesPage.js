@@ -4,17 +4,12 @@ import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import { fechaServidor } from '../../utils/fechas';
-import '../../styles/VendorReportes.css';
+import { cx, titulo, subtitulo, tarjeta, chip } from '../../ui/tw';
 
 const DIA_ABR = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const PALETTE = ['#FF7A00', '#7c3aed', '#10b981', '#3b82f6', '#ec4899', '#f59e0b'];
 const DAY_MS = 86400000;
 
-const fmtCompact = (n) => {
-  if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
-  return `$${Math.round(n).toLocaleString('es-CO')}`;
-};
 const fmtFull = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
 
 const pctChange = (curr, prev) => {
@@ -32,9 +27,9 @@ const enRango = (fechaIso, desde, hasta) => {
 const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="vr-tooltip">
-      <p>{label}</p>
-      <p className="vr-tooltip-val">{fmtFull(payload[0].value)}</p>
+    <div className="rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg">
+      <p className="m-0">{label}</p>
+      <p className="m-0 font-bold">{fmtFull(payload[0].value)}</p>
     </div>
   );
 };
@@ -89,9 +84,9 @@ const VendorReportesPage = () => {
   const tasaAnterior = ordenesAnterior.length ? (completadasAnterior.length / ordenesAnterior.length) * 100 : 0;
 
   const kpis = [
-    { label: 'Ingresos totales', val: fmtCompact(ingresosActual), change: `${pctChange(ingresosActual, ingresosAnterior) >= 0 ? '+' : ''}${pctChange(ingresosActual, ingresosAnterior)}%`, up: ingresosActual >= ingresosAnterior },
+    { label: 'Ingresos totales', val: fmtFull(ingresosActual), change: `${pctChange(ingresosActual, ingresosAnterior) >= 0 ? '+' : ''}${pctChange(ingresosActual, ingresosAnterior)}%`, up: ingresosActual >= ingresosAnterior },
     { label: 'Órdenes',          val: String(ordenesActual.length), change: `${ordenesActual.length - ordenesAnterior.length >= 0 ? '+' : ''}${ordenesActual.length - ordenesAnterior.length}`, up: ordenesActual.length >= ordenesAnterior.length },
-    { label: 'Ticket promedio',  val: fmtCompact(ticketActual), change: `${pctChange(ticketActual, ticketAnterior) >= 0 ? '+' : ''}${pctChange(ticketActual, ticketAnterior)}%`, up: ticketActual >= ticketAnterior },
+    { label: 'Ticket promedio',  val: fmtFull(ticketActual), change: `${pctChange(ticketActual, ticketAnterior) >= 0 ? '+' : ''}${pctChange(ticketActual, ticketAnterior)}%`, up: ticketActual >= ticketAnterior },
     { label: 'Tasa completadas', val: `${Math.round(tasaActual)}%`, change: `${Math.round(tasaActual - tasaAnterior) >= 0 ? '+' : ''}${Math.round(tasaActual - tasaAnterior)}%`, up: tasaActual >= tasaAnterior },
   ];
 
@@ -155,21 +150,20 @@ const VendorReportesPage = () => {
     }))
     .sort((a, b) => b.pct - a.pct);
 
+  const cardTitulo = 'm-0 mb-3 text-base font-bold text-slate-800 dark:text-slate-100';
+
   return (
     <VendorLayout searchPlaceholder="Buscar...">
-      <div className="vr-header">
-        <div>
-          <h1 className="vr-title">Reportes</h1>
-          <p className="vr-sub">Análisis de rendimiento de tu tienda</p>
+      {/* Titulo arriba y selector de periodo debajo en celular; lado a lado en PC */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className={titulo}>Reportes</h1>
+          <p className={subtitulo}>Análisis de rendimiento de tu tienda</p>
         </div>
-        <div className="vr-period-wrap">
-          {['semana', 'mes'].map(p => (
-            <button
-              key={p}
-              className={`vr-period-btn ${periodo === p ? 'vr-period-btn--active' : ''}`}
-              onClick={() => setPeriodo(p)}
-            >
-              {p.charAt(0).toUpperCase() + p.slice(1)}
+        <div className="flex gap-2">
+          {[{ v: 'semana', l: 'Semana' }, { v: 'mes', l: 'Mes' }].map(p => (
+            <button key={p.v} className={cx(chip(periodo === p.v), 'flex-1 sm:flex-none')} onClick={() => setPeriodo(p.v)}>
+              {p.l}
             </button>
           ))}
         </div>
@@ -179,31 +173,27 @@ const VendorReportesPage = () => {
         <ZLoader label="Cargando reportes..." />
       ) : (
         <>
-          {/* KPIs */}
-          <div className="vr-kpis">
+          <div className="mb-4 grid grid-cols-2 gap-2.5 xs:gap-3 lg:grid-cols-4">
             {kpis.map(k => (
-              <div key={k.label} className="vr-kpi">
-                <p className="vr-kpi-label">{k.label}</p>
-                <p className="vr-kpi-val">{k.val}</p>
-                <p className={`vr-kpi-change ${k.up ? 'vr-kpi-change--up' : 'vr-kpi-change--down'}`}>
+              <div key={k.label} className={cx(tarjeta, 'min-w-0 p-3.5 xs:p-4')}>
+                <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{k.label}</p>
+                <p className="m-0 mt-1 truncate text-lg font-extrabold text-slate-800 dark:text-slate-100 xs:text-xl">{k.val}</p>
+                <p className={cx('m-0 mt-0.5 text-xs font-semibold', k.up ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}>
                   {k.change} vs anterior
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="vr-row">
-            {/* Bar chart */}
-            <div className="vr-card vr-card--grow">
-              <div className="vr-card-header">
-                <h3>Ventas por {periodo}</h3>
-              </div>
+          <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+            <div className={cx(tarjeta, 'min-w-0 p-4 xs:p-5')}>
+              <h3 className={cardTitulo}>Ventas por {periodo}</h3>
               <ResponsiveContainer width="100%" height={210}>
-                <BarChart data={chartData} barSize={34} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
-                  <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 13 }} />
+                <BarChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
+                  <XAxis dataKey="dia" axisLine={false} tickLine={false} interval="preserveStartEnd" tick={{ fill: '#999', fontSize: 12 }} />
                   <YAxis hide domain={[0, maxVal > 0 ? 'auto' : 10]} />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-                  <Bar dataKey="ventas" radius={[6, 6, 0, 0]} minPointSize={4}>
+                  <Bar dataKey="ventas" radius={[6, 6, 0, 0]} minPointSize={4} maxBarSize={34}>
                     {chartData.map((entry, i) => (
                       <Cell key={i} fill={entry.ventas === maxVal && maxVal > 0 ? '#7c3aed' : '#FF7A00'} />
                     ))}
@@ -212,25 +202,22 @@ const VendorReportesPage = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* Categorías */}
-            <div className="vr-card vr-card--side">
-              <div className="vr-card-header">
-                <h3>Por categoría</h3>
-              </div>
+            <div className={cx(tarjeta, 'min-w-0 p-4 xs:p-5')}>
+              <h3 className={cardTitulo}>Por categoría</h3>
               {categorias.length === 0 ? (
-                <p style={{ padding: '8px 0', color: '#94a3b8', fontSize: 13 }}>Sin ventas todavía</p>
+                <p className="m-0 py-2 text-[13px] text-slate-400">Sin ventas todavía</p>
               ) : (
-                <div className="vr-cat-list">
+                <div className="flex flex-col gap-3">
                   {categorias.map(c => (
-                    <div key={c.nombre} className="vr-cat-row">
-                      <div className="vr-cat-info">
-                        <span className="vr-cat-dot" style={{ background: c.color }} />
-                        <span className="vr-cat-name">{c.nombre}</span>
-                      </div>
-                      <div className="vr-cat-track">
-                        <div className="vr-cat-fill" style={{ width: `${c.pct}%`, background: c.color }} />
-                      </div>
-                      <span className="vr-cat-pct">{c.pct}%</span>
+                    <div key={c.nombre} className="flex items-center gap-3">
+                      <span className="flex w-24 min-w-0 shrink-0 items-center gap-2 xs:w-28">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
+                        <span className="truncate text-[13px] font-medium text-slate-700 dark:text-slate-200">{c.nombre}</span>
+                      </span>
+                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-noche-borde">
+                        <span className="block h-full rounded-full" style={{ width: `${c.pct}%`, background: c.color }} />
+                      </span>
+                      <span className="w-10 shrink-0 text-right text-[13px] font-semibold text-slate-700 dark:text-slate-200">{c.pct}%</span>
                     </div>
                   ))}
                 </div>
@@ -238,46 +225,32 @@ const VendorReportesPage = () => {
             </div>
           </div>
 
-          {/* Top productos */}
-          <div className="vr-card">
-            <div className="vr-card-header">
-              <h3>Productos más vendidos</h3>
-            </div>
+          {/* Productos mas vendidos: lista que cabe en cualquier celular
+              (antes era una tabla de 6 columnas que se salia de la pantalla) */}
+          <div className={cx(tarjeta, 'p-4 xs:p-5')}>
+            <h3 className={cardTitulo}>Productos más vendidos</h3>
             {productosTop.length === 0 ? (
-              <p style={{ padding: '8px 0', color: '#94a3b8', fontSize: 13 }}>Todavía no tienes ventas registradas</p>
+              <p className="m-0 py-2 text-[13px] text-slate-400">Todavía no tienes ventas registradas</p>
             ) : (
-              <table className="vr-table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Producto</th>
-                    <th>Categoría</th>
-                    <th>Unidades</th>
-                    <th>Ingreso</th>
-                    <th>Participación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productosTop.map((p, i) => (
-                    <tr key={p.nombre}>
-                      <td className="vr-rank">{i + 1}</td>
-                      <td className="vr-prod-name">{p.nombre}</td>
-                      <td>
-                        <span className="vr-chip" style={{ background: '#f1f5f9', color: '#475569' }}>
-                          {p.categoria}
+              <div className="flex flex-col">
+                {productosTop.map((p, i) => (
+                  <div key={p.nombre} className="flex items-center gap-3 border-0 border-b border-solid border-slate-100 py-3 last:border-b-0 dark:border-noche-borde">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-zippy-50 text-xs font-bold text-zippy dark:bg-zippy/15">{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="m-0 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{p.nombre}</p>
+                        <p className="m-0 shrink-0 text-sm font-bold text-slate-800 dark:text-slate-100">{fmtFull(p.ingreso)}</p>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">{p.unidades} und · {p.categoria}</span>
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-noche-borde">
+                          <span className="block h-full rounded-full bg-zippy" style={{ width: `${(p.unidades / maxUnidades) * 100}%` }} />
                         </span>
-                      </td>
-                      <td>{p.unidades}</td>
-                      <td className="vr-ingreso">{fmtFull(p.ingreso)}</td>
-                      <td>
-                        <div className="vr-bar-track">
-                          <div className="vr-bar-fill" style={{ width: `${(p.unidades / maxUnidades) * 100}%` }} />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </>

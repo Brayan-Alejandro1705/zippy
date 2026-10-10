@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { negociosService } from '../config/api';
+import { negociosService, adminService } from '../config/api';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import '../styles/Negocios.css';
@@ -27,11 +27,25 @@ const NegociosPage = () => {
   const [busqueda, setBusqueda]   = useState('');
   const [filtroEstado, setFiltro] = useState('Todos');
 
+  // Ventas, productos y negocios inactivos salen del resumen del administrador.
+  // Antes esta pantalla esperaba "total_ventas" y "total_productos" dentro de
+  // cada negocio, pero el servidor nunca los mandaba: por eso salian en cero.
+  const [resumen, setResumen] = useState(null);
+
   useEffect(() => {
-    negociosService.listar()
-      .then(res => setNegocios(res.data.results ?? res.data))
-      .catch(() => setNegocios(MOCK_NEGOCIOS))
-      .finally(() => setLoading(false));
+    Promise.allSettled([
+      negociosService.listar({ limit: 100 }),
+      adminService.resumen(),
+    ]).then(([resNeg, resRes]) => {
+      const extra = resRes.status === 'fulfilled' ? resRes.value.data : null;
+      setResumen(extra);
+      const lista = resNeg.status === 'fulfilled' ? (resNeg.value.data.results ?? resNeg.value.data) : MOCK_NEGOCIOS;
+      setNegocios(lista.map(n => ({
+        ...n,
+        total_ventas: extra?.ventas_por_negocio?.[n.id] ?? n.total_ventas ?? 0,
+        total_productos: extra?.productos_por_negocio?.[n.id] ?? n.total_productos ?? 0,
+      })));
+    }).finally(() => setLoading(false));
   }, []);
 
   const filtrados = negocios.filter(n => {
@@ -77,10 +91,10 @@ const NegociosPage = () => {
 
       {/* Stats */}
       <div className="ng-stats-row">
-        <StatCard label="Total negocios"  value={negocios.length}        color="#FF7A00" />
+        <StatCard label="Total negocios"  value={negocios.length + (resumen?.negocios?.inactivos ?? 0)} color="#FF7A00" />
         <StatCard label="Activos"         value={totalActivos}           color="#22c55e" />
-        <StatCard label="Suspendidos"     value={negocios.length - totalActivos} color="#ef4444" />
-        <StatCard label="Ventas totales"  value={`$${totalVentas.toLocaleString()}`} color="#3b82f6" sub="COP" />
+        <StatCard label="Inactivos o suspendidos" value={resumen?.negocios?.inactivos ?? (negocios.length - totalActivos)} color="#ef4444" />
+        <StatCard label="Ventas totales"  value={`$${totalVentas.toLocaleString('es-CO')}`} color="#3b82f6" sub="COP" />
         <StatCard label="Productos"       value={totalProductos}         color="#9b59b6" />
       </div>
 
@@ -98,7 +112,7 @@ const NegociosPage = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="nombre" tick={{ fontSize: 11 }} angle={-35} textAnchor="end" interval={0} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => [`$${v.toLocaleString()}`, 'Ventas']} />
+                  <Tooltip formatter={(v) => [`$${v.toLocaleString('es-CO')}`, 'Ventas']} />
                   <Bar dataKey="ventas" fill="#FF7A00" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -174,7 +188,7 @@ const NegociosPage = () => {
 
               <div className="ng-card-stats">
                 <div className="ng-mini-stat">
-                  <span className="ng-mini-val">${(n.total_ventas || 0).toLocaleString()}</span>
+                  <span className="ng-mini-val">${(n.total_ventas || 0).toLocaleString('es-CO')}</span>
                   <span className="ng-mini-label">Ventas</span>
                 </div>
                 <div className="ng-mini-stat">

@@ -19,9 +19,10 @@ from datetime import datetime, timedelta
 from config import SessionLocal, settings
 from models import Orden
 
-# Mismo tiempo que usa el panel de soporte (MINUTOS_SIN_CONFIRMAR) y el aviso
-# que le sale al cliente: a los 10 minutos un pedido ya cuenta como quieto.
-MINUTOS_PARA_AVISAR = 10
+# Decision del dueño (oct 2026): a los 5 minutos ya quiere enterarse. Va igual
+# que MINUTOS_SIN_CONFIRMAR del panel de soporte para que las dos cuentas
+# coincidan. Al cliente se le sigue mostrando su aviso a los 10.
+MINUTOS_PARA_AVISAR = 5
 SEGUNDOS_ENTRE_REVISIONES = 120
 # Pedidos mas viejos que esto no se avisan: son de pruebas o de dias atras, y
 # al prender esto por primera vez llegaria una avalancha de avisos viejos.

@@ -153,6 +153,8 @@ export const clienteService = {
 
 export const adminService = {
   estadisticas: () => api.get('/admin/estadisticas/'),
+  // Pedidos, ventas, lo mas vendido... con datos reales (ver ResumenNegocio)
+  resumen:      () => api.get('/admin/resumen/'),
   obtenerSoporte:    () => api.get('/admin/configuracion/soporte'),
   actualizarSoporte: (whatsapp) => api.put('/admin/configuracion/soporte', { whatsapp }),
   obtenerDomicilio:    () => api.get('/admin/configuracion/domicilio'),

@@ -1276,7 +1276,7 @@ async def reactivar_cliente(
 # La consecuencia hay que tenerla clara: si nadie tiene el panel abierto,
 # nadie se enterara hasta que lo abra.
 
-MINUTOS_SIN_CONFIRMAR = 10    # el negocio no ha aceptado el pedido
+MINUTOS_SIN_CONFIRMAR = 5     # el negocio no ha aceptado el pedido (igual que el aviso por WhatsApp)
 MINUTOS_SIN_VALIDAR = 20      # soporte no ha llamado al cliente del primer pedido
 MINUTOS_SIN_REPARTIDOR = 15   # el pedido esta listo y nadie lo ha tomado
 

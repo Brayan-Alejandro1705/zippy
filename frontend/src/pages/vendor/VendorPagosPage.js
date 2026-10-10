@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import VendorLayout from '../../components/VendorLayout';
+import Icon from '../../components/Icons';
 import { useToast } from '../../context/ToastContext';
 import { negociosService, ordenesService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
@@ -96,7 +97,7 @@ const VendorPagosPage = () => {
           </div>
 
           <div className="vpg-info-card">
-            <span className="vpg-info-icon">🏦</span>
+            <span className="vpg-info-icon text-slate-500 dark:text-slate-400"><Icon name="banco" size={30} /></span>
             <div className="vpg-info-text-wrap">
               <p className="vpg-info-title">Cuenta para pagos</p>
               <p className="vpg-info-text">

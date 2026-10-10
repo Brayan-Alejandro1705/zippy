@@ -36,7 +36,7 @@ import uuid as uuid_lib
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -113,12 +113,14 @@ async def consultar_actualizacion(datos: ConsultaActualizacion, db: Session = De
 
 
 @router.post("/stats", summary="El celular reporta como le fue")
-async def recibir_estadisticas(datos: dict = None):
+async def recibir_estadisticas(request: Request):
     """El plugin manda aqui si instalo o fallo una actualizacion.
 
     Se responde 200 y ya. Si esto devolviera un error, el plugin lo registraria
     como fallo de red en cada arranque y ensuciaria los registros sin motivo.
     """
+    # No se lee el cuerpo: el plugin a veces lo manda en un formato que FastAPI
+    # rechazaba con 422. Da igual lo que traiga, siempre se responde ok.
     return {"status": "ok"}
 
 

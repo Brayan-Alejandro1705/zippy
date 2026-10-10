@@ -85,10 +85,10 @@ const PedidoEspecialPage = () => {
 
   return (
     <UserLayout>
-      <div className="pe-page">
+      <div className="pe-page px-3 pt-4 xs:px-4 md:px-0">
         <div className="pe-header">
 <div className="pe-title-wrap">
-            <span className="pe-icon"><Icon name="solicitudes" size={24} /></span>
+            <span className="pe-icon flex h-11 w-11 items-center justify-center rounded-xl bg-zippy-50 text-zippy dark:bg-zippy/15"><Icon name="solicitudes" size={24} /></span>
             <div>
               <h1 className="pe-title">Mandado</h1>
               <p className="pe-subtitle">Describe exactamente lo que necesitas y el domiciliario lo consigue</p>

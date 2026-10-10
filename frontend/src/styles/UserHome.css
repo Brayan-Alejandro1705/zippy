@@ -768,3 +768,7 @@
 }
 .dark-theme .uh-store-abierta { color: #34d399; }
 .dark-theme .uh-store-flecha  { color: #64748b; }
+
+/* Inicial de la tienda cuando no ha subido logo */
+.uh-store-inicial { font-size: 22px; font-weight: 900; line-height: 1; font-family: 'Manrope', 'Inter', sans-serif; }
+@media (max-width: 640px) { .uh-store-inicial { font-size: 24px; } }

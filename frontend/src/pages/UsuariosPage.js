@@ -160,7 +160,7 @@ const UsuariosPage = () => {
       </div>
 
       {/* ── Stats ──────────────────────────────────────── */}
-      <div className="us-stats">
+      <div className="us-stats max-sm:grid-cols-2">
         <div className="us-stat-card">
           <div className="us-stat-icon" style={{ background: '#fff3e8', color: '#FF7A00' }}><Icon name="usuarios" size={22} /></div>
           <div>
@@ -249,14 +249,14 @@ const UsuariosPage = () => {
             {paginados.map(u => {
               const rol = ROL_CFG[u.rol] || {};
               return (
-                <div key={u.id} className="us-user-card">
+                <div key={u.id} className="us-user-card flex-wrap sm:flex-nowrap">
                   {/* Avatar */}
                   <div className="us-avatar" style={{ background: avatarBg(u.nombre) }}>
                     {initials(u.nombre)}
                   </div>
 
                   {/* Info principal */}
-                  <div className="us-user-info">
+                  <div className="us-user-info min-w-0 flex-1">
                     <div className="us-user-name-row">
                       <span className="us-user-name">{u.nombre}</span>
                       <span
@@ -276,7 +276,9 @@ const UsuariosPage = () => {
                   </div>
 
                   {/* Estado */}
-                  <div className="us-user-right">
+                  {/* En celular el estado y el menu bajan a su propia fila; asi el nombre
+                      no se parte en cuatro lineas */}
+                  <div className="us-user-right max-sm:basis-full max-sm:flex-row max-sm:items-center max-sm:justify-between max-sm:pl-14">
                     <span className={`us-estado ${u.estado === 'Activo' ? 'us-estado--active' : 'us-estado--suspended'}`}>
                       {u.estado === 'Activo' ? '● Activo' : '● Suspendido'}
                     </span>

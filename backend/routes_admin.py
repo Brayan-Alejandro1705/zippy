@@ -6,9 +6,11 @@ import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from datetime import datetime, timedelta
 
 from config import get_db
-from models import Usuario, ConfiguracionSistema
+from models import Usuario, ConfiguracionSistema, Orden, ItemOrden, Producto, Negocio, PedidoEspecial
 from routes_auth import get_current_user
 from logs_utils import registrar_log
 
@@ -109,7 +111,13 @@ def _normalizar_whatsapp(numero: str) -> str:
     summary="Estadísticas del panel de administración",
     description="Contadores que muestra la pantalla de Inicio (Dashboard).",
 )
-async def estadisticas_admin(db: Session = Depends(get_db)):
+async def estadisticas_admin(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Antes no pedia sesion: cualquiera podia ver cuantos usuarios tiene la app
+    if not _es_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo administradores")
     total_usuarios = db.query(Usuario).count()
 
     vendedores_activos = db.query(Usuario).filter(
@@ -126,6 +134,146 @@ async def estadisticas_admin(db: Session = Depends(get_db)):
         "total_usuarios": total_usuarios,
         "vendedores_activos": vendedores_activos,
         "vendedores_suspendidos": vendedores_suspendidos,
+    }
+
+
+# ============================================================================
+# RESUMEN DEL NEGOCIO (panel de inicio con numeros reales)
+# ============================================================================
+
+def _dia_colombia(momento: datetime):
+    """La fecha en Garzon de un momento guardado en hora universal."""
+    return (momento - timedelta(hours=5)).date()
+
+
+@router.get(
+    "/resumen/",
+    summary="Como va el negocio",
+    description="Pedidos, ventas, negocios, productos y repartidores con datos reales de la base.",
+)
+async def resumen_negocio(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Lo que antes no existia: el panel de inicio solo contaba usuarios, y la
+    pantalla de Negocios mostraba "Ventas totales $0" porque esperaba un dato
+    que el servidor nunca mandaba. Aqui sale todo de los pedidos reales.
+
+    Los dias se cuentan en hora de Colombia (la base guarda hora universal):
+    sin eso, todo lo pedido despues de las 7 de la noche caia en el dia
+    siguiente.
+    """
+    if not _es_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo administradores")
+
+    ahora = datetime.utcnow()
+    hoy = _dia_colombia(ahora)
+    inicio_semana = hoy - timedelta(days=6)          # hoy y los 6 dias anteriores
+    inicio_ventana = hoy - timedelta(days=29)        # ultimos 30 dias
+    desde_utc = datetime.combine(inicio_ventana, datetime.min.time()) + timedelta(hours=5)
+
+    ordenes = db.query(Orden).filter(Orden.fecha_creacion >= desde_utc).all()
+    estado = lambda o: getattr(o.estado, "value", o.estado)
+
+    # Pedidos y ventas por dia (ultimos 14 dias, para la grafica)
+    dias = [hoy - timedelta(days=i) for i in range(13, -1, -1)]
+    por_dia = {d: {"pedidos": 0, "ventas": 0.0} for d in dias}
+    for o in ordenes:
+        d = _dia_colombia(o.fecha_creacion)
+        if d in por_dia and estado(o) not in ("cancelada", "rechazada"):
+            por_dia[d]["pedidos"] += 1
+            if estado(o) == "entregada":
+                por_dia[d]["ventas"] += float(o.total or 0)
+
+    def resumen_rango(desde):
+        del_rango = [o for o in ordenes if _dia_colombia(o.fecha_creacion) >= desde]
+        entregadas = [o for o in del_rango if estado(o) == "entregada"]
+        ventas = sum(float(o.total or 0) for o in entregadas)
+        return {
+            "pedidos": len([o for o in del_rango if estado(o) not in ("cancelada", "rechazada")]),
+            "entregados": len(entregadas),
+            "cancelados": len([o for o in del_rango if estado(o) in ("cancelada", "rechazada")]),
+            "ventas": ventas,
+            "ticket_promedio": (ventas / len(entregadas)) if entregadas else 0,
+        }
+
+    # Lo mas vendido y los negocios que mas venden (ultimos 30 dias, entregados)
+    entregadas_30 = [o for o in ordenes if estado(o) == "entregada"]
+    ids_entregadas = [o.id for o in entregadas_30]
+    top_productos = []
+    if ids_entregadas:
+        filas = db.query(
+            ItemOrden.producto_id, func.sum(ItemOrden.cantidad), func.sum(ItemOrden.subtotal)
+        ).filter(ItemOrden.orden_id.in_(ids_entregadas)).group_by(ItemOrden.producto_id) \
+         .order_by(func.sum(ItemOrden.cantidad).desc()).limit(5).all()
+        nombres = {p.id: p for p in db.query(Producto).filter(Producto.id.in_([f[0] for f in filas])).all()}
+        for pid, cantidad, plata in filas:
+            prod = nombres.get(pid)
+            top_productos.append({
+                "nombre": prod.nombre if prod else "Producto",
+                "negocio": prod.negocio.nombre_negocio if prod and prod.negocio else "",
+                "cantidad": int(cantidad or 0),
+                "ventas": float(plata or 0),
+            })
+
+    ventas_negocio = {}
+    for o in entregadas_30:
+        ventas_negocio[o.negocio_id] = ventas_negocio.get(o.negocio_id, 0) + float(o.total or 0)
+    negocios_map = {n.id: n for n in db.query(Negocio).filter(Negocio.id.in_(list(ventas_negocio.keys()))).all()} if ventas_negocio else {}
+    top_negocios = sorted(
+        [{"nombre": negocios_map[k].nombre_negocio if k in negocios_map else "Negocio", "ventas": v,
+          "pedidos": len([o for o in entregadas_30 if o.negocio_id == k])}
+         for k, v in ventas_negocio.items()],
+        key=lambda x: x["ventas"], reverse=True,
+    )[:5]
+
+    # Ventas de siempre por negocio, para la pantalla de Negocios
+    ventas_historicas = dict(db.query(Orden.negocio_id, func.sum(Orden.total))
+                             .filter(Orden.estado == "entregada").group_by(Orden.negocio_id).all())
+
+    negocios_activos = db.query(Negocio).filter(Negocio.estado == "activo").count()
+    negocios_con_pedidos = len({o.negocio_id for o in ordenes if _dia_colombia(o.fecha_creacion) >= inicio_semana})
+    minutos_5 = ahora - timedelta(minutes=5)
+
+    mandados_semana = db.query(PedidoEspecial).filter(
+        PedidoEspecial.fecha_creacion >= datetime.combine(inicio_semana, datetime.min.time()) + timedelta(hours=5)
+    ).all()
+
+    return {
+        "hoy": resumen_rango(hoy),
+        "semana": resumen_rango(inicio_semana),
+        "mes": resumen_rango(inicio_ventana),
+        "por_dia": [{"dia": d.isoformat(), **por_dia[d]} for d in dias],
+        "top_productos": top_productos,
+        "top_negocios": top_negocios,
+        "ahora": {
+            "en_curso": len([o for o in ordenes if estado(o) in
+                             ("pendiente", "confirmada", "en_preparacion", "lista_para_retirar", "en_domicilio")]),
+            "sin_aceptar": len([o for o in ordenes if estado(o) == "pendiente" and o.fecha_creacion <= minutos_5
+                                and not (o.requiere_validacion and o.fecha_validacion is None)]),
+        },
+        "negocios": {
+            "activos": negocios_activos,
+            "con_pedidos_semana": negocios_con_pedidos,
+            # La lista publica de negocios solo trae los activos, asi que la
+            # pantalla de Negocios no tenia de donde contar los demas.
+            "inactivos": db.query(Negocio).filter(Negocio.estado != "activo").count(),
+        },
+        "clientes_nuevos_semana": db.query(Usuario).filter(
+            Usuario.tipo_usuario == "cliente",
+            Usuario.fecha_creacion >= datetime.combine(inicio_semana, datetime.min.time()) + timedelta(hours=5),
+        ).count(),
+        "repartidores_activos": db.query(Usuario).filter(
+            Usuario.tipo_usuario == "domiciliario", Usuario.estado == "activo"
+        ).count(),
+        "mandados_semana": {
+            "total": len(mandados_semana),
+            "entregados": len([m for m in mandados_semana if m.estado == "entregada"]),
+        },
+        "ventas_por_negocio": {str(k): float(v or 0) for k, v in ventas_historicas.items()},
+        "productos_por_negocio": {str(k): int(v or 0) for k, v in db.query(Producto.negocio_id, func.count(Producto.id))
+                                  .filter(Producto.estado == "activo").group_by(Producto.negocio_id).all()},
     }
 
 

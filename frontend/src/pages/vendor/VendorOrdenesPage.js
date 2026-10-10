@@ -3,8 +3,9 @@ import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import { fechaCorta, minutosDesde } from '../../utils/fechas';
-import '../../styles/VendorOrdenes.css';
 import Icon from '../../components/Icons';
+import { cx, titulo, tarjeta, btn, chip, chipsFila, badge, badgeBase } from '../../ui/tw';
+import OrdenDetalleModal, { VENDEDOR_NEXT, llamar } from '../../components/vendor/OrdenDetalle';
 
 const TABS = [
   { label: 'Todos',      value: 'Todos'     },
@@ -23,8 +24,9 @@ const ESTADO_UI = {
   cancelada:           'Cancelada',
 };
 
-const BORDER = { 'En camino':'#FF7A00', 'Entregada':'#22c55e', 'Cancelada':'#ef4444', 'Pendiente':'#f59e0b' };
-const BADGE  = { 'En camino':'vo-badge--camino', 'Entregada':'vo-badge--entregada', 'Cancelada':'vo-badge--cancelada', 'Pendiente':'vo-badge--pendiente' };
+// Color de la franja izquierda de cada tarjeta y del chip de estado
+const BORDER = { 'En camino':'border-l-zippy', 'Entregada':'border-l-green-500', 'Cancelada':'border-l-red-500', 'Pendiente':'border-l-amber-500' };
+const BADGE  = { 'En camino':badge.camino, 'Entregada':badge.entregada, 'Cancelada':badge.cancelada, 'Pendiente':badge.pendiente };
 
 const fmtFull  = n => `$${Math.round(n).toLocaleString('es-CO')}`;
 const fmtFecha = fechaCorta;
@@ -57,13 +59,6 @@ const ordenDeApi = (o, negocioNombre, productosMap, clienteNombre, clienteTelefo
   domiciliario: null,
 });
 
-// Pasos que el vendedor controla antes de que un repartidor pueda tomar el pedido
-const VENDEDOR_NEXT = {
-  pendiente:      { next: 'confirmada',         label: 'Confirmar pedido' },
-  confirmada:     { next: 'en_preparacion',      label: 'Marcar en preparación' },
-  en_preparacion: { next: 'lista_para_retirar',  label: 'Marcar listo para recoger' },
-};
-
 const ESTADO_REAL_LABEL = {
   pendiente:           'Pendiente',
   confirmada:           'Confirmado',
@@ -71,179 +66,13 @@ const ESTADO_REAL_LABEL = {
   lista_para_retirar:   'Listo para recoger',
 };
 
-const descargarFactura = (orden) => {
-  const filas = orden.items.map(item => `
-    <tr>
-      <td>${item.nombre}</td>
-      <td style="text-align:center">${item.qty}</td>
-      <td style="text-align:right">$${(item.precio / item.qty).toLocaleString('es-CO')}</td>
-      <td style="text-align:right">$${item.precio.toLocaleString('es-CO')}</td>
-    </tr>
-  `).join('');
+const textoEstado = (o) =>
+  o.estado === 'En camino' ? 'En camino'
+  : o.estado === 'Entregada' ? 'Entregada'
+  : o.estado === 'Cancelada' ? 'Cancelada'
+  : ESTADO_REAL_LABEL[o.estadoReal] || o.estado;
 
-  const html = `
-    <html>
-      <head>
-        <title>Factura ${orden.id}</title>
-        <meta charset="utf-8" />
-        <style>
-          body { font-family: Arial, sans-serif; color: #1e293b; padding: 32px; }
-          h1 { font-size: 20px; margin-bottom: 4px; }
-          .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-          th { text-align: left; font-size: 12px; color: #64748b; border-bottom: 1px solid #e2e8f0; padding: 8px 4px; }
-          td { padding: 8px 4px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-          .totales td { border: none; }
-          .total-final td { font-weight: bold; font-size: 16px; border-top: 2px solid #1e293b; }
-        </style>
-      </head>
-      <body>
-        <h1>${orden.negocio}</h1>
-        <p class="meta">Factura ${orden.id} · ${orden.fecha}${orden.cliente ? ` · Cliente: ${orden.cliente}` : ''}</p>
-        <p class="meta">Dirección de entrega: ${orden.dir}</p>
-        <table>
-          <thead>
-            <tr><th>Producto</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr>
-          </thead>
-          <tbody>${filas}</tbody>
-        </table>
-        <table class="totales">
-          <tr><td colspan="3" style="text-align:right">Subtotal</td><td style="text-align:right">$${orden.subtotal.toLocaleString('es-CO')}</td></tr>
-          <tr class="total-final"><td colspan="3" style="text-align:right">Total</td><td style="text-align:right">$${orden.total.toLocaleString('es-CO')}</td></tr>
-        </table>
-      </body>
-    </html>
-  `;
-
-  const ventana = window.open('', '_blank');
-  if (!ventana) return;
-  ventana.document.write(html);
-  ventana.document.close();
-  ventana.focus();
-  ventana.print();
-};
-
-const abrirMapa = (direccion) => {
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`, '_blank');
-};
-
-// ── Order Detail Modal ────────────────────────────────────────────────────────
-const STEPS = ['Recibido', 'Preparado', 'En camino', 'Entregado'];
-const stepIndex = (estado) => {
-  if (estado === 'En camino') return 2;
-  if (estado === 'Entregada') return 3;
-  if (estado === 'Pendiente') return 1;
-  return 0;
-};
-
-const ConfirmarRecogidaBox = ({ orden, onConfirmar }) => {
-  const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState('');
-
-  const entregar = async () => {
-    setEnviando(true);
-    setError('');
-    try {
-      await onConfirmar(orden, orden.codigoRecogida || '');
-    } catch (err) {
-      setError(err.response?.data?.detail || 'No se pudo confirmar la entrega al repartidor');
-      setEnviando(false);
-    }
-  };
-
-  return (
-    <div className="vo-delivery">
-      <p>🛵 Un repartidor viene por este pedido. Debe decirte este código:</p>
-      <p className="vo-codigo-grande">{orden.codigoRecogida || 'Sin código'}</p>
-      <button className="vo-btn-contact" disabled={enviando} onClick={entregar}>
-        {enviando ? 'Confirmando…' : '✓ Coincide, ya se lo entregué'}
-      </button>
-      {error && <p className="vo-codigo-error">{error}</p>}
-    </div>
-  );
-};
-
-const OrderDetailModal = ({ orden, onClose, onAvanzar, onConfirmarRecogida }) => {
-  if (!orden) return null;
-  const current = stepIndex(orden.estado);
-  const siguientePaso = VENDEDOR_NEXT[orden.estadoReal];
-
-  return (
-    <div className="vo-modal-overlay" onClick={onClose}>
-      <div className="vo-modal" onClick={e => e.stopPropagation()}>
-        <div className="vo-modal-header">
-          <h3>Orden {orden.id}</h3>
-          <button className="vo-modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        {/* Stepper */}
-        <div className="vo-stepper">
-          {STEPS.map((s, i) => (
-            <React.Fragment key={s}>
-              <div className={`vo-step ${i <= current ? 'vo-step--done' : ''} ${i === current ? 'vo-step--current' : ''}`}>
-                <div className="vo-step-dot" />
-                <span className="vo-step-label">{s}</span>
-              </div>
-              {i < STEPS.length - 1 && <div className={`vo-step-line ${i < current ? 'vo-step-line--done' : ''}`} />}
-            </React.Fragment>
-          ))}
-        </div>
-
-        {/* Items */}
-        <div className="vo-items">
-          {orden.items.map((item, i) => (
-            <div key={i} className="vo-item-row">
-              <div>
-                <p className="vo-item-name">{item.nombre}</p>
-                <p className="vo-item-meta">{orden.negocio} · Cantidad {item.qty} · ${(item.precio/item.qty).toLocaleString('es-CO')} c/u</p>
-              </div>
-              <span className="vo-item-price">{fmtFull(item.precio)}</span>
-            </div>
-          ))}
-          <div className="vo-total-row">
-            <span>Total</span>
-            <span className="vo-total-val">{fmtFull(orden.total)}</span>
-          </div>
-        </div>
-
-        {/* Estado de despacho */}
-        {orden.estadoReal === 'lista_para_retirar' && !orden.domiciliarioId && (
-          <div className="vo-delivery">
-            <p>🛵 Listo para recoger — esperando que un repartidor lo tome</p>
-          </div>
-        )}
-        {orden.domiciliarioId && orden.estadoReal === 'en_domicilio' && (
-          <div className="vo-delivery">
-            <p>🛵 Un repartidor ya tomó este pedido y va en camino</p>
-          </div>
-        )}
-        {orden.domiciliarioId && orden.estadoReal === 'lista_para_retirar' && (
-          <ConfirmarRecogidaBox orden={orden} onConfirmar={onConfirmarRecogida} />
-        )}
-
-        {/* Actions */}
-        <div className="vo-modal-actions">
-          <button className="vo-btn-map" onClick={() => abrirMapa(orden.dir)}>📍 Ver en mapa</button>
-          <button
-            className="vo-btn-contact"
-            disabled={!orden.clienteTelefono}
-            onClick={() => { if (orden.clienteTelefono) window.location.href = `tel:${orden.clienteTelefono}`; }}
-          >
-            📞 {orden.clienteTelefono || 'Sin teléfono'}
-          </button>
-          <button className="vo-btn-invoice" onClick={() => descargarFactura(orden)}>⬇ Descargar factura</button>
-        </div>
-        {siguientePaso && (
-          <div className="vo-modal-actions">
-            <button className="vo-btn-invoice" style={{ flex: 1, background: '#FF7A00', color: 'white' }} onClick={() => onAvanzar(orden, siguientePaso.next)}>
-              {siguientePaso.label} →
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+const iconoEstado = { 'En camino': 'moto', 'Entregada': 'check', 'Cancelada': 'equis' };
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 const VendorOrdenesPage = () => {
@@ -313,33 +142,29 @@ const VendorOrdenesPage = () => {
 
   return (
     <VendorLayout searchPlaceholder="Buscar orden...">
-      <h1 className="vo-title">Mis Órdenes</h1>
+      <h1 className={cx(titulo, 'mb-4')}>Mis Órdenes</h1>
 
       {sinConfirmar.length > 0 && (
-        <div className="vo-alerta-quietos">
-          <Icon name="alerta" size={20} />
-          <div>
-            <p className="vo-alerta-titulo">
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border-[1.5px] border-l-4 border-solid border-red-200 border-l-red-600 bg-red-50 p-3.5 text-red-700 dark:border-red-500/30 dark:border-l-red-500 dark:bg-red-500/10 dark:text-red-300">
+          <span className="mt-0.5 shrink-0"><Icon name="alerta" size={20} /></span>
+          <div className="min-w-0">
+            <p className="m-0 text-[14.5px] font-extrabold leading-snug">
               {sinConfirmar.length === 1
                 ? `Tienes 1 pedido sin confirmar desde hace ${masViejo} min`
                 : `Tienes ${sinConfirmar.length} pedidos sin confirmar (el más viejo, ${masViejo} min)`}
             </p>
-            <p className="vo-alerta-sub">
+            <p className="m-0 mt-1 text-[12.5px] leading-snug text-rose-800 dark:text-red-300/80">
               El cliente está esperando. Confírmalo para que puedan prepararlo y recogerlo.
             </p>
           </div>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="vo-tabs">
+      {/* Pestañas: en celular se desplazan de lado en vez de partirse en dos filas */}
+      <div className={cx(chipsFila, 'mb-4')}>
         {TABS.map(({ label, value }) => (
-          <button
-            key={value}
-            className={`vo-tab ${tab === value ? 'vo-tab--active' : ''}`}
-            onClick={() => setTab(value)}
-          >
-            {label} <span className="vo-tab-count">({count(value)})</span>
+          <button key={value} className={chip(tab === value)} onClick={() => setTab(value)}>
+            {label} <span className="text-xs opacity-80">({count(value)})</span>
           </button>
         ))}
       </div>
@@ -347,12 +172,14 @@ const VendorOrdenesPage = () => {
       {loading ? (
         <ZLoader size="sm" label="Cargando órdenes..." />
       ) : filtradas.length === 0 ? (
-        <div className="vo-empty">
-          <div className="vo-empty-icon"><Icon name="paquete" size={26} /></div>
-          <p className="vo-empty-title">
+        <div className="flex flex-col items-center gap-1.5 px-6 pb-14 pt-12 text-center">
+          <div className="mb-1.5 inline-flex h-[60px] w-[60px] items-center justify-center rounded-[18px] bg-[#fff3e6] text-orange-700 dark:bg-[#2a3547] dark:text-[#FFA14D]">
+            <Icon name="paquete" size={26} />
+          </div>
+          <p className="m-0 text-base font-bold text-slate-800 dark:text-slate-200">
             {tab === 'Todos' ? 'Aún no tienes órdenes' : `Ninguna orden en "${tab}"`}
           </p>
-          <p className="vo-empty-desc">
+          <p className="m-0 max-w-[300px] text-[13.5px] leading-snug text-slate-500 dark:text-slate-400">
             {tab === 'Todos'
               ? 'Cuando un cliente te compre, el pedido aparece aquí.'
               : 'Prueba con otro filtro para ver el resto de tus órdenes.'}
@@ -360,53 +187,65 @@ const VendorOrdenesPage = () => {
         </div>
       ) : (
         <>
-          {/* Order cards */}
-          <div className="vo-list">
+          <div className="mb-4 flex flex-col gap-3">
             {filtradas.map(o => (
-              <div key={o.id} className="vo-card" style={{ borderLeftColor: BORDER[o.estado] || '#ddd' }}>
-                <div className="vo-card-main">
-                  <div className="vo-card-info">
-                    <div className="vo-card-top">
-                      <span className="vo-order-id">{o.id}</span>
-                      <span className="vo-order-date">{o.fecha}</span>
-                    </div>
-                    <p className="vo-negocio">📦 {o.negocio}</p>
-                    <p className="vo-dir">📍 {o.dir}</p>
-                    {o.codigoRecogida && o.domiciliarioId && o.estadoReal === 'lista_para_retirar' && (
-                      <p className="vo-codigo-card">🔑 Código de recogida: <strong>{o.codigoRecogida}</strong></p>
-                    )}
+              <div key={o.id} className={cx(tarjeta, 'border-0 border-l-4 border-solid p-4', BORDER[o.estado] || 'border-l-slate-300')}>
+                {/* Fila 1: numero + fecha a la izquierda, total a la derecha.
+                    min-w-0 deja que lo largo se recorte en vez de empujar el total fuera. */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="m-0 font-mono text-[15px] font-bold text-slate-800 dark:text-slate-100">{o.id}</p>
+                    <p className="m-0 mt-0.5 text-xs text-slate-400">{o.fecha}</p>
                   </div>
-                  <div className="vo-card-right">
-                    <p className="vo-card-total">{fmtFull(o.total)}</p>
-                    <span className={`vo-badge ${BADGE[o.estado]}`}>
-                      {o.estado === 'En camino' ? '🚴 En camino' : o.estado === 'Entregada' ? '✓ Entregada' : o.estado === 'Cancelada' ? '✕ Cancelada' : ESTADO_REAL_LABEL[o.estadoReal] || o.estado}
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <p className="m-0 text-[17px] font-bold text-slate-800 dark:text-slate-100">{fmtFull(o.total)}</p>
+                    <span className={cx(badgeBase, BADGE[o.estado])}>
+                      {iconoEstado[o.estado] && <Icon name={iconoEstado[o.estado]} size={13} />}
+                      {textoEstado(o)}
                     </span>
-                    {o.minutos && <p className="vo-eta">⏱ Faltan {o.minutos} minutos</p>}
-                    <div className="vo-card-actions">
-                      {(o.estado === 'En camino') && (
-                        <button className="vo-btn-ver" onClick={() => setDetalle(o)}>Ver</button>
-                      )}
-                      {(o.estado === 'En camino') && (
-                        <button className="vo-btn-contact-sm">📞 Contactar</button>
-                      )}
-                      {VENDEDOR_NEXT[o.estadoReal] && (
-                        <button className="vo-btn-ver" onClick={() => avanzarEstado(o, VENDEDOR_NEXT[o.estadoReal].next)}>
-                          {VENDEDOR_NEXT[o.estadoReal].label}
-                        </button>
-                      )}
-                      <button className="vo-btn-detail" onClick={() => setDetalle(o)}>Detalles</button>
-                    </div>
                   </div>
+                </div>
+
+                {/* Fila 2: datos del cliente y la entrega */}
+                <div className="mt-2.5 flex flex-col gap-1 text-[13px] text-slate-600 dark:text-slate-400">
+                  {o.cliente && (
+                    <p className="m-0 flex items-center gap-1.5 font-medium"><span className="shrink-0 text-slate-400"><Icon name="perfil" size={14} /></span><span className="min-w-0 truncate">{o.cliente}</span></p>
+                  )}
+                  <p className="m-0 flex items-start gap-1.5"><span className="mt-px shrink-0 text-slate-400"><Icon name="ubicacion" size={14} /></span><span className="min-w-0">{o.dir}</span></p>
+                  {o.codigoRecogida && o.domiciliarioId && o.estadoReal === 'lista_para_retirar' && (
+                    <p className="m-0 flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
+                      <Icon name="llave" size={14} /> Código de recogida: {o.codigoRecogida}
+                    </p>
+                  )}
+                  {o.minutos && <p className="m-0 text-[11px] text-slate-500">Faltan {o.minutos} minutos</p>}
+                </div>
+
+                {/* Fila 3: botones. Bajan de linea si no caben (flex-wrap). */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {VENDEDOR_NEXT[o.estadoReal] && (
+                    <button className={cx(btn.azul, 'flex-1')} onClick={() => avanzarEstado(o, VENDEDOR_NEXT[o.estadoReal].next)}>
+                      {VENDEDOR_NEXT[o.estadoReal].label}
+                    </button>
+                  )}
+                  {o.estado === 'En camino' && (
+                    <button className={cx(btn.azul, 'flex-1')} onClick={() => setDetalle(o)}>Ver</button>
+                  )}
+                  {o.estado === 'En camino' && (
+                    <button className={btn.borde} disabled={!o.clienteTelefono} onClick={() => llamar(o.clienteTelefono)}>
+                      <Icon name="telefono" size={14} /> Llamar
+                    </button>
+                  )}
+                  <button className={btn.borde} onClick={() => setDetalle(o)}>Detalles</button>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="vo-footer">Mostrando {filtradas.length} de {ordenes.length} órdenes</div>
+          <div className="p-2 text-center text-xs text-slate-400">Mostrando {filtradas.length} de {ordenes.length} órdenes</div>
         </>
       )}
 
-      <OrderDetailModal orden={detalle} onClose={() => setDetalle(null)} onAvanzar={avanzarEstado} onConfirmarRecogida={confirmarRecogida} />
+      <OrdenDetalleModal orden={detalle} onClose={() => setDetalle(null)} onAvanzar={avanzarEstado} onConfirmarRecogida={confirmarRecogida} />
     </VendorLayout>
   );
 };

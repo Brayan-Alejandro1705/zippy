@@ -46,7 +46,7 @@ const VendorLayout = ({ children, onSearch, searchPlaceholder = 'Buscar...' }) =
               <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             <input
-              className="ulo-search"
+              className="ulo-search text-ellipsis"
               placeholder={searchPlaceholder}
               value={query}
               onChange={e => { setQuery(e.target.value); onSearch(e.target.value); }}
@@ -76,7 +76,9 @@ const VendorLayout = ({ children, onSearch, searchPlaceholder = 'Buscar...' }) =
       </header>
 
       {/* ── Contenido ──────────────────────────────────── */}
-      <main className="ulo-main" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
+      {/* px-3/xs:px-4: margen a los lados en celular. Antes era 0 y todo el
+          panel del negocio quedaba pegado a los bordes de la pantalla. */}
+      <main className="ulo-main px-3 pt-4 xs:px-4 md:px-8 md:pt-6" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
         {children}
       </main>
 

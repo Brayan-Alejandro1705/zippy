@@ -288,7 +288,8 @@ const UserCheckoutPage = () => {
         <div className="ucho-section">
           <p className="ucho-section-label">Método de pago</p>
           <div className="ucho-pay-fixed">
-            👤 Efectivo contra entrega
+            <Icon name="billete" size={18} style={{ verticalAlign: '-4px', marginRight: 8, color: '#16a34a' }} />
+            Efectivo contra entrega
           </div>
         </div>
 

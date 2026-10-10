@@ -1,0 +1,52 @@
+.rn { margin-bottom: 28px; }
+.rn-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.rn-titulo { font-size: 20px; font-weight: 800; color: #1e293b; margin: 0; }
+.rn-rangos { display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 3px; }
+.rn-rango { border: none; background: none; padding: 7px 14px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer; }
+.rn-rango--activo { background: #fff; color: #FF7A00; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+.rn-alerta {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 14px; font-family: inherit; font-size: 14px; text-align: left; cursor: pointer;
+}
+.rn-alerta span:nth-child(2) { flex: 1; }
+.rn-alerta-ir { font-weight: 800; }
+
+.rn-tarjetas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.rn-tarjeta { display: flex; gap: 12px; align-items: flex-start; background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); min-width: 0; }
+.rn-tarjeta--link { cursor: pointer; }
+.rn-tarjeta-icono { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.rn-tarjeta-texto { min-width: 0; }
+.rn-tarjeta-valor { font-size: 21px; font-weight: 800; color: #1e293b; margin: 0; line-height: 1.15; overflow-wrap: anywhere; }
+.rn-tarjeta-etiqueta { font-size: 12.5px; font-weight: 700; color: #475569; margin: 2px 0 0; }
+.rn-tarjeta-nota { font-size: 11.5px; color: #94a3b8; margin: 2px 0 0; }
+
+.rn-fila { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.rn-card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); min-width: 0; }
+.rn-card-titulo { font-size: 14.5px; font-weight: 800; color: #1e293b; margin: 0 0 12px; }
+.rn-card-titulo span { font-size: 12px; font-weight: 600; color: #94a3b8; margin-left: 4px; }
+.rn-vacio { color: #94a3b8; font-size: 13px; margin: 18px 0; text-align: center; }
+
+.rn-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rn-lista li { display: flex; align-items: center; gap: 10px; }
+.rn-lista-pos { width: 24px; height: 24px; border-radius: 50%; background: #fff3e6; color: #c2410c; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.rn-lista-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rn-lista-texto b { font-size: 13.5px; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rn-lista-texto small { font-size: 11.5px; color: #94a3b8; }
+.rn-lista-dato { font-size: 13px; font-weight: 800; color: #FF7A00; white-space: nowrap; }
+
+.rn-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rn-chip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border-radius: 999px; padding: 7px 12px; font-size: 12.5px; color: #475569; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.rn-aviso { background: #fff; border-radius: 14px; padding: 18px; color: #64748b; margin-bottom: 24px; }
+
+@media (max-width: 1100px) { .rn-fila { grid-template-columns: 1fr 1fr; } .rn-card--grafica { grid-column: 1 / -1; } }
+@media (max-width: 760px)  { .rn-tarjetas { grid-template-columns: 1fr 1fr; } .rn-fila { grid-template-columns: 1fr; } }
+
+.dark-theme .rn-titulo, .dark-theme .rn-card-titulo, .dark-theme .rn-tarjeta-valor, .dark-theme .rn-lista-texto b { color: #f1f5f9; }
+.dark-theme .rn-tarjeta, .dark-theme .rn-card, .dark-theme .rn-chip, .dark-theme .rn-aviso { background: #1e293b; box-shadow: none; }
+.dark-theme .rn-tarjeta-etiqueta, .dark-theme .rn-chip { color: #cbd5e1; }
+.dark-theme .rn-rangos { background: #0f172a; }
+.dark-theme .rn-rango--activo { background: #1e293b; }
+.dark-theme .rn-lista-pos { background: #2a2016; color: #fdba74; }
+.dark-theme .rn-alerta { background: #3b1414; color: #fecaca; border-color: #7f1d1d; }

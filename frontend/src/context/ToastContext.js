@@ -7,8 +7,9 @@ export const useToast = () => useContext(ToastContext);
 
 const ICONS = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
 
+// En celular el aviso sale encima de la barra de abajo, no tapandola
 const ToastContainer = ({ toasts, onRemove }) => (
-  <div className="toast-container">
+  <div className="toast-container bottom-[calc(84px+env(safe-area-inset-bottom))] left-3 right-3 md:bottom-6 md:left-auto md:right-6">
     {toasts.map(t => (
       <div key={t.id} className={`toast toast--${t.type}`}>
         <span className="toast-icon">{ICONS[t.type]}</span>

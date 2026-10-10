@@ -100,3 +100,13 @@
   margin: 0;
   line-height: 1.4;
 }
+/* ── Modo oscuro ─────────────────────────────────────────── */
+/* Faltaba: en modo oscuro las tarjetas quedaban blancas sobre el fondo azul
+   noche, como un pegote, mientras el resto de la app si cambiaba. */
+.dark-theme .ca-card { background: #1e293b; border-color: #334155; }
+.dark-theme .ca-card-title,
+.dark-theme .ca-item-p { color: #f1f5f9; }
+.dark-theme .ca-lista,
+.dark-theme .ca-item { border-color: #334155; }
+.dark-theme .ca-item-chevron { background: #0f172a; color: #94a3b8; }
+.dark-theme .ca-item-r { color: #cbd5e1; }

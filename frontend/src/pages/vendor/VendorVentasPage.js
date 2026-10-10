@@ -3,9 +3,10 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import Icon from '../../components/Icons';
+import OrdenDetalleModal from '../../components/vendor/OrdenDetalle';
 import { fechaCorta, fechaServidor } from '../../utils/fechas';
-import '../../styles/VendorVentas.css';
-import '../../styles/VendorOrdenes.css';
+import { cx, titulo, subtitulo, tarjeta, chip, chipsFila, badge, badgeBase } from '../../ui/tw';
 
 const ESTADO_UI = {
   pendiente:           'Pendiente',
@@ -27,152 +28,49 @@ const ENTREGA_UI = {
   cancelada:            'No entregado',
 };
 
-const ESTADO_CLASS = {
-  Completada: 'vv-badge--completada',
-  'En camino':'vv-badge--camino',
-  Pendiente:  'vv-badge--pendiente',
-  Cancelada:  'vv-badge--cancelada',
+const ESTADO_BADGE = {
+  Completada:  badge.entregada,
+  'En camino': badge.camino,
+  Pendiente:   badge.pendiente,
+  Cancelada:   badge.cancelada,
 };
+
+const PERIODOS = [
+  { value: 'semana', label: 'Últimos 7 días' },
+  { value: 'mes',    label: 'Este mes' },
+  { value: 'año',    label: 'Este año' },
+];
 
 const DIA_CORTO  = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const DIA_LARGO  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-const fmt = (n) => {
-  // En pesos colombianos abreviar a K/M pierde toda la precision: $1.428 se
-  // volvia "$1K". Se muestra la cifra completa con separador de miles.
-  return `$${Math.round(n).toLocaleString('es-CO')}`;
-};
-const fmtFull = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+// En pesos colombianos abreviar a K/M pierde toda la precision: $1.428 se
+// volvia "$1K". Se muestra la cifra completa con separador de miles.
+const fmt = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+const fmtFull = fmt;
 const fmtFecha = fechaCorta;
 const capitalizar = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
-const STEPS = ['Recibido', 'Preparado', 'En camino', 'Entregado'];
-const stepIndex = (estado) => {
-  if (estado === 'En camino')  return 2;
-  if (estado === 'Completada') return 3;
-  if (estado === 'Pendiente')  return 1;
-  return 0;
-};
-
-const descargarFactura = (orden) => {
-  const filas = orden.items.map(item => `
-    <tr>
-      <td>${item.nombre}</td>
-      <td style="text-align:center">${item.qty}</td>
-      <td style="text-align:right">$${(item.precio / item.qty).toLocaleString('es-CO')}</td>
-      <td style="text-align:right">$${item.precio.toLocaleString('es-CO')}</td>
-    </tr>
-  `).join('');
-
-  const html = `
-    <html>
-      <head>
-        <title>Factura ${orden.id}</title>
-        <meta charset="utf-8" />
-        <style>
-          body { font-family: Arial, sans-serif; color: #1e293b; padding: 32px; }
-          h1 { font-size: 20px; margin-bottom: 4px; }
-          .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-          th { text-align: left; font-size: 12px; color: #64748b; border-bottom: 1px solid #e2e8f0; padding: 8px 4px; }
-          td { padding: 8px 4px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-          .totales td { border: none; }
-          .total-final td { font-weight: bold; font-size: 16px; border-top: 2px solid #1e293b; }
-        </style>
-      </head>
-      <body>
-        <h1>${orden.negocio}</h1>
-        <p class="meta">Factura ${orden.id} · ${orden.fecha} · Cliente: ${orden.cliente}</p>
-        <p class="meta">Dirección de entrega: ${orden.dir}</p>
-        <table>
-          <thead>
-            <tr><th>Producto</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr>
-          </thead>
-          <tbody>${filas}</tbody>
-        </table>
-        <table class="totales">
-          <tr><td colspan="3" style="text-align:right">Subtotal</td><td style="text-align:right">$${orden.subtotal.toLocaleString('es-CO')}</td></tr>
-          <tr class="total-final"><td colspan="3" style="text-align:right">Total</td><td style="text-align:right">$${orden.total.toLocaleString('es-CO')}</td></tr>
-        </table>
-      </body>
-    </html>
-  `;
-
-  const ventana = window.open('', '_blank');
-  if (!ventana) return;
-  ventana.document.write(html);
-  ventana.document.close();
-  ventana.focus();
-  ventana.print();
-};
-
-const abrirMapa = (direccion) => {
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`, '_blank');
-};
-
-const OrderDetailModal = ({ orden, onClose }) => {
-  if (!orden) return null;
-  const current = stepIndex(orden.estado);
-  return (
-    <div className="vo-modal-overlay" onClick={onClose}>
-      <div className="vo-modal" onClick={e => e.stopPropagation()}>
-        <div className="vo-modal-header">
-          <h3>Orden {orden.id} — {orden.cliente}</h3>
-          <button className="vo-modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        <div className="vo-stepper">
-          {STEPS.map((s, i) => (
-            <React.Fragment key={s}>
-              <div className={`vo-step ${i <= current ? 'vo-step--done' : ''} ${i === current ? 'vo-step--current' : ''}`}>
-                <div className="vo-step-dot" />
-                <span className="vo-step-label">{s}</span>
-              </div>
-              {i < STEPS.length - 1 && (
-                <div className={`vo-step-line ${i < current ? 'vo-step-line--done' : ''}`} />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-
-        <div className="vo-items">
-          {orden.items.map((item, i) => (
-            <div key={i} className="vo-item-row">
-              <div>
-                <p className="vo-item-name">{item.nombre}</p>
-                <p className="vo-item-meta">{orden.negocio} · Cantidad {item.qty} · {fmtFull(item.precio / item.qty)} c/u</p>
-              </div>
-              <span className="vo-item-price">{fmtFull(item.precio)}</span>
-            </div>
-          ))}
-          <div className="vo-total-row">
-            <span>Total</span>
-            <span className="vo-total-val">{fmtFull(orden.total)}</span>
-          </div>
-        </div>
-
-        <div className="vo-modal-actions">
-          <button className="vo-btn-map" onClick={() => abrirMapa(orden.dir)}>📍 Ver en mapa</button>
-          <button
-            className="vo-btn-contact"
-            disabled={!orden.clienteTelefono}
-            onClick={() => { if (orden.clienteTelefono) window.location.href = `tel:${orden.clienteTelefono}`; }}
-          >
-            📞 {orden.clienteTelefono || 'Sin teléfono'}
-          </button>
-          <button className="vo-btn-invoice" onClick={() => descargarFactura(orden)}>⬇ Factura</button>
-        </div>
-      </div>
+const Dato = ({ icono, color, valor, etiqueta }) => (
+  // En 320 px el icono va arriba y la cifra usa todo el ancho de la tarjeta
+  <div className={cx(tarjeta, 'flex min-w-0 flex-col items-start gap-2 p-3.5 xs:flex-row xs:items-center xs:gap-3')}>
+    <span className={cx('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl xs:h-10 xs:w-10', color)}>
+      <Icon name={icono} size={20} />
+    </span>
+    <div className="min-w-0">
+      {/* text-base en 320 px y mas grande desde 360: "$1.250.000" cabe sin partirse */}
+      <p className="m-0 truncate text-base font-bold text-slate-800 dark:text-slate-100 xs:text-lg">{valor}</p>
+      <p className="m-0 text-xs leading-tight text-slate-500 dark:text-slate-400">{etiqueta}</p>
     </div>
-  );
-};
+  </div>
+);
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="vv-tooltip">
-      <p>{label}</p>
-      <p className="vv-tooltip-val">{fmtFull(payload[0].value)}</p>
+    <div className="rounded-lg bg-slate-800 px-3 py-2 text-xs text-white shadow-lg">
+      <p className="m-0">{label}</p>
+      <p className="m-0 font-bold">{fmtFull(payload[0].value)}</p>
     </div>
   );
 };
@@ -216,6 +114,9 @@ const VendorVentasPage = () => {
           impuesto: Number(o.impuesto),
           total: Number(o.total),
           estado: ESTADO_UI[o.estado] || 'Pendiente',
+          estadoReal: o.estado,
+          domiciliarioId: o.domiciliario_id,
+          codigoRecogida: o.codigo_recogida || null,
           entrega: ENTREGA_UI[o.estado] || 'Pendiente',
           pago: capitalizar(o.metodo_pago),
           fecha: fmtFecha(o.fecha_creacion),
@@ -257,9 +158,16 @@ const VendorVentasPage = () => {
     return () => { activo = false; };
   }, []);
 
+  // El periodo filtra la lista (antes los botones Semana/Mes/Año no hacian nada)
+  const desde = new Date();
+  if (periodo === 'semana') { desde.setDate(desde.getDate() - 6); }
+  else if (periodo === 'mes') { desde.setDate(1); }
+  else { desde.setMonth(0, 1); }
+  desde.setHours(0, 0, 0, 0);
+  const enPeriodo = ordenes.filter(o => (fechaServidor(o.fechaRaw)?.getTime() || 0) >= desde.getTime());
   const filtradas = estadoFiltro === 'Todos'
-    ? ordenes
-    : ordenes.filter(o => o.estado === estadoFiltro);
+    ? enPeriodo
+    : enPeriodo.filter(o => o.estado === estadoFiltro);
 
   const completadas = ordenes.filter(o => o.estado === 'Completada');
 
@@ -275,97 +183,95 @@ const VendorVentasPage = () => {
 
   return (
     <VendorLayout searchPlaceholder="Buscar orden...">
-      <div className="vv-page-header">
-        <div>
-          <h1 className="vv-title">Mi Tienda</h1>
-          <p className="vv-sub">Resumen de tus ventas</p>
-        </div>
+      <h1 className={titulo}>Mi Tienda</h1>
+      <p className={cx(subtitulo, 'mb-4')}>Resumen de tus ventas</p>
+
+      {/* 2 columnas en celular, 4 en PC */}
+      <div className="mb-5 grid grid-cols-2 gap-2.5 xs:gap-3 md:grid-cols-4">
+        <Dato icono="dinero"  color="bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300" valor={fmt(ingresosEsteMes)} etiqueta="Vendido este mes" />
+        <Dato icono="check"   color="bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300" valor={completadas.length} etiqueta="Completadas" />
+        <Dato icono="paquete" color="bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300" valor={fmt(porOrden)} etiqueta="Promedio por pedido" />
+        <Dato icono="estrella" color="bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" valor={negocio ? Number(negocio.calificacion_promedio || 0).toFixed(1) : '—'} etiqueta="Calificación" />
       </div>
 
-      {/* Stats */}
-      <div className="vv-stats">
-        <div className="vv-stat">
-          <span className="vv-stat-icon">💰</span>
-          <div>
-            <p className="vv-stat-val">{fmt(ingresosEsteMes)}</p>
-            <p className="vv-stat-label">Este mes</p>
-          </div>
-        </div>
-        <div className="vv-stat">
-          <span className="vv-stat-icon">✅</span>
-          <div>
-            <p className="vv-stat-val">{completadas.length}</p>
-            <p className="vv-stat-label">Completadas</p>
-          </div>
-        </div>
-        <div className="vv-stat">
-          <span className="vv-stat-icon">📦</span>
-          <div>
-            <p className="vv-stat-val">{fmt(porOrden)}</p>
-            <p className="vv-stat-label">Por orden</p>
-          </div>
-        </div>
-        <div className="vv-stat">
-          <span className="vv-stat-icon">⭐</span>
-          <div>
-            <p className="vv-stat-val">{negocio ? Number(negocio.calificacion_promedio).toFixed(1) : '—'}</p>
-            <p className="vv-stat-label">Calificación promedio</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="vv-filters">
-        {['semana', 'mes', 'año'].map(p => (
-          <button
-            key={p}
-            className={`vv-filter-btn ${periodo === p ? 'vv-filter-btn--active' : ''}`}
-            onClick={() => setPeriodo(p)}
-          >
-            {p.charAt(0).toUpperCase() + p.slice(1)} ▾
-          </button>
+      {/* Periodo + estado */}
+      <div className={cx(chipsFila, 'mb-2.5')}>
+        {PERIODOS.map(p => (
+          <button key={p.value} className={chip(periodo === p.value)} onClick={() => setPeriodo(p.value)}>{p.label}</button>
         ))}
-        <select className="vv-estado-sel" value={estadoFiltro} onChange={e => setEstado(e.target.value)}>
-          {['Todos','Completada','En camino','Pendiente','Cancelada'].map(e => <option key={e}>{e}</option>)}
-        </select>
-        <button className="vv-export-btn">+ Exportar</button>
       </div>
+      <select
+        className="mb-4 w-full rounded-lg border-[1.5px] border-solid border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 dark:border-noche-borde dark:bg-noche-alt dark:text-slate-200 sm:w-56"
+        value={estadoFiltro}
+        onChange={e => setEstado(e.target.value)}
+        aria-label="Filtrar por estado"
+      >
+        {['Todos', 'Completada', 'En camino', 'Pendiente', 'Cancelada'].map(e => (
+          <option key={e} value={e}>{e === 'Todos' ? 'Todos los estados' : e}</option>
+        ))}
+      </select>
 
-      {/* Table */}
-      <div className="vv-table-wrap">
-        {loading ? (
-          <div style={{ padding: 16 }}><ZLoader size="sm" label="Cargando órdenes..." /></div>
-        ) : filtradas.length === 0 ? (
-          <p style={{ padding: 16 }}>No tienes órdenes{estadoFiltro !== 'Todos' ? ` en "${estadoFiltro}"` : ''}.</p>
-        ) : (
-          <>
-            <table className="vv-table">
+      {loading ? (
+        <div className="p-4"><ZLoader size="sm" label="Cargando órdenes..." /></div>
+      ) : filtradas.length === 0 ? (
+        <p className={cx(tarjeta, 'm-0 mb-5 p-5 text-center text-sm text-slate-500 dark:text-slate-400')}>
+          No tienes órdenes{estadoFiltro !== 'Todos' ? ` en "${estadoFiltro}"` : ''} en este periodo.
+        </p>
+      ) : (
+        <>
+          {/* Celular: tarjetas. Una tabla de 9 columnas no cabe en 320-430 px. */}
+          <div className="mb-3 flex flex-col gap-2.5 md:hidden">
+            {filtradas.map(o => (
+              <button
+                key={o.id}
+                className={cx(tarjeta, 'block w-full cursor-pointer border-0 p-3.5 text-left')}
+                onClick={() => setDetalle(o)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="m-0 font-mono text-sm font-bold text-slate-800 dark:text-slate-100">{o.id}</p>
+                    <p className="m-0 mt-0.5 truncate text-[13px] text-slate-600 dark:text-slate-300">{o.cliente}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="text-base font-bold text-slate-800 dark:text-slate-100">{fmtFull(o.total)}</span>
+                    <span className={cx(badgeBase, ESTADO_BADGE[o.estado])}>{o.estado}</span>
+                  </div>
+                </div>
+                <p className="m-0 mt-2 line-clamp-2 text-[13px] text-slate-500 dark:text-slate-400">{o.productos}</p>
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
+                  <span>{o.fecha} · {o.pago}</span>
+                  <span className="font-semibold text-zippy">Ver detalles →</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* PC: tabla completa */}
+          <div className={cx(tarjeta, 'mb-3 hidden overflow-x-auto md:block')}>
+            <table className="w-full border-collapse text-[13px]">
               <thead>
-                <tr>
-                  <th>Orden ID</th>
-                  <th>Cliente</th>
-                  <th>Productos</th>
-                  <th>Total</th>
-                  <th>Estado</th>
-                  <th>Fecha</th>
-                  <th>Entrega</th>
-                  <th>Método Pago</th>
-                  <th>Acción</th>
+                <tr className="bg-[#4c1d95] text-left text-xs uppercase tracking-wide text-white">
+                  {['Orden', 'Cliente', 'Productos', 'Total', 'Estado', 'Fecha', 'Entrega', 'Pago', ''].map(h => (
+                    <th key={h} className="whitespace-nowrap px-3 py-3 font-semibold">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {filtradas.map(o => (
-                  <tr key={o.id}>
-                    <td className="vv-id">{o.id}<br/><span className="vv-dir">{o.dir}</span></td>
-                    <td>{o.cliente}</td>
-                    <td className="vv-prods">{o.productos}</td>
-                    <td className="vv-total">{fmtFull(o.total)}</td>
-                    <td><span className={`vv-badge ${ESTADO_CLASS[o.estado]}`}>{o.estado}</span></td>
-                    <td>{o.fecha}</td>
-                    <td>{o.entrega}</td>
-                    <td>{o.pago}</td>
-                    <td>
-                      <button className="vv-link" onClick={() => setDetalle(o)}>
+                  <tr key={o.id} className="border-0 border-b border-solid border-slate-100 align-top text-slate-600 dark:border-noche-borde dark:text-slate-300">
+                    <td className="px-3 py-3">
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-100">{o.id}</span>
+                      <span className="mt-0.5 block max-w-[180px] text-[11px] text-slate-400">{o.dir}</span>
+                    </td>
+                    <td className="px-3 py-3">{o.cliente}</td>
+                    <td className="max-w-[240px] px-3 py-3">{o.productos}</td>
+                    <td className="whitespace-nowrap px-3 py-3 font-bold text-slate-800 dark:text-slate-100">{fmtFull(o.total)}</td>
+                    <td className="px-3 py-3"><span className={cx(badgeBase, ESTADO_BADGE[o.estado])}>{o.estado}</span></td>
+                    <td className="whitespace-nowrap px-3 py-3">{o.fecha}</td>
+                    <td className="px-3 py-3">{o.entrega}</td>
+                    <td className="px-3 py-3">{o.pago}</td>
+                    <td className="px-3 py-3">
+                      <button className="cursor-pointer whitespace-nowrap border-0 bg-transparent p-0 text-[13px] font-semibold text-zippy" onClick={() => setDetalle(o)}>
                         Ver detalles →
                       </button>
                     </td>
@@ -373,28 +279,25 @@ const VendorVentasPage = () => {
                 ))}
               </tbody>
             </table>
-            <div className="vv-table-footer">
-              Mostrando {filtradas.length} de {ordenes.length} órdenes
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+          <p className="m-0 mb-5 text-center text-xs text-slate-400">Mostrando {filtradas.length} de {ordenes.length} órdenes</p>
+        </>
+      )}
 
-      {/* Chart */}
-      <div className="vv-chart-card">
-        <div className="vv-chart-header">
-          <h3>Ventas de la semana</h3>
-          <div className="vv-chart-meta">
-            <span>Promedio diario: <strong>{fmt(promedioDiario)}</strong></span>
-            <span>Mejor día: {mejorDia && mejorDia.ventas > 0 ? mejorDia.diaLargo : '—'}</span>
+      <div className={cx(tarjeta, 'p-4 xs:p-5')}>
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="m-0 text-base font-bold text-slate-800 dark:text-slate-100">Ventas de los últimos 7 días</h3>
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
+            <span>Promedio diario: <strong className="text-slate-700 dark:text-slate-200">{fmt(promedioDiario)}</strong></span>
+            <span>Mejor día: <strong className="text-slate-700 dark:text-slate-200">{mejorDia && mejorDia.ventas > 0 ? mejorDia.diaLargo : '—'}</strong></span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData} barSize={36} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+          <BarChart data={chartData} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
             <XAxis dataKey="dia" axisLine={false} tickLine={false} tick={{ fill: '#999', fontSize: 13 }} />
             <YAxis hide />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-            <Bar dataKey="ventas" radius={[6,6,0,0]}>
+            <Bar dataKey="ventas" radius={[6, 6, 0, 0]} maxBarSize={36}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={mejorDia && entry.ventas === mejorDia.ventas && entry.ventas > 0 ? '#7c3aed' : '#FF7A00'} />
               ))}
@@ -402,7 +305,8 @@ const VendorVentasPage = () => {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <OrderDetailModal orden={detalle} onClose={() => setDetalle(null)} />
+
+      <OrdenDetalleModal orden={detalle} onClose={() => setDetalle(null)} />
     </VendorLayout>
   );
 };
