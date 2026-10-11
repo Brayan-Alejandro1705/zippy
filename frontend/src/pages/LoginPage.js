@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../config/api';
 import { guardarCuentaActual } from '../utils/cuentas';
 import ZLoader from '../components/ZLoader';
-import '../styles/LoginPage.css';
+import BotonesSociales from '../components/auth/BotonesSociales';
+import PantallaAuth, { LogoZippy, TituloAuth, ErrorAuth, CampoAuth, BotonOjo, IconoCorreo, IconoCandado, etiquetaAuth, botonAuth, enlaceAuth } from '../components/auth/PantallaAuth';
 
 const ETIQUETA_ROL = {
   cliente:      'Cliente',
@@ -73,124 +74,82 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="lp-bg">
-      {/* Animated orbs */}
-      <div className="lp-orb lp-orb--1" />
-      <div className="lp-orb lp-orb--2" />
-      <div className="lp-orb lp-orb--3" />
+    <PantallaAuth sacudir={shake}>
+      <LogoZippy />
 
-      <div className={`lp-card ${shake ? 'lp-shake' : ''}`}>
+      {/* Decia "Admin Panel" y "Accede a tu panel de administración", pero por
+          esta pantalla entran sobre todo clientes: se dejo un texto que le
+          sirve a cualquiera de los cuatro tipos de cuenta. */}
+      <TituloAuth titulo="Bienvenido de nuevo" sub="Entra a tu cuenta de ZIPPYGO" />
 
-        {/* Logo */}
-        <div className="lp-header">
-          <div className="lp-logo">
-            <div className="lp-logo-mark">Z</div>
-            <span className="lp-logo-name">ZIPPY</span>
-          </div>
+      {/* Google / Apple: crean o abren una cuenta de CLIENTE. Los negocios y
+          repartidores siguen entrando con su correo, en el formulario de abajo. */}
+      <BotonesSociales onError={setError} />
+
+      <form onSubmit={handleLogin} noValidate>
+        {error && <ErrorAuth>{error}</ErrorAuth>}
+
+        <div className="mb-[18px]">
+          <label htmlFor="lp-email" className={etiquetaAuth}>Correo electrónico</label>
+          <CampoAuth
+            id="lp-email"
+            type="email"
+            icono={<IconoCorreo />}
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="tucorreo@ejemplo.com"
+            disabled={loading}
+            autoComplete="email"
+          />
         </div>
 
-        <h2 className="lp-title">Bienvenido de nuevo</h2>
-        {/* Decia "Admin Panel" y "Accede a tu panel de administración", pero por
-            esta pantalla entran sobre todo clientes: se dejo un texto que le
-            sirve a cualquiera de los cuatro tipos de cuenta. */}
-        <p className="lp-sub">Entra a tu cuenta de ZIPPYGO</p>
-
-        <form onSubmit={handleLogin} noValidate>
-          {error && (
-            <div className="lp-error">
-              <span className="lp-error-icon">⚠</span>
-              {error}
-            </div>
-          )}
-
-          {/* Email */}
-          <div className="lp-field">
-            <label htmlFor="lp-email">Correo electrónico</label>
-            <div className="lp-input-wrap">
-              <svg className="lp-icon" viewBox="0 0 20 20" fill="none">
-                <path d="M2.5 5.5A1.5 1.5 0 014 4h12a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0116 16H4a1.5 1.5 0 01-1.5-1.5v-9z" stroke="currentColor" strokeWidth="1.4"/>
-                <path d="M2.5 6l7.5 5 7.5-5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-              </svg>
-              <input
-                id="lp-email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="tucorreo@ejemplo.com"
-                disabled={loading}
-                autoComplete="email"
-              />
-            </div>
+        <div className="mb-[18px]">
+          {/* En 320 px la etiqueta y "¿Olvidaste...?" bajan de linea si no caben */}
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <label htmlFor="lp-pass" className={etiquetaAuth.replace('mb-2 ', '')}>Contraseña</label>
+            <a href="/recuperar" className="text-xs font-medium text-zippy/75 no-underline transition-colors hover:text-zippy">¿Olvidaste tu contraseña?</a>
           </div>
+          <CampoAuth
+            id="lp-pass"
+            type={showPass ? 'text' : 'password'}
+            icono={<IconoCandado />}
+            derecha={<BotonOjo visible={showPass} onClick={() => setShowPass(p => !p)} />}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="••••••••"
+            disabled={loading}
+            autoComplete="current-password"
+          />
+        </div>
 
-          {/* Password */}
-          <div className="lp-field">
-            <div className="lp-label-row">
-              <label htmlFor="lp-pass">Contraseña</label>
-              <a href="/recuperar" className="lp-forgot">¿Olvidaste tu contraseña?</a>
-            </div>
-            <div className="lp-input-wrap">
-              <svg className="lp-icon" viewBox="0 0 20 20" fill="none">
-                <rect x="3.5" y="8.5" width="13" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.4"/>
-                <path d="M7 8.5V6a3 3 0 016 0v2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                <circle cx="10" cy="13" r="1.2" fill="currentColor"/>
-              </svg>
-              <input
-                id="lp-pass"
-                type={showPass ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
+        {cuentas && (
+          <div className="mb-1 flex flex-col gap-2 rounded-xl border-[1.5px] border-solid border-[#FFD9B3] bg-[#FFF7EF] p-3.5">
+            <p className="m-0 mb-1 text-[13px] font-semibold leading-snug text-[#7A4A12]">Este correo tiene varias cuentas. ¿Con cuál quieres entrar?</p>
+            {cuentas.map(c => (
+              <button
+                key={c.tipo_usuario}
+                type="button"
+                className="w-full cursor-pointer rounded-[10px] border-[1.5px] border-solid border-zippy bg-white px-3.5 py-[11px] text-sm font-bold text-zippy transition-colors hover:enabled:bg-zippy hover:enabled:text-white disabled:cursor-default disabled:opacity-60"
                 disabled={loading}
-                autoComplete="current-password"
-              />
-              <button type="button" className="lp-eye" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
-                {showPass ? (
-                  <svg viewBox="0 0 20 20" fill="none">
-                    <path d="M3 3l14 14M8.5 8.6A3 3 0 0013.4 13M6.5 5.6C4.6 6.9 3 9 3 10s3 5 7 5c1.4 0 2.7-.4 3.8-1M10 5c4 0 7 3 7 5a8.5 8.5 0 01-1.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4C6 4 3 7 3 10s3 6 7 6 7-3 7-6-3-6-7-6z" stroke="currentColor" strokeWidth="1.5"/>
-                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
-                )}
+                onClick={() => entrar(c.tipo_usuario)}
+              >
+                {ETIQUETA_ROL[c.tipo_usuario] || c.tipo_usuario}
               </button>
-            </div>
+            ))}
           </div>
+        )}
 
-          {cuentas && (
-            <div className="lp-cuentas">
-              <p className="lp-cuentas-title">Este correo tiene varias cuentas. ¿Con cuál quieres entrar?</p>
-              {cuentas.map(c => (
-                <button
-                  key={c.tipo_usuario}
-                  type="button"
-                  className="lp-cuenta-btn"
-                  disabled={loading}
-                  onClick={() => entrar(c.tipo_usuario)}
-                >
-                  {ETIQUETA_ROL[c.tipo_usuario] || c.tipo_usuario}
-                </button>
-              ))}
-            </div>
-          )}
+        <button type="submit" className={botonAuth} disabled={loading}>
+          {loading ? <ZLoader size="sm" inverted /> : <><span>Iniciar sesión</span><span className="text-lg transition-transform group-hover:translate-x-1">→</span></>}
+        </button>
+      </form>
 
-          <button type="submit" className="lp-submit" disabled={loading}>
-            {loading ? <ZLoader size="sm" inverted /> : <><span>Iniciar sesión</span><span className="lp-arrow">→</span></>}
-          </button>
-        </form>
+      <p className="m-0 mt-6 text-center text-[13px] text-white/35">
+        ¿No tienes cuenta? <a href="/register" className={enlaceAuth}>Regístrate aquí</a>
+      </p>
 
-        <p className="lp-footer">
-          ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
-        </p>
-
-        <div className="lp-divider">
-          <span>Garzón, Huila — Colombia</span>
-        </div>
-
-      </div>
-    </div>
+      <p className="m-0 mt-5 text-center text-[11px] tracking-[0.5px] text-white/15">Garzón, Huila — Colombia</p>
+    </PantallaAuth>
   );
 };
 

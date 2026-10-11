@@ -289,6 +289,115 @@ async def registro(request: Request, usuario: UsuarioCreate, db: Session = Depen
         }
     }
 
+# ============================================================================
+# ENTRAR CON GOOGLE O APPLE (solo clientes)
+# ============================================================================
+#
+# El celular hace el inicio de sesion nativo con el plugin de Firebase y nos
+# manda el "ID token" que Firebase le entrega. Aqui se verifica con
+# firebase-admin (la misma cuenta de servicio de las notificaciones push) y,
+# si es valido, se entra o se crea la cuenta de cliente con ese correo.
+#
+# Solo clientes: un negocio o un repartidor siguen entrando con correo y
+# contrasena, porque sus cuentas se revisan a mano.
+
+METODOS_SOCIALES = ("google", "apple")
+
+
+@router.post(
+    "/social",
+    summary="Entrar con Google o Apple (solo clientes)",
+)
+@limiter.limit("50/minute")
+async def login_social(request: Request, datos: dict, db: Session = Depends(get_db)):
+    import secrets
+    from sqlalchemy import func
+    from firebase_admin import auth as firebase_auth
+    from push import _get_firebase_app
+
+    app = _get_firebase_app()
+    if app is None:
+        raise HTTPException(status_code=503, detail="El inicio con Google o Apple no está disponible ahora. Entra con tu correo.")
+
+    id_token = (datos or {}).get("id_token") or ""
+    if not id_token:
+        raise HTTPException(status_code=400, detail="Falta el token de inicio de sesión")
+
+    try:
+        info = firebase_auth.verify_id_token(id_token, app=app)
+    except Exception as e:
+        print(f"[social] token rechazado: {e}")
+        raise HTTPException(status_code=401, detail="No pudimos confirmar tu cuenta. Intenta de nuevo.")
+
+    proveedor = (info.get("firebase") or {}).get("sign_in_provider", "")
+    if proveedor not in ("google.com", "apple.com"):
+        raise HTTPException(status_code=400, detail="Solo se puede entrar con Google o Apple")
+    metodo = proveedor.split(".")[0]
+
+    email = (info.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Tu cuenta no compartió el correo. Entra con tu correo y contraseña.")
+    # Google marca si el correo esta confirmado; Apple solo entrega correos
+    # que ya confirmo (incluido el de reenvio privado @privaterelay).
+    if metodo == "google" and not info.get("email_verified"):
+        raise HTTPException(status_code=400, detail="Tu correo de Google no está verificado")
+
+    usuario = db.query(Usuario).filter(
+        func.lower(Usuario.email) == email,
+        Usuario.tipo_usuario == "cliente",
+        Usuario.estado != EstadoUsuario.ELIMINADO,
+    ).first()
+
+    nuevo = False
+    if usuario is None:
+        # Apple solo manda el nombre la primera vez y en el celular, por eso
+        # el front lo reenvia; si tampoco viene, se usa lo que hay antes de la @.
+        nombre_completo = ((datos or {}).get("nombre") or info.get("name") or email.split("@")[0]).strip()
+        partes = nombre_completo.split(" ", 1)
+        usuario = Usuario(
+            email=email,
+            nombre=partes[0][:150] or "Cliente",
+            apellido=(partes[1] if len(partes) > 1 else "")[:150],
+            tipo_usuario="cliente",
+            # Contrasena al azar que nadie conoce: la cuenta se usa con el boton.
+            # Si un dia quiere entrar con correo, usa "olvidé mi contraseña".
+            password_hash=hash_password(secrets.token_urlsafe(32)),
+            estado="activo",
+            es_verificado=True,
+            metodo_verificacion=metodo,
+            foto_perfil=info.get("picture"),
+            fecha_creacion=datetime.utcnow(),
+        )
+        db.add(usuario)
+        db.commit()
+        db.refresh(usuario)
+        nuevo = True
+    else:
+        if usuario.estado != "activo":
+            suspendido = str(getattr(usuario.estado, "value", usuario.estado)) == "suspendido"
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=("Tu cuenta está suspendida por reportes de repartidores. Escríbenos por WhatsApp a soporte si crees que es un error."
+                        if suspendido else f"Usuario {usuario.estado}")
+            )
+        # Tenia un registro con correo sin terminar de verificar: Google o
+        # Apple ya confirmaron que el correo es suyo.
+        if not usuario.es_verificado:
+            usuario.es_verificado = True
+            usuario.codigo_verificacion = None
+            usuario.codigo_verificacion_expira = None
+            db.commit()
+            db.refresh(usuario)
+
+    return {
+        "access_token": create_access_token(data={"sub": str(usuario.id)}),
+        "refresh_token": create_refresh_token(data={"sub": str(usuario.id)}),
+        "token_type": "bearer",
+        "usuario": UsuarioResponse.from_orm(usuario),
+        "nuevo": nuevo,
+    }
+
+
 @router.post(
     "/login",
     response_model=LoginResponse,
@@ -686,7 +795,11 @@ async def eliminar_cuenta(
 ):
     # Se pide la contrasena para que un telefono desbloqueado ajeno no pueda
     # borrar la cuenta con dos toques.
-    if not verify_password(datos.password, usuario.password_hash):
+    # Cuenta creada con Google o Apple: la persona nunca escribio una
+    # contrasena (se genero una al azar), asi que no se le puede pedir. Ya
+    # viene autenticada con su token, que es lo que protege esta accion.
+    es_social = (usuario.metodo_verificacion or "") in METODOS_SOCIALES
+    if not es_social and not verify_password(datos.password or "", usuario.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Contraseña incorrecta"

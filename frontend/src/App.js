@@ -26,6 +26,7 @@ import ValidacionPage from './pages/ValidacionPage';
 import RepartidoresPage from './pages/RepartidoresPage';
 import NuevoRepartidorPage from './pages/NuevoRepartidorPage';
 import RecuperarPasswordPage from './pages/RecuperarPasswordPage';
+import CompletarTelefonoPage from './pages/CompletarTelefonoPage';
 import RolesPermisosPage from './pages/RolesPermisosPage';
 import LogsActividadPage from './pages/LogsActividadPage';
 import NegociosPage from './pages/NegociosPage';
@@ -107,6 +108,7 @@ const App = () => (
           <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
           <Route path="/verificar" element={<VerificarCuentaPage />} />
           <Route path="/recuperar" element={<RecuperarPasswordPage />} />
+          <Route path="/completar-telefono" element={<ProtectedRoute><CompletarTelefonoPage /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/usuarios/:id" element={<ProtectedRoute><UsuarioDetallePage /></ProtectedRoute>} />
           <Route path="/usuarios"     element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />

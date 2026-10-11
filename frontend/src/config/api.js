@@ -113,6 +113,8 @@ export const authService = {
   eliminarCuenta: (password) => api.post('/auth/eliminar-cuenta', { password }),
   registro: (datos) => api.post('/auth/registro', datos),
   me:       () => api.get('/auth/me'),
+  // Entrar con Google o Apple: el celular manda el token de Firebase (solo clientes)
+  social:   (id_token, nombre) => api.post('/auth/social', { id_token, nombre }),
   logout:   () => api.post('/auth/logout'),
   verificarCodigo: (email, codigo, tipo_usuario) => api.post('/auth/verificar-codigo', { email, codigo, tipo_usuario }),
   reenviarCodigo:  (email, metodo_verificacion, tipo_usuario) => api.post('/auth/reenviar-codigo', { email, metodo_verificacion, tipo_usuario }),

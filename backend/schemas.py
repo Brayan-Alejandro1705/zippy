@@ -88,6 +88,12 @@ class UsuarioUpdate(BaseModel):
 
 class UsuarioResponse(UsuarioBase):
     id: uuid.UUID
+    # Quien entra con Apple puede no compartir el apellido: en la respuesta
+    # se permite vacio (al registrarse con correo sigue siendo obligatorio).
+    apellido: Optional[str] = ""
+    # "google" o "apple" si la cuenta se creo con esos botones. El front lo usa
+    # para no pedir una contrasena que esa persona nunca escribio.
+    metodo_verificacion: Optional[str] = None
     vehiculo: Optional[str] = None
     placa: Optional[str] = None
     calificacion_promedio: Optional[Decimal] = None
@@ -401,7 +407,9 @@ class DireccionResponse(BaseModel):
 
 class EliminarCuentaRequest(BaseModel):
     # Se exige la contrasena actual: eliminar la cuenta es irreversible.
-    password: str
+    # Las cuentas creadas con Google o Apple no tienen una contrasena que la
+    # persona conozca; para esas puede venir vacia (ver eliminar_cuenta).
+    password: Optional[str] = ""
 
 
 class LoginRequest(BaseModel):

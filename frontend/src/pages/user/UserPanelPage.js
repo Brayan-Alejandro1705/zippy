@@ -12,11 +12,97 @@ import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, negociosService, productosService, resenasService, usuariosService, pedidosEspecialesService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import SelectorUbicacion from '../../components/SelectorUbicacion';
-import '../../styles/UserPanel.css';
+import { cx } from '../../ui/tw';
 import { urlImagen } from '../../utils/media';
 import { fechaCorta, fechaHoraLarga, fechaServidor, minutosDesde } from '../../utils/fechas';
 import Icon from '../../components/Icons';
 import { clienteService, soporteService } from '../../config/api';
+
+// Clases de Tailwind de esta pantalla (antes en UserPanel.css)
+const C = {
+  trackBtn: 'mt-3 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-[1.5px] border-solid p-2.5 font-[inherit] text-[13px] font-bold transition-colors disabled:cursor-default disabled:opacity-60',
+  trackBtnNaranja: 'border-[#ffd9ad] bg-zippy-50 text-zippy hover:enabled:border-zippy hover:enabled:bg-zippy hover:enabled:text-white dark:border-zippy/30 dark:bg-zippy/10',
+  trackBtnGris: 'border-slate-200 bg-slate-50 text-slate-600 hover:enabled:border-slate-600 hover:enabled:bg-slate-600 hover:enabled:text-white dark:border-noche-borde dark:bg-noche-alt dark:text-slate-300',
+  trackBtnRojo: 'border-red-200 bg-[#fff5f5] text-red-700 hover:enabled:border-red-700 hover:enabled:bg-red-700 hover:enabled:text-white dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300',
+  addrBtn: 'cursor-pointer rounded-[7px] border-[1.5px] border-solid bg-white px-3 py-[5px] font-[inherit] text-xs font-semibold transition-colors dark:bg-noche-alt',
+  empty: 'flex flex-col items-center gap-2.5 px-5 py-[60px] text-center text-slate-400 [&>p]:m-0 [&>p]:text-[15px] [&>p]:font-medium [&>span]:opacity-30',
+  list: 'flex flex-col gap-3',
+  orderCard: 'rounded-[14px] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.07)] dark:bg-noche-card dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)]',
+  orderTop: 'mb-2 flex items-center justify-between gap-2',
+  orderId: 'font-mono text-sm font-extrabold text-slate-800 dark:text-slate-100',
+  orderBadge: 'whitespace-nowrap rounded-full px-2.5 py-[3px] text-[11px] font-bold',
+  orderTienda: 'm-0 mb-1 flex items-center gap-1 text-xs text-slate-500',
+  orderItems: 'm-0 mb-2.5 text-[13px] leading-snug text-slate-700 dark:text-slate-300',
+  orderBottom: 'flex items-center justify-between gap-2',
+  orderFecha: 'text-xs text-slate-400',
+  orderTotal: 'text-base font-black text-zippy',
+  avisoEspera: 'm-0 mb-0.5 mt-2.5 rounded-xl border border-solid border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] leading-[1.45] text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
+  avisoLink: 'mt-2 flex items-center gap-1.5 font-extrabold text-green-700 no-underline dark:text-green-400',
+  stars: 'flex gap-1',
+  modalOverlay: 'fixed inset-0 z-[1000] flex items-end justify-center bg-black/50 sm:items-center sm:p-5',
+  modal: 'max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_20px_60px_rgba(0,0,0,0.2)] dark:bg-noche-card sm:max-h-[90vh] sm:rounded-2xl',
+  modalHeader: 'sticky top-0 z-[1] flex items-center justify-between gap-3 bg-zippy px-5 py-4 [&>h3]:m-0 [&>h3]:truncate [&>h3]:text-base [&>h3]:font-bold [&>h3]:text-white',
+  modalClose: 'flex h-[26px] w-[26px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-white/20 text-[13px] text-white hover:bg-white/30',
+  trackStatus: 'mx-4 my-3.5 rounded-[10px] bg-zippy-50 px-3.5 py-3 text-[13px] leading-normal text-slate-600 dark:bg-[#1a2030] dark:text-slate-300 [&_p]:m-0',
+  field: 'mb-3.5 flex flex-col gap-[5px] [&>label]:flex [&>label]:items-center [&>label]:gap-1 [&>label]:text-[11px] [&>label]:font-bold [&>label]:uppercase [&>label]:tracking-[0.4px] [&>label]:text-slate-500 [&_input]:rounded-[10px] [&_input]:border-[1.5px] [&_input]:border-solid [&_input]:border-slate-200 [&_input]:bg-[#fafafa] [&_input]:px-3.5 [&_input]:py-[11px] [&_input]:font-[inherit] [&_input]:text-sm [&_input]:outline-none [&_input:focus]:border-zippy [&_input:focus]:bg-white [&_textarea]:resize-y [&_textarea]:rounded-[10px] [&_textarea]:border-[1.5px] [&_textarea]:border-solid [&_textarea]:border-slate-200 [&_textarea]:bg-[#fafafa] [&_textarea]:px-3.5 [&_textarea]:py-[11px] [&_textarea]:font-[inherit] [&_textarea]:text-sm [&_textarea]:outline-none [&_textarea:focus]:border-zippy dark:[&_input]:border-noche-borde dark:[&_input]:bg-noche-alt dark:[&_input]:text-slate-200 dark:[&_textarea]:border-noche-borde dark:[&_textarea]:bg-noche-alt dark:[&_textarea]:text-slate-200',
+  fieldAyuda: 'm-0 mt-1 text-[11.5px] text-slate-500',
+  btnPrimary: 'mt-1 w-full cursor-pointer rounded-[10px] border-0 bg-zippy px-5 py-3 font-[inherit] text-[13px] font-bold text-white transition-colors hover:enabled:bg-zippy-600 disabled:cursor-not-allowed disabled:opacity-60',
+  btnSecondary: 'mt-1 flex-1 cursor-pointer rounded-[10px] border-[1.5px] border-solid border-slate-200 bg-white p-3 font-[inherit] text-[13px] font-semibold text-slate-600 transition-colors hover:border-zippy hover:text-zippy dark:border-noche-borde dark:bg-noche-alt dark:text-slate-400',
+  eta: 'mx-4 mt-3.5 flex items-start gap-2.5 rounded-xl border-[1.5px] border-solid border-[#ffd9ad] bg-zippy-50 px-3.5 py-3 text-[#9a4a00] dark:border-zippy/30 dark:bg-zippy/10 dark:text-orange-300',
+  etaMin: 'm-0 text-[15px] font-extrabold text-orange-700 dark:text-orange-300',
+  etaSub: 'm-0 mt-0.5 text-xs leading-snug',
+  trackMap: 'px-4 pt-4',
+  trackMapMsg: 'flex h-[220px] items-center justify-center rounded-xl bg-slate-50 text-[13px] text-slate-400 dark:bg-noche',
+  trackCallBtn: 'mt-2 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 py-2 text-[13px] font-bold text-white no-underline',
+  trackSteps: 'px-4 pb-[18px]',
+  trackStep: 'flex gap-3 py-2',
+  trackStepDot: 'mt-[5px] h-[9px] w-[9px] shrink-0 rounded-full bg-zippy',
+  trackStepLabel: 'm-0 text-[13px] font-semibold text-slate-800 dark:text-slate-100',
+  trackStepFecha: 'm-0 text-[11px] text-slate-400',
+  savedGrid: 'grid grid-cols-2 gap-3 md:grid-cols-3',
+  savedCard: 'overflow-hidden rounded-[14px] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.07)] dark:bg-noche-card',
+  savedPhoto: 'relative flex h-[100px] items-center justify-center overflow-hidden bg-slate-100 text-slate-400 dark:bg-noche-alt [&>img]:block [&>img]:h-full [&>img]:w-full [&>img]:object-cover',
+  savedRemove: 'absolute right-[7px] top-[7px] flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border-0 bg-white/90 text-[11px] text-red-500 hover:bg-red-50',
+  savedInfo: 'px-3 pb-3 pt-2.5',
+  savedName: 'm-0 mb-0.5 text-xs font-bold leading-[1.3] text-slate-800 dark:text-slate-100',
+  savedTienda: 'm-0 mb-1 text-[10px] text-slate-400',
+  savedPrice: 'm-0 mb-2 text-[15px] font-black text-zippy',
+  savedAdd: 'w-full cursor-pointer rounded-lg border-0 bg-zippy p-2 font-[inherit] text-[11px] font-bold text-white hover:bg-zippy-600',
+  addrTop: 'mb-2 flex items-center justify-between gap-2',
+  addrLabel: 'text-sm font-bold text-slate-800 dark:text-slate-100',
+  addrChip: 'ml-2 rounded-[10px] bg-[#fff3e6] px-2 py-0.5 text-[10px] font-bold text-zippy dark:bg-zippy/15',
+  addrActions: 'flex shrink-0 gap-1.5',
+  addrDir: 'm-0 mb-[3px] flex items-start gap-1 text-[13px] text-slate-700 dark:text-slate-300',
+  addrCiudad: 'm-0 flex items-center gap-1 text-xs text-slate-400',
+  addrForm: 'flex flex-col gap-2.5 [&>input]:rounded-[10px] [&>input]:border-[1.5px] [&>input]:border-solid [&>input]:border-slate-200 [&>input]:px-3.5 [&>input]:py-[11px] [&>input]:font-[inherit] [&>input]:text-sm [&>input]:outline-none [&>input:focus]:border-zippy dark:[&>input]:border-noche-borde dark:[&>input]:bg-noche-alt dark:[&>input]:text-slate-200',
+  addrFormRow: 'flex gap-2.5',
+  addDirBtn: 'cursor-pointer rounded-[14px] border-2 border-dashed border-slate-200 bg-white p-3.5 font-[inherit] text-sm font-semibold text-zippy transition-colors hover:border-zippy hover:bg-zippy-50 dark:border-noche-borde dark:bg-noche-alt dark:hover:bg-[#1a2030]',
+  cuentaCard: 'rounded-[14px] bg-white px-4 py-[18px] shadow-[0_1px_4px_rgba(0,0,0,0.07)] dark:bg-noche-card',
+  cuentaSection: 'm-0 mb-3.5 border-0 border-b border-solid border-[#f0f0f0] pb-2.5 text-xs font-bold uppercase tracking-[0.5px] text-slate-400 dark:border-noche-borde',
+  notifRow: 'flex items-center justify-between gap-3 border-0 border-b border-solid border-[#f5f5f5] py-3 last:border-b-0 dark:border-noche-borde',
+  notifLabel: 'm-0 mb-0.5 text-[13px] font-semibold text-slate-800 dark:text-slate-100',
+  notifDesc: 'm-0 text-[11px] text-slate-400',
+  logoutBtn: 'flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-solid border-red-200 bg-red-50 p-3.5 font-[inherit] text-sm font-bold text-red-500 transition-colors hover:border-red-500 hover:bg-red-100 dark:border-[#5a2020] dark:bg-[#3a1a1a] dark:text-red-400 dark:hover:border-red-400 dark:hover:bg-[#5a2020]',
+  sinSesion: 'flex flex-col items-center gap-3 px-7 pb-10 pt-14 text-center',
+  sinSesionIcono: 'mb-1 flex h-[84px] w-[84px] items-center justify-center rounded-full bg-orange-100 text-zippy dark:bg-noche-card',
+  sinSesionTitulo: 'm-0 text-[21px] font-extrabold text-slate-800 dark:text-slate-100',
+  sinSesionTexto: 'm-0 max-w-[300px] text-sm leading-[1.55] text-gray-500 dark:text-slate-400',
+  sinSesionBtn: 'mt-2 cursor-pointer rounded-full border-0 bg-zippy px-[38px] py-3.5 font-[inherit] text-base font-extrabold text-white shadow-[0_6px_16px_rgba(255,122,0,0.3)] active:translate-y-px',
+  sinSesionLink: 'cursor-pointer border-0 bg-transparent p-1.5 font-[inherit] text-sm font-bold text-zippy underline',
+  pedidosCabecera: 'px-4 pb-1 pt-5 md:px-0',
+  pedidosTitulo: 'm-0 text-[22px] font-extrabold text-slate-800 dark:text-slate-100',
+  pedidosResumen: 'm-0 mt-1 text-[13px] text-slate-500 dark:text-slate-400',
+  content: 'px-3 pb-2 pt-3 xs:px-4 md:px-0',
+  profile: 'relative mx-3 mb-4 mt-3 overflow-hidden rounded-[18px] bg-[linear-gradient(135deg,#FF7A00_0%,#FF9A3C_100%)] px-5 pb-5 pt-[22px] xs:mx-4 md:mx-0',
+  profileAvatar: 'relative mb-2.5 flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full border-[3px] border-solid border-white/40 bg-white/25 text-[26px] font-extrabold text-white',
+  profileInfo: 'relative mb-1',
+  profileName: 'm-0 mb-0.5 break-words text-lg font-extrabold text-white',
+  profileEmail: 'm-0 break-all text-xs text-white/75',
+  profileActions: 'absolute right-3.5 top-3.5 flex gap-2',
+  profileEdit: 'flex cursor-pointer items-center rounded-lg border-0 bg-white/20 px-2.5 py-[7px] text-white transition-colors hover:bg-white/35',
+  profileLogout: 'flex cursor-pointer items-center rounded-lg border border-solid border-red-500/40 bg-red-500/25 px-2.5 py-[7px] text-white transition-colors hover:border-red-500/70 hover:bg-red-500/45',
+  tabs: 'mx-3 mb-4 flex gap-1 overflow-x-auto rounded-[14px] bg-white p-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.07)] [scrollbar-width:none] dark:bg-noche-card xs:mx-4 md:mx-0',
+};
 
 const MAP_STYLE = { width: '100%', height: '220px', borderRadius: '12px' };
 
@@ -107,50 +193,50 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
 
   if (loading) return <ZLoader size="sm" label="Cargando pedidos..." />;
   if (pedidos.length === 0) return (
-    <div className="up-empty">
+    <div className={C.empty}>
       <span><Icon name="paquete" size={40} strokeWidth={1.2} /></span>
       <p>Todavía no has hecho ningún pedido</p>
     </div>
   );
 
   return (
-    <div className="up-list">
+    <div className={C.list}>
       {pedidos.map(p => {
         const st = ESTADO_STYLE[p.estado] || ESTADO_STYLE.Pendiente;
         return (
-          <div key={p.id} className="up-order-card">
-            <div className="up-order-top">
-              <span className="up-order-id">{p.id}</span>
-              <span className="up-order-badge" style={{ background: st.bg, color: st.color }}>
+          <div key={p.id} className={C.orderCard}>
+            <div className={C.orderTop}>
+              <span className={C.orderId}>{p.id}</span>
+              <span className={C.orderBadge} style={{ background: st.bg, color: st.color }}>
                 {p.estado}
               </span>
             </div>
-            <p className="up-order-tienda"><Icon name={p.esEspecial ? 'rayo' : 'vendedores'} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{p.tienda}</p>
-            <p className="up-order-items">{p.items}</p>
-            <div className="up-order-bottom">
-              <span className="up-order-fecha">{p.fecha}</span>
-              {p.total != null && <span className="up-order-total">{fmt(p.total)}</span>}
+            <p className={C.orderTienda}><Icon name={p.esEspecial ? 'rayo' : 'vendedores'} size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{p.tienda}</p>
+            <p className={C.orderItems}>{p.items}</p>
+            <div className={C.orderBottom}>
+              <span className={C.orderFecha}>{p.fecha}</span>
+              {p.total != null && <span className={C.orderTotal}>{fmt(p.total)}</span>}
             </div>
             {p.estado === 'En validación' && (
-              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', borderRadius: 12, padding: '10px 12px', fontSize: 13, lineHeight: 1.45, margin: '10px 0 2px' }}>
+              <div className={C.avisoEspera}>
                 <b>Estamos validando tu pedido.</b> Es tu primer pedido en ZIPPYGO: soporte te va a escribir por WhatsApp o llamar en unos minutos para confirmarlo. Apenas lo confirmemos, el negocio empieza a prepararlo.
                 {wa && (
                   <a
                     href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hola, hice mi primer pedido ${p.id} en ZIPPYGO y quiero confirmarlo.`)}`}
                     target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', marginTop: 8, fontWeight: 800, color: '#15803d', textDecoration: 'none' }}
+                    className={C.avisoLink}
                   ><Icon name="whatsapp" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribir a soporte</a>
                 )}
               </div>
             )}
             {p.estado === 'Pendiente' && minutosDesde(p.fechaRaw) >= MINUTOS_PARA_SOPORTE && (
-              <div className="up-aviso-espera">
+              <div className={C.avisoEspera}>
                 <b>El negocio todavía no ha confirmado tu pedido.</b> Lleva {esperaLegible(minutosDesde(p.fechaRaw))} esperando. Puedes cancelarlo aquí mismo o escribirnos y lo movemos nosotros.
                 {wa && (
                   <a
                     href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hola, mi pedido ${p.id} en ZIPPYGO lleva ${esperaLegible(minutosDesde(p.fechaRaw))} sin confirmar.`)}`}
                     target="_blank" rel="noopener noreferrer"
-                    className="up-aviso-link"
+                    className={C.avisoLink}
                   ><Icon name="whatsapp" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribir a soporte</a>
                 )}
               </div>
@@ -159,7 +245,7 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 no tiene tienda de donde salir, y abrir ese modal con el id de un
                 mandado no traia nada: salia un mapa vacio. */}
             {!p.esEspecial && !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
-              <button className="up-track-btn" onClick={() => onTrack(p)}>
+              <button className={cx(C.trackBtn, C.trackBtnNaranja)} onClick={() => onTrack(p)}>
                 <Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Ver seguimiento
               </button>
             )}
@@ -167,7 +253,7 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 toda la app del cliente (ver UserLayout). Poner otro boton aqui
                 abriria una segunda burbuja encima de la misma conversacion. */}
             {p.esEspecial && p.tieneRepartidor && !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
-              <p className="up-aviso-espera" style={{ marginTop: 10 }}>
+              <p className={C.avisoEspera} style={{ marginTop: 10 }}>
                 <Icon name="chat" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />
                 Usa la burbuja naranja de la esquina para escribirle al repartidor.
               </p>
@@ -176,7 +262,7 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 pero no habia boton que lo hiciera. */}
             {ESTADOS_CANCELABLES.includes(p.estado) && (
               <button
-                className="up-track-btn up-cancelar-btn"
+                className={cx(C.trackBtn, C.trackBtnRojo)}
                 onClick={() => onCancelar(p)}
                 disabled={cancelando === p.idCompleto}
               >
@@ -185,7 +271,7 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
               </button>
             )}
             {p.estado === 'Entregado' && !p.esEspecial && (
-              <button className="up-track-btn" onClick={() => onCalificar(p)}>
+              <button className={cx(C.trackBtn, C.trackBtnNaranja)} onClick={() => onCalificar(p)}>
                 <Icon name="estrella" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Calificar pedido
               </button>
             )}
@@ -193,7 +279,7 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 Volver a buscar producto por producto era el camino largo. */}
             {['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && !p.esEspecial && (
               <button
-                className="up-track-btn up-repetir-btn"
+                className={cx(C.trackBtn, C.trackBtnGris)}
                 onClick={() => onRepetir(p)}
                 disabled={repitiendo === p.idCompleto}
               >
@@ -210,12 +296,13 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
 
 /* ── Calificar pedido (reseña real, recalcula la calificación de la tienda) ─ */
 const StarPicker = ({ value, onChange }) => (
-  <div className="up-stars">
+  <div className={C.stars}>
     {[1, 2, 3, 4, 5].map(n => (
       <button
         key={n}
         type="button"
-        className={`up-star ${n <= value ? 'up-star--on' : ''}`}
+        className={cx('cursor-pointer border-0 bg-transparent p-0 leading-none transition hover:scale-110', n <= value ? 'text-zippy' : 'text-slate-200 dark:text-slate-600')}
+        aria-label={`${n} estrella${n > 1 ? 's' : ''}`}
         onClick={() => onChange(n)}
       ><Icon name="estrella" size={20} /></button>
     ))}
@@ -281,45 +368,45 @@ const CalificarModal = ({ pedido, onClose }) => {
   };
 
   return (
-    <div className="up-modal-overlay" onClick={onClose}>
-      <div className="up-modal" onClick={e => e.stopPropagation()}>
-        <div className="up-modal-header">
+    <div className={C.modalOverlay} onClick={onClose}>
+      <div className={C.modal} onClick={e => e.stopPropagation()}>
+        <div className={C.modalHeader}>
           <h3>Calificar {pedido.id}</h3>
-          <button className="up-modal-close" onClick={onClose}>✕</button>
+          <button className={C.modalClose} onClick={onClose}>✕</button>
         </div>
 
         {loading ? (
           <div style={{ padding: 20 }}><ZLoader size="sm" /></div>
         ) : existente ? (
-          <div className="up-track-status" style={{ margin: 16 }}>
+          <div className={C.trackStatus} style={{ margin: 16 }}>
             <p>Ya calificaste este pedido con {existente.calificacion_general} <Icon name="estrella" size={14} style={{ verticalAlign: '-2px' }} /></p>
             {existente.comentario && <p style={{ marginTop: 8 }}>"{existente.comentario}"</p>}
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ padding: '4px 20px 20px' }}>
-            <div className="up-field">
+            <div className={C.field}>
               <label>Calificación general *</label>
               <StarPicker value={form.calificacion_general} onChange={v => setForm(p => ({ ...p, calificacion_general: v }))} />
             </div>
-            <div className="up-field">
+            <div className={C.field}>
               <label>Productos</label>
               <StarPicker value={form.calificacion_producto} onChange={v => setForm(p => ({ ...p, calificacion_producto: v }))} />
             </div>
-            <div className="up-field">
+            <div className={C.field}>
               <label>Tiempo de entrega</label>
               <StarPicker value={form.calificacion_entrega} onChange={v => setForm(p => ({ ...p, calificacion_entrega: v }))} />
             </div>
             {repartidor && (
-              <div className="up-field">
+              <div className={C.field}>
                 <label>
                   <Icon name="repartidores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />
                   {repartidor}
                 </label>
                 <StarPicker value={form.calificacion_domiciliario} onChange={v => setForm(p => ({ ...p, calificacion_domiciliario: v }))} />
-                <p className="up-field-ayuda">Cómo te trató quien te llevó el pedido</p>
+                <p className={C.fieldAyuda}>Cómo te trató quien te llevó el pedido</p>
               </div>
             )}
-            <div className="up-field">
+            <div className={C.field}>
               <label>Comentario (opcional)</label>
               <textarea
                 rows={3}
@@ -328,7 +415,7 @@ const CalificarModal = ({ pedido, onClose }) => {
                 placeholder="¿Cómo fue tu experiencia?"
               />
             </div>
-            <button type="submit" className="up-btn-primary" disabled={saving}>
+            <button type="submit" className={C.btnPrimary} disabled={saving}>
               {saving ? 'Enviando...' : 'Enviar calificación'}
             </button>
           </form>
@@ -344,43 +431,61 @@ const LineaEstado = ({ estado, tieneRepartidor, nombreRepartidor }) => {
   const actual = estado === 'En validación' ? 0 : indicePaso(estado);
   const cancelado = estado === 'Cancelado' || estado === 'Rechazado';
 
+  const caja = 'mx-4 mb-3.5 rounded-[14px] border-[1.5px] border-solid px-[18px] py-4';
+
   if (cancelado) {
     return (
-      <div className="up-linea up-linea--cancelado">
+      <div className={cx(caja, 'flex items-center gap-3 border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300')}>
         <Icon name="bloqueado" size={20} />
         <div>
-          <p className="up-linea-titulo">Pedido {estado.toLowerCase()}</p>
-          <p className="up-linea-detalle">Este pedido ya no está en curso</p>
+          <p className="m-0 text-sm font-bold">Pedido {estado.toLowerCase()}</p>
+          <p className="m-0 mt-0.5 text-[12.5px] opacity-85">Este pedido ya no está en curso</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="up-linea">
-      <p className="up-linea-encabezado">Estado de mi pedido</p>
+    <div className={cx(caja, 'border-[#f0f0f0] bg-white dark:border-noche-borde dark:bg-noche-card')}>
+      <p className="m-0 mb-3.5 text-[11px] font-extrabold uppercase tracking-[.6px] text-slate-400">Estado de mi pedido</p>
 
-      <ol className="up-linea-pasos">
+      <ol className="m-0 list-none p-0">
         {PASOS_PEDIDO.map((paso, i) => {
-          const hecho   = i < actual;
-          const activo  = i === actual;
-          const clase   = hecho ? 'up-paso--hecho' : activo ? 'up-paso--activo' : 'up-paso--pendiente';
+          const hecho  = i < actual;
+          const activo = i === actual;
+          const ultimo = i === PASOS_PEDIDO.length - 1;
 
           return (
-            <li key={paso.estado} className={`up-paso ${clase}`}>
-              <span className="up-paso-marca">
+            <li key={paso.estado} className={cx('relative flex items-start gap-3', !ultimo && 'pb-4')}>
+              {/* linea vertical que une un paso con el siguiente */}
+              {!ultimo && <span className={cx('absolute bottom-0.5 left-[15px] top-[30px] w-0.5', hecho ? 'bg-green-500' : 'bg-slate-200 dark:bg-noche-borde')} />}
+              <span
+                className={cx(
+                  'z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-solid',
+                  hecho ? 'border-green-500 bg-green-100 text-green-700'
+                    : activo ? 'animate-pulso border-zippy bg-[#fff3e6] text-zippy dark:bg-zippy/15'
+                    : 'border-slate-200 bg-slate-100 text-slate-400 dark:border-noche-borde dark:bg-noche-alt'
+                )}
+              >
                 <Icon name={hecho ? 'check' : paso.icon} size={16} />
               </span>
-              <div className="up-paso-texto">
-                <p className="up-paso-titulo">{paso.titulo}</p>
-                {activo && <p className="up-paso-detalle">{paso.detalle}</p>}
+              <div className="pt-[5px]">
+                <p className={cx('m-0 text-sm', hecho ? 'font-semibold text-green-700 dark:text-green-400' : activo ? 'font-extrabold text-slate-900 dark:text-slate-100' : 'font-semibold text-slate-500')}>{paso.titulo}</p>
+                {activo && <p className="m-0 mt-[3px] text-[12.5px] font-semibold text-zippy">{paso.detalle}</p>}
               </div>
             </li>
           );
         })}
       </ol>
 
-      <div className={`up-linea-repartidor ${tieneRepartidor ? 'up-linea-repartidor--si' : ''}`}>
+      <div
+        className={cx(
+          'mt-3.5 flex items-center gap-2 rounded-[10px] border border-solid px-[13px] py-[11px] text-[13px]',
+          tieneRepartidor
+            ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300'
+            : 'border-slate-200 bg-slate-50 text-slate-500 dark:border-noche-borde dark:bg-noche-alt dark:text-slate-400'
+        )}
+      >
         <Icon name={tieneRepartidor ? 'repartidores' : 'reloj'} size={16} />
         <span>
           {tieneRepartidor
@@ -434,11 +539,11 @@ const EstimadoEntrega = ({ estado, driverPos, destino, enCamino }) => {
     const kmPorCalle = km * FACTOR_CALLES;
     const minutos = Math.max(3, Math.round((kmPorCalle / VELOCIDAD_MOTO_KMH) * 60) + MINUTOS_ENTREGA_FINAL);
     return (
-      <div className="up-eta">
+      <div className={C.eta}>
         <Icon name="reloj" size={18} />
         <div>
-          <p className="up-eta-min">Llega en {minutos} min aprox</p>
-          <p className="up-eta-sub">Tu repartidor está a {textoDistancia(km)} de la dirección</p>
+          <p className={C.etaMin}>Llega en {minutos} min aprox</p>
+          <p className={C.etaSub}>Tu repartidor está a {textoDistancia(km)} de la dirección</p>
         </div>
       </div>
     );
@@ -448,11 +553,11 @@ const EstimadoEntrega = ({ estado, driverPos, destino, enCamino }) => {
   if (!rango) return null;
 
   return (
-    <div className="up-eta">
+    <div className={C.eta}>
       <Icon name="reloj" size={18} />
       <div>
-        <p className="up-eta-min">Entre {rango[0]} y {rango[1]} min aprox</p>
-        <p className="up-eta-sub">
+        <p className={C.etaMin}>Entre {rango[0]} y {rango[1]} min aprox</p>
+        <p className={C.etaSub}>
           {estado === 'En camino'
             ? 'Tu pedido ya salió. En cuanto veamos al repartidor en el mapa te damos el tiempo exacto.'
             : 'Es un estimado; se ajusta cuando el repartidor salga con tu pedido'}
@@ -510,23 +615,23 @@ const SeguimientoModal = ({ pedido, onClose }) => {
   if (!pedido) return null;
 
   return (
-    <div className="up-modal-overlay" onClick={onClose}>
-      <div className="up-modal" onClick={e => e.stopPropagation()}>
-        <div className="up-modal-header">
+    <div className={C.modalOverlay} onClick={onClose}>
+      <div className={C.modal} onClick={e => e.stopPropagation()}>
+        <div className={C.modalHeader}>
           <h3>Seguimiento {pedido.id}</h3>
-          <button className="up-modal-close" onClick={onClose}>✕</button>
+          <button className={C.modalClose} onClick={onClose}>✕</button>
         </div>
 
-        <div className="up-track-map">
+        <div className={C.trackMap}>
           {!MAPS_KEY ? (
-            <div className="up-track-map-msg">Mapa no disponible</div>
+            <div className={C.trackMapMsg}>Mapa no disponible</div>
           ) : isLoaded ? (
             <GoogleMap mapContainerStyle={MAP_STYLE} center={driverPos || destino || GARZON} zoom={14}>
               {destino   && <Marker position={destino}   label="Destino" />}
               {driverPos && <Marker position={driverPos} label="Repartidor" />}
             </GoogleMap>
           ) : (
-            <div className="up-track-map-msg"><ZLoader size="sm" label="Cargando mapa..." /></div>
+            <div className={C.trackMapMsg}><ZLoader size="sm" label="Cargando mapa..." /></div>
           )}
         </div>
 
@@ -543,12 +648,12 @@ const SeguimientoModal = ({ pedido, onClose }) => {
           nombreRepartidor={ubicacion?.domiciliario_nombre}
         />
 
-        <div className="up-track-status">
+        <div className={C.trackStatus}>
           {ubicacion?.asignado ? (
             <>
               <p><Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} /><strong>{ubicacion.domiciliario_nombre || 'Un repartidor'}</strong> va en camino con tu pedido.</p>
               {ubicacion.domiciliario_telefono && (
-                <a className="up-track-call-btn" href={`tel:${ubicacion.domiciliario_telefono}`}>
+                <a className={C.trackCallBtn} href={`tel:${ubicacion.domiciliario_telefono}`}>
                   <Icon name="telefono" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Llamar al repartidor
                 </a>
               )}
@@ -563,13 +668,13 @@ const SeguimientoModal = ({ pedido, onClose }) => {
         {ubicacion?.asignado && <OrdenChat ordenId={pedido.idCompleto} />}
 
         {pasos.length > 0 && (
-          <div className="up-track-steps">
+          <div className={C.trackSteps}>
             {pasos.map(s => (
-              <div key={s.id} className="up-track-step">
-                <span className="up-track-step-dot" />
+              <div key={s.id} className={C.trackStep}>
+                <span className={C.trackStepDot} />
                 <div>
-                  <p className="up-track-step-label">{PASO_LABEL[s.estado_nuevo] || s.estado_nuevo}</p>
-                  <p className="up-track-step-fecha">{fechaHoraLarga(s.fecha)}</p>
+                  <p className={C.trackStepLabel}>{PASO_LABEL[s.estado_nuevo] || s.estado_nuevo}</p>
+                  <p className={C.trackStepFecha}>{fechaHoraLarga(s.fecha)}</p>
                 </div>
               </div>
             ))}
@@ -603,30 +708,30 @@ const SeccionGuardados = ({ addItem, addToast }) => {
   };
 
   if (cargando) {
-    return <div className="up-empty"><p>Cargando tus productos guardados…</p></div>;
+    return <div className={C.empty}><p>Cargando tus productos guardados…</p></div>;
   }
 
   return guardados.length === 0 ? (
-    <div className="up-empty">
+    <div className={C.empty}>
       <span><Icon name="corazon" size={40} strokeWidth={1.2} /></span>
       <p>No tienes productos guardados</p>
     </div>
   ) : (
-    <div className="up-saved-grid">
+    <div className={C.savedGrid}>
       {guardados.map(p => (
-        <div key={p.id} className="up-saved-card">
-          <div className="up-saved-photo">
+        <div key={p.id} className={C.savedCard}>
+          <div className={C.savedPhoto}>
             {p.foto
               ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" />
               : <span><Icon name="paquete" size={26} strokeWidth={1.4} /></span>}
-            <button className="up-saved-remove" onClick={() => quitar(p)}>✕</button>
+            <button className={C.savedRemove} onClick={() => quitar(p)}>✕</button>
           </div>
-          <div className="up-saved-info">
-            <p className="up-saved-name">{p.nombre}</p>
-            <p className="up-saved-tienda">{p.tienda}</p>
-            <p className="up-saved-price">{fmt(p.precio)}</p>
+          <div className={C.savedInfo}>
+            <p className={C.savedName}>{p.nombre}</p>
+            <p className={C.savedTienda}>{p.tienda}</p>
+            <p className={C.savedPrice}>{fmt(p.precio)}</p>
             <button
-              className="up-saved-add"
+              className={C.savedAdd}
               onClick={() => { addItem({ ...p, negocioId: p.negocioId || p.negocio_id }); addToast(`${p.nombre} agregado`, 'success'); }}
             >
               + Agregar al carrito
@@ -695,39 +800,39 @@ const SeccionDirecciones = ({ addToast }) => {
   };
 
   if (cargando) {
-    return <div className="up-empty"><p>Cargando tus direcciones…</p></div>;
+    return <div className={C.empty}><p>Cargando tus direcciones…</p></div>;
   }
 
   return (
-    <div className="up-list">
+    <div className={C.list}>
       {dirs.length === 0 && !showForm && (
-        <div className="up-empty">
+        <div className={C.empty}>
           <span><Icon name="ubicacion" size={40} strokeWidth={1.2} /></span>
           <p>Aún no tienes direcciones guardadas</p>
         </div>
       )}
       {dirs.map(d => (
-        <div key={d.id} className={`up-addr-card ${d.principal ? 'up-addr-card--main' : ''}`}>
-          <div className="up-addr-top">
+        <div key={d.id} className={cx('rounded-[14px] border-2 border-solid bg-white px-4 py-3.5 shadow-[0_1px_4px_rgba(0,0,0,0.07)] dark:bg-noche-card', d.principal ? 'border-zippy' : 'border-transparent')}>
+          <div className={C.addrTop}>
             <div>
-              <span className="up-addr-label">{d.etiqueta || d.label}</span>
-              {d.principal && <span className="up-addr-chip">Principal</span>}
+              <span className={C.addrLabel}>{d.etiqueta || d.label}</span>
+              {d.principal && <span className={C.addrChip}>Principal</span>}
             </div>
-            <div className="up-addr-actions">
+            <div className={C.addrActions}>
               {!d.principal && (
-                <button className="up-addr-btn" onClick={() => setPrincipal(d.id)}>Usar</button>
+                <button className={cx(C.addrBtn, 'border-slate-200 text-slate-600 hover:border-zippy hover:text-zippy dark:border-noche-borde dark:text-slate-400')} onClick={() => setPrincipal(d.id)}>Usar</button>
               )}
-              <button className="up-addr-btn up-addr-btn--del" onClick={() => eliminar(d.id)}>✕</button>
+              <button className={cx(C.addrBtn, 'border-red-200 text-red-500 hover:border-red-500 hover:bg-red-50 dark:border-red-500/30')} onClick={() => eliminar(d.id)} aria-label="Eliminar dirección">✕</button>
             </div>
           </div>
-          <p className="up-addr-dir"><Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.dir}</p>
-          {d.referencia && <p className="up-addr-ciudad">{d.referencia}</p>}
-          <p className="up-addr-ciudad"><Icon name={d.lat != null ? 'ubicacion' : 'alerta'} size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.lat != null ? 'Marcada en el mapa' : 'Sin ubicación en el mapa'}</p>
+          <p className={C.addrDir}><Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.dir}</p>
+          {d.referencia && <p className={C.addrCiudad}>{d.referencia}</p>}
+          <p className={C.addrCiudad}><Icon name={d.lat != null ? 'ubicacion' : 'alerta'} size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />{d.lat != null ? 'Marcada en el mapa' : 'Sin ubicación en el mapa'}</p>
         </div>
       ))}
 
       {showForm ? (
-        <form className="up-addr-form" onSubmit={agregar}>
+        <form className={C.addrForm} onSubmit={agregar}>
           <input
             placeholder="Etiqueta (Casa, Trabajo...)"
             value={form.label}
@@ -746,13 +851,13 @@ const SeccionDirecciones = ({ addToast }) => {
             onChange={e => setForm(p => ({ ...p, referencia: e.target.value }))}
           />
           <SelectorUbicacion direccion={form.dir} valor={ubic} onChange={setUbic} />
-          <div className="up-addr-form-row">
-            <button type="submit" className="up-btn-primary">Guardar</button>
-            <button type="button" className="up-btn-secondary" onClick={() => setShowForm(false)}>Cancelar</button>
+          <div className={C.addrFormRow}>
+            <button type="submit" className={C.btnPrimary}>Guardar</button>
+            <button type="button" className={C.btnSecondary} onClick={() => setShowForm(false)}>Cancelar</button>
           </div>
         </form>
       ) : (
-        <button className="up-add-dir-btn" onClick={() => setShowForm(true)}>
+        <button className={C.addDirBtn} onClick={() => setShowForm(true)}>
           + Agregar dirección
         </button>
       )}
@@ -792,70 +897,70 @@ const SeccionCuenta = ({ addToast }) => {
   };
 
   return (
-    <div className="up-list">
-      <form className="up-cuenta-card" onSubmit={handleSave}>
-        <p className="up-cuenta-section">Información personal</p>
-        <div className="up-field">
+    <div className={C.list}>
+      <form className={C.cuentaCard} onSubmit={handleSave}>
+        <p className={C.cuentaSection}>Información personal</p>
+        <div className={C.field}>
           <label>Nombre</label>
           <input value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Tu nombre" />
         </div>
-        <div className="up-field">
+        <div className={C.field}>
           <label>Teléfono</label>
           <input value={form.telefono} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} placeholder="300-000-0000" />
         </div>
-        <div className="up-field">
+        <div className={C.field}>
           <label>Email</label>
           <input type="email" value={stored.email || ''} disabled />
         </div>
-        <button type="submit" className="up-btn-primary" disabled={saving}>
+        <button type="submit" className={C.btnPrimary} disabled={saving}>
           {saving ? 'Guardando...' : '✓ Guardar cambios'}
         </button>
       </form>
 
-      <div className="up-cuenta-card">
-        <p className="up-cuenta-section">Notificaciones</p>
+      <div className={C.cuentaCard}>
+        <p className={C.cuentaSection}>Notificaciones</p>
         {[
           { id: 'pedidos',   label: 'Estado de mis pedidos', desc: 'Cuando tu orden cambia de estado' },
           { id: 'ofertas',   label: 'Ofertas y promociones', desc: 'Descuentos de tus tiendas favoritas' },
           { id: 'guardados', label: 'Vuelven al stock',      desc: 'Cuando un guardado vuelve a estar disponible' },
         ].map(n => (
-          <div key={n.id} className="up-notif-row">
+          <div key={n.id} className={C.notifRow}>
             <div>
-              <p className="up-notif-label">{n.label}</p>
-              <p className="up-notif-desc">{n.desc}</p>
+              <p className={C.notifLabel}>{n.label}</p>
+              <p className={C.notifDesc}>{n.desc}</p>
             </div>
             <button
-              className={`up-toggle ${notifs[n.id] ? 'up-toggle--on' : ''}`}
+              className={cx('relative h-[25px] w-11 shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors', notifs[n.id] ? 'bg-zippy' : 'bg-slate-200 dark:bg-noche-borde')}
               onClick={() => setNotifs(p => ({ ...p, [n.id]: !p[n.id] }))}
             >
-              <span className="up-toggle-thumb" />
+              <span className={cx('pointer-events-none absolute left-[3px] top-[3px] h-[19px] w-[19px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform', notifs[n.id] && 'translate-x-[19px]')} />
             </button>
           </div>
         ))}
       </div>
 
-      <div className="up-cuenta-card">
-        <p className="up-cuenta-section">Apariencia</p>
-        <div className="up-notif-row">
+      <div className={C.cuentaCard}>
+        <p className={C.cuentaSection}>Apariencia</p>
+        <div className={C.notifRow}>
           <div>
-            <p className="up-notif-label">Modo oscuro</p>
-            <p className="up-notif-desc">Cambia la apariencia de toda la app</p>
+            <p className={C.notifLabel}>Modo oscuro</p>
+            <p className={C.notifDesc}>Cambia la apariencia de toda la app</p>
           </div>
           <button
-            className={`up-toggle ${isDark ? 'up-toggle--on' : ''}`}
+            className={cx('relative h-[25px] w-11 shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors', isDark ? 'bg-zippy' : 'bg-slate-200 dark:bg-noche-borde')}
             onClick={() => { toggle(); addToast(isDark ? 'Modo claro activado' : 'Modo oscuro activado', 'info'); }}
           >
-            <span className="up-toggle-thumb" />
+            <span className={cx('pointer-events-none absolute left-[3px] top-[3px] h-[19px] w-[19px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform', isDark && 'translate-x-[19px]')} />
           </button>
         </div>
       </div>
 
-      <div className="up-cuenta-card">
-        <p className="up-cuenta-section">Eliminar mi cuenta</p>
+      <div className={C.cuentaCard}>
+        <p className={C.cuentaSection}>Eliminar mi cuenta</p>
         <EliminarCuenta />
       </div>
 
-      <button className="up-logout-btn" onClick={handleLogout}>
+      <button className={C.logoutBtn} onClick={handleLogout}>
         <Icon name="salir" size={17} style={{ verticalAlign: '-3px', marginRight: 7 }} />Cerrar sesión
       </button>
     </div>
@@ -1081,18 +1186,18 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
   if (!haySesion) {
     return (
       <UserLayout>
-        <div className="up-sin-sesion">
-          <div className="up-sin-sesion-icono"><Icon name="perfil" size={34} /></div>
-          <h2 className="up-sin-sesion-titulo">Entra a tu cuenta</h2>
-          <p className="up-sin-sesion-texto">
+        <div className={C.sinSesion}>
+          <div className={C.sinSesionIcono}><Icon name="perfil" size={34} /></div>
+          <h2 className={C.sinSesionTitulo}>Entra a tu cuenta</h2>
+          <p className={C.sinSesionTexto}>
             {vista === 'pedidos'
               ? 'Aquí vas a ver tus pedidos y por dónde van. Puedes seguir mirando la tienda sin cuenta, pero para pedir necesitas entrar.'
               : 'Aquí aparecen tus direcciones y lo que has guardado. Puedes seguir mirando la tienda sin cuenta, pero para pedir necesitas entrar.'}
           </p>
-          <button className="up-sin-sesion-btn" onClick={() => navigate('/login')}>
+          <button className={C.sinSesionBtn} onClick={() => navigate('/login')}>
             Iniciar sesión
           </button>
-          <button className="up-sin-sesion-link" onClick={() => navigate('/register')}>
+          <button className={C.sinSesionLink} onClick={() => navigate('/register')}>
             No tengo cuenta, quiero crear una
           </button>
         </div>
@@ -1130,15 +1235,15 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
     const andando = pedidos.filter(p => !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado)).length;
     return (
       <UserLayout>
-        <div className="up-pedidos-cabecera">
-          <h1 className="up-pedidos-titulo">Mis pedidos</h1>
+        <div className={C.pedidosCabecera}>
+          <h1 className={C.pedidosTitulo}>Mis pedidos</h1>
           {!loadingPedidos && pedidos.length > 0 && (
-            <p className="up-pedidos-resumen">
+            <p className={C.pedidosResumen}>
               {andando > 0 ? `${andando} en curso · ` : ''}{pedidos.length} en total
             </p>
           )}
         </div>
-        <div className="up-content">
+        <div className={C.content}>
           <SeccionPedidos pedidos={pedidos} loading={loadingPedidos} onTrack={setTrackingPedido} onCalificar={setCalificarPedido} onRepetir={handleRepetir} repitiendo={repitiendo} onCancelar={setPorCancelar} cancelando={cancelando} />
         </div>
         {ventanas}
@@ -1149,24 +1254,28 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
   return (
     <UserLayout>
       {/* Profile header */}
-      <div className="up-profile">
-        <div className="up-profile-avatar">{inicial}</div>
-        <div className="up-profile-info">
-          <p className="up-profile-name">{usuario.nombre || 'Usuario'}</p>
-          <p className="up-profile-email">{usuario.email || 'usuario@zippy.com'}</p>
+      <div className={C.profile}>
+        <span className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
+        <div className={C.profileAvatar}>{inicial}</div>
+        <div className={C.profileInfo}>
+          <p className={C.profileName}>{usuario.nombre || 'Usuario'}</p>
+          <p className={C.profileEmail}>{usuario.email || 'usuario@zippy.com'}</p>
         </div>
-        <div className="up-profile-actions">
-          <button className="up-profile-edit" onClick={() => setTab('cuenta')} aria-label="Editar perfil"><Icon name="editar" size={17} /></button>
-          <button className="up-profile-logout" onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={17} /></button>
+        <div className={C.profileActions}>
+          <button className={C.profileEdit} onClick={() => setTab('cuenta')} aria-label="Editar perfil"><Icon name="editar" size={17} /></button>
+          <button className={C.profileLogout} onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={17} /></button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="up-tabs">
+      <div className={C.tabs}>
         {TABS.map(t => (
           <button
             key={t.id}
-            className={`up-tab ${tab === t.id ? 'up-tab--active' : ''}`}
+            className={cx(
+              'flex min-w-[64px] flex-1 cursor-pointer flex-col items-center gap-[3px] whitespace-nowrap rounded-[10px] border-0 px-2 py-[9px] font-[inherit] text-[11px] font-semibold transition-colors',
+              tab === t.id ? 'bg-zippy text-white' : 'bg-transparent text-slate-400 hover:bg-zippy-50 hover:text-zippy dark:hover:bg-noche-alt'
+            )}
             onClick={() => setTab(t.id)}
           >
             <span><Icon name={t.icon} size={18} /></span>
@@ -1176,7 +1285,7 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
       </div>
 
       {/* Content */}
-      <div className="up-content">
+      <div className={C.content}>
         {content[tab]}
       </div>
 

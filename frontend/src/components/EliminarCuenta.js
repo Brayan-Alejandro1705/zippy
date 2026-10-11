@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Icon from './Icons';
+import { revocarApple } from '../utils/loginSocial';
 import '../styles/EliminarCuenta.css';
 
 const PALABRA = 'ELIMINAR';
@@ -26,7 +27,12 @@ const EliminarCuenta = () => {
   const [confirmacion, setConfirmacion] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const puedeEliminar = password.length > 0 && confirmacion.trim().toUpperCase() === PALABRA;
+  // Quien se registro con Google o Apple nunca escribio una contrasena: a
+  // esas cuentas solo se les pide escribir ELIMINAR.
+  const metodo = (() => { try { return JSON.parse(localStorage.getItem('usuario') || '{}').metodo_verificacion || ''; } catch { return ''; } })();
+  const esSocial = metodo === 'google' || metodo === 'apple';
+
+  const puedeEliminar = (esSocial || password.length > 0) && confirmacion.trim().toUpperCase() === PALABRA;
 
   const cancelar = () => {
     setAbierto(false);
@@ -38,7 +44,9 @@ const EliminarCuenta = () => {
     if (!puedeEliminar || enviando) return;
     setEnviando(true);
     try {
-      const { data } = await authService.eliminarCuenta(password);
+      // Apple pide revocar el permiso de "Continuar con Apple" al borrar la cuenta
+      if (metodo === 'apple') await revocarApple();
+      const { data } = await authService.eliminarCuenta(esSocial ? '' : password);
       // Se limpia todo el rastro local, incluidas las demas sesiones guardadas
       // por el selector de cuentas: dejarlas seria ofrecer una sesion muerta.
       localStorage.removeItem('access_token');
@@ -79,6 +87,7 @@ const EliminarCuenta = () => {
         Esta acción es permanente. No podrás recuperar la cuenta ni su historial.
       </p>
 
+      {!esSocial && (
       <div className="elc-campo">
         <label>Tu contraseña</label>
         <input
@@ -89,6 +98,7 @@ const EliminarCuenta = () => {
           onChange={e => setPassword(e.target.value)}
         />
       </div>
+      )}
 
       <div className="elc-campo">
         <label>Escribe {PALABRA} para confirmar</label>

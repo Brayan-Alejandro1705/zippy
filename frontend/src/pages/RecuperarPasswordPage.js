@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { authService } from '../config/api';
 import ZLoader from '../components/ZLoader';
-import '../styles/LoginPage.css';
+import PantallaAuth, { LogoZippy, TituloAuth, ErrorAuth, CampoAuth, IconoCorreo, IconoCandado, etiquetaAuth, botonAuth, enlaceAuth } from '../components/auth/PantallaAuth';
 
 const extractErrorMessage = (data, fallback) => {
   const detail = data?.detail;
@@ -78,134 +78,128 @@ const RecuperarPasswordPage = () => {
     }
   };
 
+  const flecha = <span className="text-lg transition-transform group-hover:translate-x-1">→</span>;
+
   return (
-    <div className="lp-bg">
-      <div className="lp-orb lp-orb--1" />
-      <div className="lp-orb lp-orb--2" />
-      <div className="lp-orb lp-orb--3" />
+    <PantallaAuth sacudir={shake}>
+      <LogoZippy />
 
-      <div className={`lp-card ${shake ? 'lp-shake' : ''}`}>
-        <div className="lp-header">
-          <div className="lp-logo">
-            <div className="lp-logo-mark">Z</div>
-            <span className="lp-logo-name">ZIPPY</span>
-          </div>
-        </div>
+      {paso === 'solicitar' && (
+        <>
+          <TituloAuth titulo="Recuperar contraseña" sub="Escribe tu correo y te enviamos un código para restablecerla" />
 
-        {paso === 'solicitar' && (
-          <>
-            <h2 className="lp-title">Recuperar contraseña</h2>
-            <p className="lp-sub">Escribe tu correo y te enviamos un código para restablecerla</p>
+          <form onSubmit={handleSolicitar} noValidate>
+            {error && <ErrorAuth>{error}</ErrorAuth>}
 
-            <form onSubmit={handleSolicitar} noValidate>
-              {error && <div className="lp-error"><span className="lp-error-icon">⚠</span>{error}</div>}
+            <div className="mb-[18px]">
+              <label htmlFor="rp-email" className={etiquetaAuth}>Correo electrónico</label>
+              <CampoAuth
+                id="rp-email"
+                type="email"
+                icono={<IconoCorreo />}
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="usuario@ejemplo.com"
+                disabled={loading}
+                autoComplete="email"
+                autoFocus
+              />
+            </div>
 
-              <div className="lp-field">
-                <label htmlFor="rp-email">Correo electrónico</label>
-                <div className="lp-input-wrap">
-                  <input
-                    id="rp-email"
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="usuario@ejemplo.com"
-                    disabled={loading}
-                    autoComplete="email"
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <button type="submit" className="lp-submit" disabled={loading}>
-                {loading ? <ZLoader size="sm" inverted /> : <><span>Enviar código</span><span className="lp-arrow">→</span></>}
-              </button>
-            </form>
-          </>
-        )}
-
-        {paso === 'confirmar' && (
-          <>
-            <h2 className="lp-title">Ingresa el código</h2>
-            <p className="lp-sub">Enviamos un código de 6 dígitos a<br /><strong>{email}</strong></p>
-
-            <form onSubmit={handleConfirmar} noValidate>
-              {error && <div className="lp-error"><span className="lp-error-icon">⚠</span>{error}</div>}
-              {info && !error && <div className="lp-error" style={{ background: '#EFFAF3', color: '#1a7f4b', borderColor: '#bfe8cf' }}>{info}</div>}
-
-              <div className="lp-field">
-                <label htmlFor="rp-codigo">Código</label>
-                <div className="lp-input-wrap">
-                  <input
-                    id="rp-codigo"
-                    value={codigo}
-                    onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="000000"
-                    inputMode="numeric"
-                    maxLength={6}
-                    disabled={loading}
-                    autoFocus
-                  />
-                </div>
-              </div>
-
-              <div className="lp-field">
-                <label htmlFor="rp-pass">Nueva contraseña</label>
-                <div className="lp-input-wrap">
-                  <input
-                    id="rp-pass"
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Mín. 8 caracteres"
-                    disabled={loading}
-                    autoComplete="new-password"
-                  />
-                </div>
-              </div>
-
-              <div className="lp-field">
-                <label htmlFor="rp-pass2">Confirmar contraseña</label>
-                <div className="lp-input-wrap">
-                  <input
-                    id="rp-pass2"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    placeholder="Repetir contraseña"
-                    disabled={loading}
-                    autoComplete="new-password"
-                  />
-                </div>
-              </div>
-
-              <button type="submit" className="lp-submit" disabled={loading}>
-                {loading ? <ZLoader size="sm" inverted /> : <><span>Restablecer contraseña</span><span className="lp-arrow">→</span></>}
-              </button>
-            </form>
-
-            <button type="button" className="lp-forgot" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer' }} onClick={handleReenviar} disabled={loading}>
-              Reenviar código
+            <button type="submit" className={botonAuth} disabled={loading}>
+              {loading ? <ZLoader size="sm" inverted /> : <><span>Enviar código</span>{flecha}</>}
             </button>
-          </>
-        )}
+          </form>
+        </>
+      )}
 
-        {paso === 'listo' && (
-          <>
-            <h2 className="lp-title">¡Listo!</h2>
-            <p className="lp-sub">{info || 'Tu contraseña fue actualizada.'} Ya puedes iniciar sesión.</p>
-            <a href="/login" className="lp-submit" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
-              <span>Ir al login</span><span className="lp-arrow">→</span>
-            </a>
-          </>
-        )}
-
-        {paso !== 'listo' && (
-          <p className="lp-footer">
-            <a href="/login">Volver al login</a>
+      {paso === 'confirmar' && (
+        <>
+          <h2 className="m-0 mb-1.5 text-[22px] font-bold tracking-[-0.3px] text-white sm:text-[26px]">Ingresa el código</h2>
+          <p className="m-0 mb-7 break-words text-sm leading-snug text-white/40">
+            Enviamos un código de 6 dígitos a<br /><strong className="text-white/70">{email}</strong>
           </p>
-        )}
-      </div>
-    </div>
+
+          <form onSubmit={handleConfirmar} noValidate>
+            {error && <ErrorAuth>{error}</ErrorAuth>}
+            {info && !error && (
+              <div className="mb-[18px] rounded-[10px] border border-solid border-green-500/30 bg-green-500/10 px-3.5 py-[11px] text-[13px] text-green-300">{info}</div>
+            )}
+
+            <div className="mb-[18px]">
+              <label htmlFor="rp-codigo" className={etiquetaAuth}>Código</label>
+              <CampoAuth
+                id="rp-codigo"
+                value={codigo}
+                onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                inputMode="numeric"
+                maxLength={6}
+                disabled={loading}
+                autoFocus
+                className="text-center text-xl font-bold tracking-[8px]"
+              />
+            </div>
+
+            <div className="mb-[18px]">
+              <label htmlFor="rp-pass" className={etiquetaAuth}>Nueva contraseña</label>
+              <CampoAuth
+                id="rp-pass"
+                type="password"
+                icono={<IconoCandado />}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Mín. 8 caracteres"
+                disabled={loading}
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="mb-[18px]">
+              <label htmlFor="rp-pass2" className={etiquetaAuth}>Confirmar contraseña</label>
+              <CampoAuth
+                id="rp-pass2"
+                type="password"
+                icono={<IconoCandado />}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Repetir contraseña"
+                disabled={loading}
+                autoComplete="new-password"
+              />
+            </div>
+
+            <button type="submit" className={botonAuth} disabled={loading}>
+              {loading ? <ZLoader size="sm" inverted /> : <><span>Restablecer contraseña</span>{flecha}</>}
+            </button>
+          </form>
+
+          <button
+            type="button"
+            className="mx-auto mt-3 block cursor-pointer border-0 bg-transparent p-1 text-[13px] font-medium text-zippy/75 hover:text-zippy disabled:opacity-60"
+            onClick={handleReenviar}
+            disabled={loading}
+          >
+            Reenviar código
+          </button>
+        </>
+      )}
+
+      {paso === 'listo' && (
+        <>
+          <TituloAuth titulo="¡Listo!" sub={`${info || 'Tu contraseña fue actualizada.'} Ya puedes iniciar sesión.`} />
+          <a href="/login" className={`${botonAuth} no-underline`}>
+            <span>Ir al login</span>{flecha}
+          </a>
+        </>
+      )}
+
+      {paso !== 'listo' && (
+        <p className="m-0 mt-6 text-center text-[13px]">
+          <a href="/login" className={enlaceAuth}>Volver al login</a>
+        </p>
+      )}
+    </PantallaAuth>
   );
 };
 

@@ -138,6 +138,21 @@ jobs:
           echo "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > App/GoogleService-Info.plist
           plutil -lint App/GoogleService-Info.plist
 
+          # "Continuar con Google" en iPhone: Google devuelve a la app por una
+          # direccion propia (REVERSED_CLIENT_ID). Si el plist no la trae es
+          # porque en Firebase no se ha activado Google: se avisa y se sigue.
+          REVERSED=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" App/GoogleService-Info.plist 2>/dev/null || true)
+          if [ -n "$REVERSED" ]; then
+            /usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes" App/Info.plist 2>/dev/null || true
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" App/Info.plist
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" App/Info.plist
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" App/Info.plist
+            /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string $REVERSED" App/Info.plist
+            echo "URL de regreso de Google agregada"
+          else
+            echo "::warning::El GoogleService-Info.plist no trae REVERSED_CLIENT_ID: activa Google en Firebase y vuelve a subir el plist"
+          fi
+
           cat > App/App.entitlements <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -145,6 +160,10 @@ jobs:
           <dict>
             <key>aps-environment</key>
             <string>production</string>
+            <key>com.apple.developer.applesignin</key>
+            <array>
+              <string>Default</string>
+            </array>
           </dict>
           </plist>
           PLIST

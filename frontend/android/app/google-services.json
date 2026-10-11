@@ -12,7 +12,28 @@
           "package_name": "com.zippygo.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "485123406596-52jfrefc56tnq7q3ikoqg0bj8otmf0ur.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zippygo.app",
+            "certificate_hash": "3e9f1ec1bf73b923cd880e61417d0b97bf8eb37c"
+          }
+        },
+        {
+          "client_id": "485123406596-rnvn5m3559n10mj8p625acj1p53kbiug.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zippygo.app",
+            "certificate_hash": "cbf464b0aa9f94ad1f55f63f9fe9b3248f6e1b73"
+          }
+        },
+        {
+          "client_id": "485123406596-bg0b1lotahrn05675j5nhqaald844n12.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA9YeywvcOm5ilO-eZu1qevFYnNbF4wDdw"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "485123406596-bg0b1lotahrn05675j5nhqaald844n12.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "485123406596-tb3levuofpl0103ldj4ntpfb3dl5vl55.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.zippygo.app"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { soporteService } from '../config/api';
 import Icon from './Icons';
-import '../styles/CentroAyuda.css';
+import { cx } from '../ui/tw';
 
 // ============================================================================
 // CentroAyuda.js - Pestaña de ayuda con contenido distinto según el perfil.
@@ -144,50 +144,55 @@ const CentroAyuda = ({ perfil = 'cliente' }) => {
     ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(cfg.mensaje + ' ')}`
     : null;
 
-  return (
-    <div className="ca-wrap">
-      <div className="ca-card">
-        <div className="ca-card-title">Preguntas frecuentes</div>
-        <p className="ca-card-desc">{cfg.intro}</p>
+  const tarjeta = 'rounded-xl border border-solid border-[#eee] bg-white p-4 dark:border-noche-borde dark:bg-noche-card xs:p-[18px]';
+  const titulo = 'mb-1 text-[15px] font-semibold text-[#222] dark:text-slate-100';
+  const desc = 'm-0 mb-3.5 text-[13px] leading-snug text-slate-400';
+  const nota = 'm-0 text-[12.5px] leading-snug text-slate-400';
 
-        <div className="ca-lista">
+  return (
+    <div className="flex flex-col gap-3.5">
+      <div className={tarjeta}>
+        <div className={titulo}>Preguntas frecuentes</div>
+        <p className={desc}>{cfg.intro}</p>
+
+        <div className="flex flex-col border-0 border-t border-solid border-[#f1f1f1] dark:border-noche-borde">
           {cfg.temas.map((t, i) => {
             const activo = abierto === i;
             return (
-              <div key={i} className={`ca-item ${activo ? 'ca-item--activo' : ''}`}>
+              <div key={i} className="border-0 border-b border-solid border-[#f1f1f1] dark:border-noche-borde">
                 <button
                   type="button"
-                  className="ca-item-head"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent px-0 py-[13px] text-left"
                   onClick={() => setAbierto(activo ? null : i)}
                   aria-expanded={activo}
                 >
-                  <span className="ca-item-p">{t.p}</span>
-                  <span className="ca-item-chevron">
+                  <span className={cx('text-[13.5px] font-medium leading-[1.35]', activo ? 'text-zippy' : 'text-[#222] dark:text-slate-100')}>{t.p}</span>
+                  <span className={cx('flex h-6 w-6 shrink-0 items-center justify-center rounded-full', activo ? 'bg-zippy text-white' : 'bg-[#f6f6f6] text-slate-400 dark:bg-noche')}>
                     <Icon name={activo ? 'equis' : 'interrogacion'} size={15} />
                   </span>
                 </button>
-                {activo && <p className="ca-item-r">{t.r}</p>}
+                {activo && <p className="m-0 pb-3.5 pr-[34px] text-[13px] leading-normal text-[#555] dark:text-slate-300">{t.r}</p>}
               </div>
             );
           })}
         </div>
       </div>
 
-      <div className="ca-card">
-        <div className="ca-card-title">¿No encontraste lo que buscabas?</div>
-        <p className="ca-card-desc">
+      <div className={tarjeta}>
+        <div className={titulo}>¿No encontraste lo que buscabas?</div>
+        <p className={desc}>
           Escríbenos por WhatsApp y te respondemos en horario de atención.
         </p>
 
         {cargando ? (
-          <p className="ca-nota">Cargando…</p>
+          <p className={nota}>Cargando…</p>
         ) : waUrl ? (
-          <a className="ca-wa-btn" href={waUrl} target="_blank" rel="noopener noreferrer">
+          <a className="inline-flex items-center gap-2 rounded-full bg-zippy px-[18px] py-[11px] text-[13.5px] font-medium text-white no-underline" href={waUrl} target="_blank" rel="noopener noreferrer">
             <Icon name="whatsapp" size={18} />
             Escribir a soporte
           </a>
         ) : (
-          <p className="ca-nota">
+          <p className={nota}>
             El canal de soporte todavía no está disponible. Vuelve a intentarlo más tarde.
           </p>
         )}

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import '../styles/UserLayout.css';
 import Icon from './Icons';
 import AccountSwitcher from './AccountSwitcher';
 import { registrarPush, alTocarNotificacion } from '../utils/push';
 import ChatBurbuja from './ChatBurbuja';
 import AvisoSinConexion from './AvisoSinConexion';
+import { contenedor, Encabezado, Logo, botonEncabezado, Buscador, contenido, BarraInferior, ItemBarra } from './layout/piezas';
 import { pedidosEspecialesService, ordenesService } from '../config/api';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
@@ -123,29 +123,20 @@ const UserLayout = ({ children, onSearch }) => {
 
 
   return (
-    <div className="ulo-container">
-      {/* ── Header ─────────────────────────────────────── */}
-      <header className="ulo-header">
-        <button className="ulo-brand" onClick={() => navigate('/tienda')}>
-          <img src="/logo-zippy.jpeg" alt="Zippy Go" className="ulo-brand-logo" />
-        </button>
+    <div className={contenedor}>
+      <Encabezado>
+        <Logo onClick={() => navigate('/tienda')} />
 
-        <div className="ulo-search-wrap">
-          <svg className="ulo-search-icon" viewBox="0 0 20 20" fill="none">
-            <circle cx="9" cy="9" r="5.5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <input
-            className="ulo-search text-ellipsis"
-            placeholder="Buscar productos..."
-            value={query}
-            onChange={e => { setQuery(e.target.value); onSearch?.(e.target.value); }}
-          />
-        </div>
+        <Buscador
+          placeholder="Buscar productos..."
+          value={query}
+          onChange={e => { setQuery(e.target.value); onSearch?.(e.target.value); }}
+        />
 
         {hayCuenta() ? (
           <>
-            <button className="ulo-profile-btn" onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos" aria-label="Mi perfil">
+            {/* En celular "Perfil" ya esta en la barra de abajo; este boton es para PC */}
+            <button className={`${botonEncabezado} hidden md:flex`} onClick={() => navigate('/tienda/perfil')} title="Mi perfil y pedidos" aria-label="Mi perfil">
               <Icon name="perfil" size={20} />
             </button>
 
@@ -153,59 +144,60 @@ const UserLayout = ({ children, onSearch }) => {
           </>
         ) : (
           <button
-            className="ulo-profile-btn"
+            className={`${botonEncabezado} w-auto whitespace-nowrap px-3 text-[13px] font-extrabold`}
             onClick={() => navigate('/login')}
             title="Iniciar sesión"
-            style={{ width: 'auto', padding: '0 12px', fontWeight: 800, fontSize: 13, whiteSpace: 'nowrap' }}
           >Entrar</button>
         )}
 
-        <button className="ulo-cart-btn" onClick={() => navigate('/tienda/carrito')} aria-label="Carrito">
+        <button className={botonEncabezado} onClick={() => navigate('/tienda/carrito')} aria-label="Carrito">
           <Icon name="carrito" size={20} />
-          {totalItems > 0 && <span className="ulo-cart-badge">{totalItems}</span>}
+          {totalItems > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-solid border-zippy bg-red-500 px-1 text-[10px] font-extrabold text-white">
+              {totalItems}
+            </span>
+          )}
         </button>
-
-      </header>
+      </Encabezado>
 
       <AvisoSinConexion />
 
-      {/* ── Contenido ──────────────────────────────────── */}
-      <main className="ulo-main" style={{ paddingBottom: `calc(${totalItems > 0 && enVitrina ? 140 : 80}px + env(safe-area-inset-bottom, 0px))` }}>
+      <main
+        className={`${contenido} md:px-8 md:pb-12 md:pt-6`}
+        style={{ paddingBottom: `calc(${totalItems > 0 && enVitrina ? 140 : 80}px + env(safe-area-inset-bottom, 0px))` }}
+      >
         {children}
       </main>
 
-      {/* ── Barra flotante del carrito ─────────────────── */}
+      {/* Barra flotante del carrito */}
       {totalItems > 0 && enVitrina && (
-        <button className="ulo-cart-bar" onClick={() => navigate('/tienda/carrito')}>
-          <div className="ulo-cart-bar-l">
-            <span className="ulo-cart-bar-badge">{totalItems}</span>
-            <span className="ulo-cart-bar-label">Ver mi carrito</span>
-          </div>
-          <div className="ulo-cart-bar-r">
-            <span className="ulo-cart-bar-total">{fmt(subtotal)}</span>
-            <span className="ulo-cart-bar-arrow">→</span>
-          </div>
+        <button
+          className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-[200] flex w-[calc(100%-24px)] max-w-[560px] -translate-x-1/2 cursor-pointer items-center justify-between gap-3 rounded-2xl border-0 bg-slate-800 px-4 py-[13px] text-white shadow-[0_8px_28px_rgba(0,0,0,0.28)] transition-transform hover:-translate-y-0.5 dark:bg-noche md:bottom-6 md:max-w-[420px] xs:px-[18px]"
+          onClick={() => navigate('/tienda/carrito')}
+        >
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-7 min-w-[28px] items-center justify-center rounded-full bg-zippy px-2 text-[13px] font-extrabold">{totalItems}</span>
+            <span className="truncate text-[15px] font-bold">Ver mi carrito</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-2">
+            <span className="text-base font-extrabold text-zippy">{fmt(subtotal)}</span>
+            <span className="text-lg text-white/50">→</span>
+          </span>
         </button>
       )}
 
-      {/* ── Navegación inferior ────────────────────────── */}
-      <nav className="ulo-bottom-nav">
+      <BarraInferior>
         {NAV_ITEMS.map(item => (
-          <button
+          <ItemBarra
             key={item.path}
-            className={`ulo-nav-item ${activeNav === item.path ? 'ulo-nav-item--active' : ''}`}
+            activo={activeNav === item.path}
+            icono={item.icon}
+            etiqueta={item.label}
+            aviso={item.path === '/tienda/pedidos' ? enCurso : 0}
             onClick={() => navigate(item.path)}
-          >
-            <span className="ulo-nav-icon">
-              <Icon name={item.icon} size={22} />
-              {item.path === '/tienda/pedidos' && enCurso > 0 && (
-                <span className="ulo-nav-badge">{enCurso > 9 ? '9+' : enCurso}</span>
-              )}
-            </span>
-            <span className="ulo-nav-label">{item.label}</span>
-          </button>
+          />
         ))}
-      </nav>
+      </BarraInferior>
 
       {idChat && (
         <ChatBurbuja

@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Reset general. Antes vivia dentro de LoginPage.css, RepartidorPage.css y
+   Dashboard.css (se aplicaba a TODA la app porque React junta todos los .css).
+   Se deja aqui para poder borrar esas hojas sin que cambie nada. */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 html, body {
   overflow-x: clip;
 }

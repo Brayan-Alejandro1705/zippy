@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authService, productosService, negociosService } from '../config/api';
 import ZLoader from '../components/ZLoader';
-import '../styles/VerificarCuentaPage.css';
+import Icon from '../components/Icons';
+import PantallaAuth, { ErrorAuth, botonAuth } from '../components/auth/PantallaAuth';
 
 const redirectByTipo = (navigate, tipo) => {
   if (tipo === 'admin')        return navigate('/dashboard');
@@ -40,13 +41,13 @@ const VerificarCuentaPage = () => {
 
   if (!email) {
     return (
-      <div className="ver-bg">
-        <div className="ver-card">
-          <p className="ver-title">Falta información</p>
-          <p className="ver-sub">No sabemos qué cuenta verificar. Volvé a intentar el registro o inicia sesión.</p>
-          <button className="ver-submit" onClick={() => navigate('/login')}>Ir al login</button>
+      <PantallaAuth>
+        <div className="text-center">
+          <p className="m-0 mb-2 text-[22px] font-bold text-white">Falta información</p>
+          <p className="m-0 mb-6 text-[13.5px] leading-relaxed text-white/50">No sabemos qué cuenta verificar. Vuelve a intentar el registro o inicia sesión.</p>
+          <button className={botonAuth} onClick={() => navigate('/login')}>Ir al login</button>
         </div>
-      </div>
+      </PantallaAuth>
     );
   }
 
@@ -98,46 +99,53 @@ const VerificarCuentaPage = () => {
   };
 
   return (
-    <div className="ver-bg">
-      <div className="ver-orb ver-orb--1" />
-      <div className="ver-orb ver-orb--2" />
-
-      <div className="ver-card">
-        <div className="ver-icon">{metodo === 'sms' ? '📱' : '✉️'}</div>
-        <p className="ver-title">Verifica tu cuenta</p>
-        <p className="ver-sub">
+    <PantallaAuth>
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-zippy/15 text-zippy">
+          <Icon name={metodo === 'sms' ? 'telefono' : 'correo'} size={30} />
+        </div>
+        <p className="m-0 mb-2 text-[22px] font-bold text-white">Verifica tu cuenta</p>
+        <p className="m-0 mb-6 break-words text-[13.5px] leading-relaxed text-white/50">
           Enviamos un código de 6 dígitos por {metodo === 'sms' ? 'SMS' : 'correo'} a<br />
-          <strong>{email}</strong>
+          <strong className="text-white/85">{email}</strong>
         </p>
 
-        <form onSubmit={handleVerificar} noValidate>
-          {error && <div className="ver-error">⚠ {error}</div>}
-          {info && !error && <div className="ver-info">{info}</div>}
+        <form onSubmit={handleVerificar} noValidate className="text-left">
+          {error && <ErrorAuth>{error}</ErrorAuth>}
+          {info && !error && (
+            <div className="mb-[18px] rounded-[10px] border border-solid border-blue-500/30 bg-blue-500/10 px-3.5 py-[11px] text-[13px] text-blue-300">{info}</div>
+          )}
 
+          {/* El codigo se achica en 320 px para que los 6 digitos quepan */}
           <input
-            className="ver-code-input"
+            className="mb-4 w-full rounded-xl border border-solid border-white/10 bg-white/[0.06] px-3 py-3.5 text-center text-[22px] font-bold tracking-[6px] text-white outline-none transition placeholder:text-white/15 focus:border-zippy/60 focus:bg-zippy/[0.07] focus:shadow-[0_0_0_3px_rgba(255,122,0,0.12)] xs:text-[26px] xs:tracking-[10px]"
             value={codigo}
             onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="000000"
             inputMode="numeric"
             maxLength={6}
             autoFocus
+            aria-label="Código de verificación"
           />
 
-          <button type="submit" className="ver-submit" disabled={loading}>
+          <button type="submit" className={botonAuth} disabled={loading}>
             {loading ? <ZLoader size="sm" inverted /> : 'Verificar cuenta'}
           </button>
         </form>
 
-        <button className="ver-resend" onClick={handleReenviar} disabled={cooldown > 0 || resending}>
+        <button
+          className="mt-3 w-full cursor-pointer rounded-xl border border-solid border-white/10 bg-transparent p-3 text-[13px] font-medium text-white/60 transition hover:enabled:border-zippy/40 hover:enabled:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={handleReenviar}
+          disabled={cooldown > 0 || resending}
+        >
           {resending ? 'Reenviando...' : cooldown > 0 ? `Reenviar código (${cooldown}s)` : 'Reenviar código'}
         </button>
 
-        <p className="ver-footer">
-          <a href="/login">Volver al login</a>
+        <p className="m-0 mt-5 text-[13px]">
+          <a href="/login" className="text-white/45 no-underline hover:text-white/70">Volver al login</a>
         </p>
       </div>
-    </div>
+    </PantallaAuth>
   );
 };
 

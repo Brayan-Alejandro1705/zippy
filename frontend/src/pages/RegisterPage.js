@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../config/api';
 import ZLoader from '../components/ZLoader';
-import '../styles/RegisterPage.css';
+import PantallaAuth, { LogoZippy, TituloAuth, ErrorAuth, CampoAuth, BotonOjo, etiquetaAuth, botonAuth, enlaceAuth } from '../components/auth/PantallaAuth';
+import { cx } from '../ui/tw';
+import BotonesSociales from '../components/auth/BotonesSociales';
 import Icon from '../components/Icons';
 import SelectPro from '../components/SelectPro';
 import { CATEGORIAS_NEGOCIO } from '../constants/categorias';
@@ -179,318 +181,278 @@ const RegisterPage = () => {
     }
   };
 
+  // Piezas que se repiten en el formulario
+  const Seccion = ({ children }) => (
+    <div className="mb-3 mt-6 text-[11px] font-bold uppercase tracking-[1px] text-zippy first:mt-0">{children}</div>
+  );
+  const Req = () => <span className="text-red-400">*</span>;
+  const ErrorCampo = ({ campo }) => fieldError(campo)
+    ? <span className="mt-1.5 block text-xs text-red-300">{fieldError(campo)}</span>
+    : null;
+  const icono = (nombre) => <Icon name={nombre} size={17} />;
+  // Dos columnas solo cuando hay espacio (PC); en celular todo va en una
+  const dosColumnas = 'grid grid-cols-1 gap-x-3.5 sm:grid-cols-2';
+  const campo = 'mb-4 min-w-0';
+
   return (
-    <div className="reg-container">
-      <div className="reg-blob reg-blob--1" />
-      <div className="reg-blob reg-blob--2" />
-      <div className="reg-blob reg-blob--3" />
+    <PantallaAuth sacudir={shake}>
+      <LogoZippy />
+      <TituloAuth titulo="Crear cuenta" sub="Únete a la plataforma de Garzón, Huila" />
 
-      <div className={`reg-card ${shake ? 'reg-shake' : ''}`}>
+      {/* "reg-container" se deja solo para que el desplegable (SelectPro)
+          tome sus colores oscuros desde selectpro.css */}
+      <form onSubmit={handleSubmit} noValidate className="reg-container">
 
-        <div className="reg-header">
-          <div className="reg-logo">
-            <span className="reg-logo-icon">Z</span>
-            <span className="reg-logo-text">ZIPPY</span>
-          </div>
-          <h2 className="reg-title">Crear cuenta</h2>
-          <p className="reg-sub">Únete a la plataforma de Garzón, Huila</p>
-        </div>
-
-        <form onSubmit={handleSubmit} noValidate>
-
-          {/* Tipo de cuenta */}
-          <div className="reg-section-label">Tipo de cuenta</div>
-          <div className="reg-roles">
-            {ROLES.map(({ value, icon, label, desc }) => (
+        <Seccion>Tipo de cuenta</Seccion>
+        <div className="mb-1 grid grid-cols-2 gap-2.5">
+          {ROLES.map(({ value, icon, label, desc }) => {
+            const activo = form.tipo_usuario === value;
+            return (
               <button
                 key={value}
                 type="button"
-                className={`reg-role-card ${form.tipo_usuario === value ? 'reg-role-card--active' : ''}`}
+                className={cx(
+                  'flex cursor-pointer flex-col items-center gap-1 rounded-[14px] border-2 border-solid px-2 py-3.5 text-center transition-colors',
+                  activo ? 'border-zippy bg-zippy/[0.12]' : 'border-white/10 bg-white/[0.03] hover:border-zippy/40 hover:bg-zippy/[0.08]'
+                )}
                 onClick={() => setForm(prev => ({ ...prev, tipo_usuario: value }))}
               >
-                <span className="reg-role-icon"><Icon name={icon} size={30} /></span>
-                <span className="reg-role-label">{label}</span>
-                <span className="reg-role-desc">{desc}</span>
+                <span className={activo ? 'text-zippy' : 'text-white/80'}><Icon name={icon} size={28} /></span>
+                <span className={cx('text-sm font-bold', activo ? 'text-zippy' : 'text-white')}>{label}</span>
+                <span className="text-[11px] leading-tight text-white/45">{desc}</span>
               </button>
-            ))}
+            );
+          })}
+        </div>
+
+        {/* Solo para clientes: un negocio necesita los datos de abajo */}
+        {form.tipo_usuario === 'cliente' && (
+          <div className="mt-5">
+            <BotonesSociales texto="Registrarme" onError={(m) => { setError(m); if (m) triggerShake(); }} />
           </div>
+        )}
 
-          {/* Campos extra para vendedor */}
-          {isVendedor && (
-            <>
-              <div className="reg-section-label">Información del negocio</div>
-              <div className="reg-field">
-                <label>Nombre del negocio <span className="reg-req">*</span></label>
-                <div className="reg-input-wrap">
-                  <span className="reg-input-icon"><Icon name="vendedores" size={18} /></span>
-                  <input
-                    name="nombre_negocio" value={form.nombre_negocio}
-                    onChange={handleChange} onBlur={handleBlur}
-                    placeholder="Ej: Restaurante El Buen Sabor"
-                    className={fieldError('nombre_negocio') ? 'reg-input--err' : ''}
-                  />
-                </div>
-                {fieldError('nombre_negocio') && <span className="reg-field-err">{fieldError('nombre_negocio')}</span>}
-              </div>
+        {isVendedor && (
+          <>
+            <Seccion>Información del negocio</Seccion>
+            <div className={campo}>
+              <label className={etiquetaAuth}>Nombre del negocio <Req /></label>
+              <CampoAuth
+                name="nombre_negocio" value={form.nombre_negocio}
+                onChange={handleChange} onBlur={handleBlur}
+                placeholder="Ej: Restaurante El Buen Sabor"
+                icono={icono('vendedores')}
+                error={!!fieldError('nombre_negocio')}
+              />
+              <ErrorCampo campo="nombre_negocio" />
+            </div>
 
-              <div className="reg-field">
-                <label>Foto o logo del negocio <span className="reg-optional">(opcional)</span></label>
-                <div className="reg-logo-upload">
-                  <div className="reg-logo-preview">
-                    {logoPreview
-                      ? <img src={logoPreview} alt="Logo del negocio" />
-                      : <span className="reg-logo-placeholder"><Icon name="vendedores" size={22} /></span>}
-                  </div>
-                  <div>
-                    <label className="reg-logo-btn">
-                      Elegir foto
-                      <input
-                        type="file"
-                        accept="image/*"
-                        hidden
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setLogoFile(file);
-                          setLogoPreview(URL.createObjectURL(file));
-                        }}
-                      />
-                    </label>
-                    <p className="reg-logo-hint">Puedes agregarla ahora o después desde tu perfil.</p>
-                  </div>
+            <div className={campo}>
+              <label className={etiquetaAuth}>Foto o logo del negocio <span className="normal-case tracking-normal text-white/30">(opcional)</span></label>
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-dashed border-white/20 bg-white/[0.04] text-white/40">
+                  {logoPreview
+                    ? <img src={logoPreview} alt="Logo del negocio" className="h-full w-full object-cover" />
+                    : <Icon name="vendedores" size={22} />}
                 </div>
-              </div>
-
-              <div className="reg-grid-2">
-                <div className="reg-field">
-                  <label>Categoría <span className="reg-req">*</span></label>
-                  <SelectPro
-                    name="categoria_negocio"
-                    value={form.categoria_negocio}
-                    onChange={(val) => setForm(prev => ({ ...prev, categoria_negocio: val }))}
-                    options={CATEGORIAS_NEGOCIO}
-                    placeholder="Selecciona una categoría"
-                  />
-                </div>
-                <div className="reg-field">
-                  <label>Ciudad <span className="reg-req">*</span></label>
-                  <SelectPro
-                    name="ciudad"
-                    value={form.ciudad}
-                    onChange={(val) => setForm(prev => ({ ...prev, ciudad: val }))}
-                    options={CIUDADES}
-                    placeholder="Selecciona la ciudad"
-                    error={!!fieldError('ciudad')}
-                  />
-                  {fieldError('ciudad') && <span className="reg-field-err">{fieldError('ciudad')}</span>}
+                <div className="min-w-0">
+                  <label className="inline-block cursor-pointer rounded-lg border border-solid border-zippy/50 bg-zippy/10 px-3.5 py-2 text-[13px] font-semibold text-zippy">
+                    Elegir foto
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setLogoFile(file);
+                        setLogoPreview(URL.createObjectURL(file));
+                      }}
+                    />
+                  </label>
+                  <p className="m-0 mt-1.5 text-xs leading-snug text-white/40">Puedes agregarla ahora o después desde tu perfil.</p>
                 </div>
               </div>
-            </>
-          )}
-
-          {isDomiciliario && (
-            <>
-              <div className="reg-section-label">Tu vehículo</div>
-              <div className="reg-grid-2">
-                <div className="reg-field">
-                  <label>¿Con qué repartes? <span className="reg-req">*</span></label>
-                  <SelectPro
-                    name="vehiculo"
-                    value={form.vehiculo}
-                    onChange={(val) => setForm(prev => ({ ...prev, vehiculo: val, placa: val === 'bicicleta' ? '' : prev.placa }))}
-                    options={VEHICULOS}
-                    placeholder="Selecciona tu vehículo"
-                  />
-                </div>
-
-                {form.vehiculo !== 'bicicleta' && (
-                  <div className="reg-field">
-                    <label>Placa <span className="reg-req">*</span></label>
-                    <div className="reg-input-wrap">
-                      <span className="reg-input-icon"><Icon name={form.vehiculo === 'carro' ? 'carro' : 'moto'} size={18} /></span>
-                      <input
-                        name="placa"
-                        value={form.placa}
-                        onChange={e => setForm(prev => ({ ...prev, placa: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7) }))}
-                        placeholder={form.vehiculo === 'carro' ? 'ABC123' : 'ABC12D'}
-                        autoCapitalize="characters"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {error && <div className="reg-error"><span><Icon name="alerta" size={17} /></span> {error}</div>}
-
-          {/* Información personal */}
-          <div className="reg-section-label">Información personal</div>
-          <div className="reg-grid-2">
-            <div className="reg-field">
-              <label>Nombre <span className="reg-req">*</span></label>
-              <input
-                name="nombre" value={form.nombre}
-                onChange={handleChange} onBlur={handleBlur}
-                placeholder="Nombre" autoComplete="given-name"
-                className={fieldError('nombre') ? 'reg-input--err' : ''}
-              />
-              {fieldError('nombre') && <span className="reg-field-err">{fieldError('nombre')}</span>}
             </div>
-            <div className="reg-field">
-              <label>Apellido <span className="reg-req">*</span></label>
-              <input
-                name="apellido" value={form.apellido}
-                onChange={handleChange} onBlur={handleBlur}
-                placeholder="Apellido" autoComplete="family-name"
-                className={fieldError('apellido') ? 'reg-input--err' : ''}
-              />
-              {fieldError('apellido') && <span className="reg-field-err">{fieldError('apellido')}</span>}
-            </div>
-          </div>
 
-          <div className="reg-field">
-            <label>Correo electrónico <span className="reg-req">*</span></label>
-            <div className="reg-input-wrap">
-              <span className="reg-input-icon"><Icon name="correo" size={18} /></span>
-              <input
-                name="email" type="email" value={form.email}
-                onChange={handleChange} onBlur={handleBlur}
-                placeholder="usuario@ejemplo.com" autoComplete="email"
-                className={fieldError('email') ? 'reg-input--err' : ''}
-              />
-            </div>
-            {fieldError('email') && <span className="reg-field-err">{fieldError('email')}</span>}
-          </div>
-
-          <div className="reg-field">
-            <label>Teléfono <span className="reg-req">*</span></label>
-            <div className="reg-input-wrap">
-              <span className="reg-input-icon"><Icon name="telefono" size={18} /></span>
-              <input
-                name="telefono" type="tel" value={form.telefono}
-                onChange={handleChange} onBlur={handleBlur}
-                placeholder="320-123-4567" autoComplete="tel"
-                className={fieldError('telefono') ? 'reg-input--err' : ''}
-              />
-            </div>
-            {fieldError('telefono') && <span className="reg-field-err">{fieldError('telefono')}</span>}
-          </div>
-
-          {/* Contraseña */}
-          <div className="reg-section-label">Seguridad</div>
-          <div className="reg-grid-2">
-            <div className="reg-field">
-              <label>Contraseña <span className="reg-req">*</span></label>
-              <div className="reg-input-wrap">
-                <span className="reg-input-icon"><Icon name="candado" size={18} /></span>
-                <input
-                  name="password" type={showPass ? 'text' : 'password'} value={form.password}
-                  onChange={handleChange} onBlur={handleBlur}
-                  placeholder="Mín. 8 caracteres" autoComplete="new-password"
-                  className={fieldError('password') ? 'reg-input--err' : ''}
+            <div className={dosColumnas}>
+              <div className={campo}>
+                <label className={etiquetaAuth}>Categoría <Req /></label>
+                <SelectPro
+                  name="categoria_negocio"
+                  value={form.categoria_negocio}
+                  onChange={(val) => setForm(prev => ({ ...prev, categoria_negocio: val }))}
+                  options={CATEGORIAS_NEGOCIO}
+                  placeholder="Selecciona una categoría"
                 />
-                <button type="button" className="reg-toggle-pass" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
-                  {showPass ? (
-                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
-                    <path d="M3 3l14 14M8.5 8.6A3 3 0 0013.4 13M6.5 5.6C4.6 6.9 3 9 3 10s3 5 7 5c1.4 0 2.7-.4 3.8-1M10 5c4 0 7 3 7 5a8.5 8.5 0 01-1.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  ) : (
-                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
-                    <path d="M10 4C6 4 3 7 3 10s3 6 7 6 7-3 7-6-3-6-7-6z" stroke="currentColor" strokeWidth="1.5"/>
-                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
-                  )}
-                </button>
               </div>
-              {fieldError('password') && <span className="reg-field-err">{fieldError('password')}</span>}
-              {form.password && (
-                <div className="reg-strength">
-                  <div className="reg-strength-bar">
-                    <div className="reg-strength-fill" style={{ width: `${strengthPct}%`, background: STRENGTH_COLOR[strength] }} />
-                  </div>
-                  <span className="reg-strength-label" style={{ color: STRENGTH_COLOR[strength] }}>
-                    {STRENGTH_LABEL[strength]}
-                  </span>
+              <div className={campo}>
+                <label className={etiquetaAuth}>Ciudad <Req /></label>
+                <SelectPro
+                  name="ciudad"
+                  value={form.ciudad}
+                  onChange={(val) => setForm(prev => ({ ...prev, ciudad: val }))}
+                  options={CIUDADES}
+                  placeholder="Selecciona la ciudad"
+                  error={!!fieldError('ciudad')}
+                />
+                <ErrorCampo campo="ciudad" />
+              </div>
+            </div>
+          </>
+        )}
+
+        {isDomiciliario && (
+          <>
+            <Seccion>Tu vehículo</Seccion>
+            <div className={dosColumnas}>
+              <div className={campo}>
+                <label className={etiquetaAuth}>¿Con qué repartes? <Req /></label>
+                <SelectPro
+                  name="vehiculo"
+                  value={form.vehiculo}
+                  onChange={(val) => setForm(prev => ({ ...prev, vehiculo: val, placa: val === 'bicicleta' ? '' : prev.placa }))}
+                  options={VEHICULOS}
+                  placeholder="Selecciona tu vehículo"
+                />
+              </div>
+              {form.vehiculo !== 'bicicleta' && (
+                <div className={campo}>
+                  <label className={etiquetaAuth}>Placa <Req /></label>
+                  <CampoAuth
+                    name="placa"
+                    value={form.placa}
+                    onChange={e => setForm(prev => ({ ...prev, placa: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7) }))}
+                    placeholder={form.vehiculo === 'carro' ? 'ABC123' : 'ABC12D'}
+                    autoCapitalize="characters"
+                    icono={icono(form.vehiculo === 'carro' ? 'carro' : 'moto')}
+                  />
                 </div>
               )}
             </div>
+          </>
+        )}
 
-            <div className="reg-field">
-              <label>Confirmar contraseña <span className="reg-req">*</span></label>
-              <div className="reg-input-wrap">
-                <span className="reg-input-icon"><Icon name="candado" size={18} /></span>
-                <input
-                  name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
-                  onChange={handleChange} onBlur={handleBlur}
-                  placeholder="Repetir contraseña" autoComplete="new-password"
-                  className={fieldError('confirmPassword') ? 'reg-input--err' : ''}
-                />
-                <button type="button" className="reg-toggle-pass" onClick={() => setShowConfirm(p => !p)} tabIndex={-1}>
-                  {showConfirm ? (
-                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
-                    <path d="M3 3l14 14M8.5 8.6A3 3 0 0013.4 13M6.5 5.6C4.6 6.9 3 9 3 10s3 5 7 5c1.4 0 2.7-.4 3.8-1M10 5c4 0 7 3 7 5a8.5 8.5 0 01-1.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  ) : (
-                    <svg viewBox="0 0 20 20" fill="none" width="20" height="20">
-                    <path d="M10 4C6 4 3 7 3 10s3 6 7 6 7-3 7-6-3-6-7-6z" stroke="currentColor" strokeWidth="1.5"/>
-                    <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-                  </svg>
-                  )}
-                </button>
-              </div>
-              {fieldError('confirmPassword') && <span className="reg-field-err">{fieldError('confirmPassword')}</span>}
-              {form.confirmPassword && form.confirmPassword === form.password && (
-                <span className="reg-match">✓ Las contraseñas coinciden</span>
-              )}
-            </div>
+        {error && <div className="mt-4"><ErrorAuth>{error}</ErrorAuth></div>}
+
+        <Seccion>Información personal</Seccion>
+        <div className={dosColumnas}>
+          <div className={campo}>
+            <label className={etiquetaAuth}>Nombre <Req /></label>
+            <CampoAuth
+              name="nombre" value={form.nombre}
+              onChange={handleChange} onBlur={handleBlur}
+              placeholder="Nombre" autoComplete="given-name"
+              error={!!fieldError('nombre')}
+            />
+            <ErrorCampo campo="nombre" />
           </div>
+          <div className={campo}>
+            <label className={etiquetaAuth}>Apellido <Req /></label>
+            <CampoAuth
+              name="apellido" value={form.apellido}
+              onChange={handleChange} onBlur={handleBlur}
+              placeholder="Apellido" autoComplete="family-name"
+              error={!!fieldError('apellido')}
+            />
+            <ErrorCampo campo="apellido" />
+          </div>
+        </div>
 
-          <div className="reg-legal">
-            <label className="reg-terms">
-              <input
-                type="checkbox"
-                checked={form.aceptaTerminos}
-                onChange={e => { setForm(prev => ({ ...prev, aceptaTerminos: e.target.checked })); setError(''); }}
-              />
-              <span>Acepto los <a href="https://brayan-alejandro1705.github.io/zippy/terminos.html" target="_blank" rel="noopener noreferrer">Términos y Condiciones Generales</a> de ZIPPYgo SAS.</span>
-            </label>
+        <div className={campo}>
+          <label className={etiquetaAuth}>Correo electrónico <Req /></label>
+          <CampoAuth
+            name="email" type="email" value={form.email}
+            onChange={handleChange} onBlur={handleBlur}
+            placeholder="usuario@ejemplo.com" autoComplete="email"
+            icono={icono('correo')}
+            error={!!fieldError('email')}
+          />
+          <ErrorCampo campo="email" />
+        </div>
 
-            {isVendedor && (
-              <label className="reg-terms">
-                <input
-                  type="checkbox"
-                  checked={form.aceptaComercios}
-                  onChange={e => { setForm(prev => ({ ...prev, aceptaComercios: e.target.checked })); setError(''); }}
-                />
-                <span>Acepto las <a href="https://brayan-alejandro1705.github.io/zippy/comercios-aliados.html" target="_blank" rel="noopener noreferrer">Condiciones para Comercios Aliados</a>.</span>
-              </label>
+        <div className={campo}>
+          <label className={etiquetaAuth}>Teléfono <Req /></label>
+          <CampoAuth
+            name="telefono" type="tel" value={form.telefono}
+            onChange={handleChange} onBlur={handleBlur}
+            placeholder="320-123-4567" autoComplete="tel"
+            icono={icono('telefono')}
+            error={!!fieldError('telefono')}
+          />
+          <ErrorCampo campo="telefono" />
+        </div>
+
+        <Seccion>Seguridad</Seccion>
+        <div className={dosColumnas}>
+          <div className={campo}>
+            <label className={etiquetaAuth}>Contraseña <Req /></label>
+            <CampoAuth
+              name="password" type={showPass ? 'text' : 'password'} value={form.password}
+              onChange={handleChange} onBlur={handleBlur}
+              placeholder="Mín. 8 caracteres" autoComplete="new-password"
+              icono={icono('candado')}
+              derecha={<BotonOjo visible={showPass} onClick={() => setShowPass(p => !p)} />}
+              error={!!fieldError('password')}
+            />
+            <ErrorCampo campo="password" />
+            {form.password && (
+              <div className="mt-2 flex items-center gap-2.5">
+                <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${strengthPct}%`, background: STRENGTH_COLOR[strength] }} />
+                </div>
+                <span className="text-[11px] font-semibold" style={{ color: STRENGTH_COLOR[strength] }}>{STRENGTH_LABEL[strength]}</span>
+              </div>
             )}
-
-            <label className="reg-terms">
-              <input
-                type="checkbox"
-                checked={form.aceptaPrivacidad}
-                onChange={e => { setForm(prev => ({ ...prev, aceptaPrivacidad: e.target.checked })); setError(''); }}
-              />
-              <span>Autorizo el tratamiento de mis datos personales conforme a la <a href="https://brayan-alejandro1705.github.io/zippy/privacidad.html" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.</span>
-            </label>
           </div>
 
-          <button type="submit" className="reg-submit" disabled={loading}>
-            {loading
-              ? <ZLoader size="sm" inverted />
-              : `Crear cuenta como ${ROLES.find(r => r.value === form.tipo_usuario)?.label} →`
-            }
-          </button>
+          <div className={campo}>
+            <label className={etiquetaAuth}>Confirmar contraseña <Req /></label>
+            <CampoAuth
+              name="confirmPassword" type={showConfirm ? 'text' : 'password'} value={form.confirmPassword}
+              onChange={handleChange} onBlur={handleBlur}
+              placeholder="Repetir contraseña" autoComplete="new-password"
+              icono={icono('candado')}
+              derecha={<BotonOjo visible={showConfirm} onClick={() => setShowConfirm(p => !p)} />}
+              error={!!fieldError('confirmPassword')}
+            />
+            <ErrorCampo campo="confirmPassword" />
+            {form.confirmPassword && form.confirmPassword === form.password && (
+              <span className="mt-1.5 block text-xs font-semibold text-green-400">✓ Las contraseñas coinciden</span>
+            )}
+          </div>
+        </div>
 
-          <p className="reg-footer">
-            ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
-          </p>
+        {/* Casillas legales: la casilla mide 18 px para que se pueda tocar con el dedo */}
+        <div className="mb-2 mt-1 flex flex-col gap-3">
+          {[
+            { key: 'aceptaTerminos', texto: <>Acepto los <a className={enlaceAuth} href="https://brayan-alejandro1705.github.io/zippy/terminos.html" target="_blank" rel="noopener noreferrer">Términos y Condiciones Generales</a> de ZIPPYgo SAS.</> },
+            isVendedor && { key: 'aceptaComercios', texto: <>Acepto las <a className={enlaceAuth} href="https://brayan-alejandro1705.github.io/zippy/comercios-aliados.html" target="_blank" rel="noopener noreferrer">Condiciones para Comercios Aliados</a>.</> },
+            { key: 'aceptaPrivacidad', texto: <>Autorizo el tratamiento de mis datos personales conforme a la <a className={enlaceAuth} href="https://brayan-alejandro1705.github.io/zippy/privacidad.html" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.</> },
+          ].filter(Boolean).map(({ key, texto }) => (
+            <label key={key} className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-white/55">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-zippy"
+                checked={form[key]}
+                onChange={e => { setForm(prev => ({ ...prev, [key]: e.target.checked })); setError(''); }}
+              />
+              <span>{texto}</span>
+            </label>
+          ))}
+        </div>
 
-        </form>
-      </div>
-    </div>
+        <button type="submit" className={cx(botonAuth, 'mt-4')} disabled={loading}>
+          {loading
+            ? <ZLoader size="sm" inverted />
+            : `Crear cuenta como ${ROLES.find(r => r.value === form.tipo_usuario)?.label} →`}
+        </button>
+
+        <p className="m-0 mt-5 text-center text-[13px] text-white/35">
+          ¿Ya tienes cuenta? <a href="/login" className={enlaceAuth}>Inicia sesión</a>
+        </p>
+      </form>
+    </PantallaAuth>
   );
 };
 

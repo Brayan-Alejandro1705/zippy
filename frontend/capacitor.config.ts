@@ -35,6 +35,13 @@ const config: CapacitorConfig = {
     FirebaseMessaging: {
       presentationOptions: ['alert', 'badge', 'sound']
     },
+    // "Continuar con Google" (Android e iPhone) y "Continuar con Apple" (solo
+    // iPhone), solo para clientes. El plugin inicia sesion con la ventana
+    // nativa del celular y el backend verifica el token (ver utils/loginSocial.js).
+    FirebaseAuthentication: {
+      skipNativeAuth: false,
+      providers: ['google.com', 'apple.com']
+    },
     // Solo en la version empaquetada (iOS). En Android el frontend ya viene del
     // servidor, asi que ahi el actualizador no tendria nada que hacer.
     ...(empaquetado ? {
@@ -67,7 +74,8 @@ const config: CapacitorConfig = {
     ios: {
       spm: {
         packageOptions: {
-          '@capacitor-firebase/messaging': { symlink: true }
+          '@capacitor-firebase/messaging': { symlink: true },
+          '@capacitor-firebase/authentication': { symlink: true }
         }
       }
     }

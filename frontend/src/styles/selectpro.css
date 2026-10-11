@@ -154,18 +154,20 @@ body:not(.dark-theme) .sp-opt--sel.sp-opt--hl {
   color: #c2410c;
 }
 
-/* El registro siempre va sobre fondo oscuro, aunque el tema sea claro */
-.reg-container .sp-control {
+/* El registro siempre va sobre fondo oscuro, aunque el tema sea claro.
+   Llevan "body" delante para ganarle a body:not(.dark-theme) de arriba;
+   sin eso, en tema claro el desplegable salia blanco sobre el fondo oscuro. */
+body .reg-container .sp-control {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.14);
   color: #f1f5f9;
 }
-.reg-container .sp-panel {
+body .reg-container .sp-panel {
   background: #1b2537;
   border-color: rgba(255, 255, 255, 0.12);
 }
-.reg-container .sp-opt { color: #cbd5e1; }
-.reg-container .sp-opt--hl { background: rgba(255, 122, 0, 0.14); color: #f8fafc; }
+body .reg-container .sp-opt { color: #cbd5e1; }
+body .reg-container .sp-opt--hl { background: rgba(255, 122, 0, 0.14); color: #f8fafc; }
 
 /* -- Accesibilidad ------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

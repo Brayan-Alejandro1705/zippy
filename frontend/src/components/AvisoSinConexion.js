@@ -27,7 +27,7 @@ const AvisoSinConexion = () => {
   if (!sinRed) return null;
 
   return (
-    <div className="aviso-sin-red" role="status">
+    <div className="shrink-0 bg-red-100 px-3 py-1.5 text-center text-xs font-bold text-red-800" role="status">
       Sin internet. Revisa los datos o el wifi.
     </div>
   );
