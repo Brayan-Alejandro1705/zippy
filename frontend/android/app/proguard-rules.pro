@@ -40,3 +40,16 @@
 
 # ── Google Maps (se usa la API key en el frontend) ──────────────────────
 -keep class com.google.android.gms.maps.** { *; }
+
+
+# ── Continuar con Google (@capacitor-firebase/authentication) ───────────
+# El plugin compila contra el SDK de Facebook pero no lo trae (no usamos
+# Facebook): sin esto R8 falla con "Missing class com.facebook...".
+-dontwarn com.facebook.**
+# El plugin y sus manejadores por proveedor se cargan por reflexion
+-keep class io.capawesome.capacitorjs.plugins.firebase.authentication.** { *; }
+# Credential Manager busca su implementacion de Play Services por reflexion
+-if class androidx.credentials.CredentialManager
+-keep class androidx.credentials.playservices.** { *; }
+-keep class com.google.android.libraries.identity.googleid.** { *; }
+-dontwarn com.google.android.libraries.identity.googleid.**
