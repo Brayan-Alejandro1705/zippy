@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { authService } from '../config/api';
 import ZLoader from '../components/ZLoader';
 import PantallaAuth, { LogoZippy, TituloAuth, ErrorAuth, CampoAuth, IconoCorreo, IconoCandado, etiquetaAuth, botonAuth, enlaceAuth } from '../components/auth/PantallaAuth';
@@ -14,6 +15,7 @@ const extractErrorMessage = (data, fallback) => {
 // para verificar la cuenta (mismas columnas en el backend, solo que aquí
 // termina en un cambio de contraseña en vez de un login).
 const RecuperarPasswordPage = () => {
+  const { search } = useLocation();
   const [paso, setPaso] = useState('solicitar'); // 'solicitar' | 'confirmar'
   const [email, setEmail] = useState('');
   const [codigo, setCodigo] = useState('');
@@ -188,15 +190,15 @@ const RecuperarPasswordPage = () => {
       {paso === 'listo' && (
         <>
           <TituloAuth titulo="¡Listo!" sub={`${info || 'Tu contraseña fue actualizada.'} Ya puedes iniciar sesión.`} />
-          <a href="/login" className={`${botonAuth} no-underline`}>
+          <Link to={`/login${search}`} className={`${botonAuth} no-underline`}>
             <span>Ir al login</span>{flecha}
-          </a>
+          </Link>
         </>
       )}
 
       {paso !== 'listo' && (
         <p className="m-0 mt-6 text-center text-[13px]">
-          <a href="/login" className={enlaceAuth}>Volver al login</a>
+          <Link to={`/login${search}`} className={enlaceAuth}>Volver al login</Link>
         </p>
       )}
     </PantallaAuth>

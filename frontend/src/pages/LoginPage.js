@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authService } from '../config/api';
 import { guardarCuentaActual } from '../utils/cuentas';
 import ZLoader from '../components/ZLoader';
@@ -15,6 +15,9 @@ const ETIQUETA_ROL = {
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  // Se conserva el ?agregar=1 del selector de cuentas al ir a registro o a
+  // recuperar la clave; sin el, la ruta publica manda de vuelta a la tienda.
+  const { search } = useLocation();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -107,7 +110,7 @@ const LoginPage = () => {
           {/* En 320 px la etiqueta y "¿Olvidaste...?" bajan de linea si no caben */}
           <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <label htmlFor="lp-pass" className={etiquetaAuth.replace('mb-2 ', '')}>Contraseña</label>
-            <a href="/recuperar" className="text-xs font-medium text-zippy/75 no-underline transition-colors hover:text-zippy">¿Olvidaste tu contraseña?</a>
+            <Link to={`/recuperar${search}`} className="text-xs font-medium text-zippy/75 no-underline transition-colors hover:text-zippy">¿Olvidaste tu contraseña?</Link>
           </div>
           <CampoAuth
             id="lp-pass"
@@ -145,7 +148,7 @@ const LoginPage = () => {
       </form>
 
       <p className="m-0 mt-6 text-center text-[13px] text-white/35">
-        ¿No tienes cuenta? <a href="/register" className={enlaceAuth}>Regístrate aquí</a>
+        ¿No tienes cuenta? <Link to={`/register${search}`} className={enlaceAuth}>Regístrate aquí</Link>
       </p>
 
       <p className="m-0 mt-5 text-center text-[11px] tracking-[0.5px] text-white/15">Garzón, Huila — Colombia</p>

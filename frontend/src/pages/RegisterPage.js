@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authService } from '../config/api';
 import ZLoader from '../components/ZLoader';
 import PantallaAuth, { LogoZippy, TituloAuth, ErrorAuth, CampoAuth, BotonOjo, etiquetaAuth, botonAuth, enlaceAuth } from '../components/auth/PantallaAuth';
@@ -50,6 +50,7 @@ const extractErrorMessage = (data, fallback) => {
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [form, setForm] = useState({
     nombre: '', apellido: '', email: '',
     telefono: '', tipo_usuario: 'cliente',
@@ -449,7 +450,7 @@ const RegisterPage = () => {
         </button>
 
         <p className="m-0 mt-5 text-center text-[13px] text-white/35">
-          ¿Ya tienes cuenta? <a href="/login" className={enlaceAuth}>Inicia sesión</a>
+          ¿Ya tienes cuenta? <Link to={`/login${search}`} className={enlaceAuth}>Inicia sesión</Link>
         </p>
       </form>
     </PantallaAuth>

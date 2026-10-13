@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { authService, productosService, negociosService } from '../config/api';
 import ZLoader from '../components/ZLoader';
 import Icon from '../components/Icons';
@@ -142,7 +142,7 @@ const VerificarCuentaPage = () => {
         </button>
 
         <p className="m-0 mt-5 text-[13px]">
-          <a href="/login" className="text-white/45 no-underline hover:text-white/70">Volver al login</a>
+          <Link to="/login" className="text-white/45 no-underline hover:text-white/70">Volver al login</Link>
         </p>
       </div>
     </PantallaAuth>
