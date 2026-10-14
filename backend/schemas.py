@@ -111,6 +111,26 @@ class UsuarioResponse(UsuarioBase):
 # SCHEMAS: NEGOCIOS
 # ============================================================================
 
+# Horas del negocio (oct 2026). La columna en la base es de tipo hora (TIME):
+# un texto vacio la hacia fallar con error 500 al guardar Configuracion, aunque
+# el negocio solo quisiera marcar su local en el mapa. Vacio = sin horario, y
+# se aceptan formatos comunes ("8:00 AM", "8 pm", "18:30").
+def _normalizar_hora(v):
+    if v is None:
+        return None
+    if isinstance(v, time):
+        return v.strftime('%H:%M')
+    texto = str(v).strip().lower().replace('.', '').replace('a m', 'am').replace('p m', 'pm')
+    if not texto:
+        return None
+    texto = texto.replace(' ', '')
+    for formato in ('%H:%M', '%H:%M:%S', '%I:%M%p', '%I%p', '%H'):
+        try:
+            return datetime.strptime(texto, formato).strftime('%H:%M')
+        except ValueError:
+            continue
+    raise ValueError('Hora no válida. Escríbela como 8:00 AM o 18:00')
+
 class NegocioBase(BaseModel):
     nombre_negocio: str = Field(..., min_length=1, max_length=255)
     descripcion: Optional[str] = None
@@ -125,6 +145,11 @@ class NegocioBase(BaseModel):
     banco: Optional[str] = None
     cuenta_tipo: Optional[str] = None
     cuenta_numero: Optional[str] = None
+
+    @field_validator('hora_apertura', 'hora_cierre', mode='before')
+    @classmethod
+    def _horas(cls, v):
+        return _normalizar_hora(v)
 
 class NegocioCreate(NegocioBase):
     pass
@@ -149,6 +174,11 @@ class NegocioUpdate(BaseModel):
     # donde recoger y la ruta pasa primero por el negocio.
     latitud: Optional[Decimal] = Field(None, ge=-90, le=90)
     longitud: Optional[Decimal] = Field(None, ge=-180, le=180)
+
+    @field_validator('hora_apertura', 'hora_cierre', mode='before')
+    @classmethod
+    def _horas(cls, v):
+        return _normalizar_hora(v)
 
 class NegocioResponse(NegocioBase):
     id: uuid.UUID

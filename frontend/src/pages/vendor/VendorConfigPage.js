@@ -104,7 +104,12 @@ const SeccionTienda = () => {
       });
       addToast('Información de la tienda actualizada ✓', 'success');
     } catch (err) {
-      addToast(err.response?.data?.detail || 'No se pudo guardar la información', 'error');
+      // Los errores de validacion llegan como lista; antes salia "[object Object]"
+      const d = err.response?.data?.detail;
+      const texto = typeof d === 'string' ? d
+        : Array.isArray(d) ? d.map(x => String(x.msg || '').replace(/^Value error, /, '')).join('. ')
+        : '';
+      addToast(texto || 'No se pudo guardar la información', 'error');
     } finally {
       setSaving(false);
     }
