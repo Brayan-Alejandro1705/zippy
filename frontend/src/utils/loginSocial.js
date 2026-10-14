@@ -19,6 +19,7 @@
 // ============================================================================
 
 import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { authService } from '../config/api';
 import { guardarCuentaActual } from './cuentas';
 
@@ -35,7 +36,12 @@ const hayPlugin = () =>
 export const googleDisponible = () => hayPlugin() && ['ios', 'android'].includes(plataforma());
 export const appleDisponible = () => hayPlugin() && plataforma() === 'ios';
 
-const cargarPlugin = async () => (await import('@capacitor-firebase/authentication')).FirebaseAuthentication;
+// OJO: el plugin se importa normal, no con import() dentro de una funcion
+// async. Los plugins de Capacitor son un "Proxy" que responde a cualquier
+// nombre, incluido "then"; al devolverlo desde una funcion async, JavaScript
+// lo confunde con una promesa, llama a plugin.then() en el celular (metodo que
+// no existe) y se queda esperando para siempre. Eso era el "Conectando…"
+// infinito del boton de Google.
 
 const esCancelacion = (err) => {
   const msg = String(err?.message || err || '').toLowerCase();
@@ -105,9 +111,7 @@ const conLimite = (promesa, ms, paso) => Promise.race([
 ]);
 
 export const entrarConProveedor = async (proveedor) => {
-  let FirebaseAuthentication;
   try {
-    FirebaseAuthentication = await conLimite(cargarPlugin(), 10000, 'cargar');
     // Prueba rapida: si el plugin nativo no contesta ni esto, el problema es
     // el plugin (no la ventana de Google).
     await conLimite(FirebaseAuthentication.getCurrentUser(), 6000, 'plugin');
@@ -168,7 +172,6 @@ export const entrarConProveedor = async (proveedor) => {
 export const revocarApple = async () => {
   if (!appleDisponible() || forzado) return;
   try {
-    const FirebaseAuthentication = await cargarPlugin();
     const r = await FirebaseAuthentication.signInWithApple();
     const codigo = r?.credential?.authorizationCode;
     if (codigo) await FirebaseAuthentication.revokeAccessToken({ token: codigo });
