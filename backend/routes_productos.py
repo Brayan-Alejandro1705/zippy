@@ -238,6 +238,32 @@ async def listar_productos(
     return [ProductoResponse.from_orm(p) for p in productos]
 
 @router.get(
+    "/mis-productos",
+    response_model=List[ProductoResponse],
+    summary="Productos del negocio del vendedor",
+    description="Todos los productos del negocio del vendedor, incluidos los pausados. No incluye los eliminados."
+)
+async def mis_productos(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Oct 2026: el panel del negocio usaba la lista publica (/productos/), que
+    solo trae productos visibles. Al pausar un producto desaparecia tambien de
+    la lista del propio vendedor y ya no lo podia volver a activar.
+    Esta lista trae los activos y los pausados; los eliminados (inactivo) no.
+    """
+    negocio = db.query(Negocio).filter(Negocio.vendedor_id == current_user.id).first()
+    if not negocio:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tienes un negocio registrado")
+    return (
+        db.query(Producto)
+        .filter(Producto.negocio_id == negocio.id, Producto.estado == "activo")
+        .order_by(Producto.fecha_creacion.desc())
+        .all()
+    )
+
+@router.get(
     "/{producto_id}",
     response_model=ProductoResponse,
     summary="Obtener producto por ID",

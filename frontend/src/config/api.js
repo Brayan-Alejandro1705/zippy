@@ -211,6 +211,8 @@ export const vendedoresService = {
 
 export const productosService = {
   listar:    (negocio_id, params = {}) => api.get('/productos/', { params: { negocio_id, ...params } }),
+  // Panel del negocio: incluye los pausados (la lista publica no los trae)
+  misProductos: () => api.get('/productos/mis-productos'),
   obtener:   (id) => api.get(`/productos/${id}`),
   crear:     (negocio_id, datos) => api.post('/productos/', datos, { params: { negocio_id } }),
   actualizar:(id, datos) => api.put(`/productos/${id}`, datos),

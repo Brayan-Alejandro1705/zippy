@@ -323,10 +323,17 @@
 }
 .vp-action-btn--edit:hover { background: #e0e7ff; }
 .vp-action-btn--pause {
+  background: #fffbeb;
+  color: #b45309;
+}
+.vp-action-btn--pause:hover { background: #fef3c7; }
+/* Eliminar: el rojo queda solo para esta accion (antes lo usaba Pausar) */
+.vp-action-btn--delete {
   background: #fef2f2;
   color: #b91c1c;
 }
-.vp-action-btn--pause:hover { background: #fee2e2; }
+.vp-action-btn--delete:hover { background: #fee2e2; }
+.dark-theme .vp-action-btn--delete { background: rgba(239,68,68,0.12); color: #fca5a5; }
 .vp-action-btn--activate {
   background: #ecfdf5;
   color: #047857;

@@ -249,8 +249,8 @@
 /* Acciones de la card */
 .dark-theme .vp-action-btn--edit { background-color: #1a2236; color: #93c5fd; }
 .dark-theme .vp-action-btn--edit:hover { background-color: #233047; }
-.dark-theme .vp-action-btn--pause { background-color: #3a1a1a; color: #f87171; }
-.dark-theme .vp-action-btn--pause:hover { background-color: #4a2020; }
+.dark-theme .vp-action-btn--pause { background-color: #3a2a10; color: #fbbf24; }
+.dark-theme .vp-action-btn--pause:hover { background-color: #4a3514; }
 .dark-theme .vp-action-btn--activate { background-color: #14321c; color: #4ade80; }
 .dark-theme .vp-action-btn--activate:hover { background-color: #1a4226; }
 

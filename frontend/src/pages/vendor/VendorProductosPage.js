@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import VendorLayout from '../../components/VendorLayout';
-import { productosService, negociosService } from '../../config/api';
+import { productosService } from '../../config/api';
 import { useToast } from '../../context/ToastContext';
 import ZLoader from '../../components/ZLoader';
+import ConfirmModal from '../../components/ConfirmModal';
 import '../../styles/VendorProductos.css';
 import Icon from '../../components/Icons';
 import { cx, titulo, subtitulo, btn, chip, chipsFila } from '../../ui/tw';
@@ -186,12 +187,29 @@ const VendorProductosPage = () => {
   const [orden, setOrden]         = useState('default');
   const [vista, setVista]         = useState('grid');
   const [ofertaModalProd, setOfertaModalProd] = useState(null);
+  const [aEliminar, setAEliminar] = useState(null);
+
+  // Eliminar = el producto sale de la tienda y de esta lista. En el servidor
+  // queda guardado como inactivo porque los pedidos viejos lo siguen usando.
+  const eliminar = async () => {
+    const p = aEliminar;
+    setAEliminar(null);
+    if (!p) return;
+    try {
+      await productosService.eliminar(p.id);
+      setProductos(prev => prev.filter(x => x.id !== p.id));
+      addToast(`"${p.nombre}" eliminado`, 'success');
+    } catch (err) {
+      addToast(err.response?.data?.detail || 'No se pudo eliminar el producto', 'error');
+    }
+  };
 
   useEffect(() => {
     const cargar = async () => {
       try {
-        const { data: negocio } = await negociosService.miNegocio();
-        const { data } = await productosService.listar(negocio.id);
+        // misProductos trae tambien los pausados. Con la lista publica, al
+        // pausar un producto desaparecia y ya no se podia volver a activar.
+        const { data } = await productosService.misProductos();
         setProductos(data.map(productoDeApi));
       } catch {
         addToast('No se pudieron cargar tus productos', 'error');
@@ -368,6 +386,9 @@ const VendorProductosPage = () => {
                     <button className="vp-action-btn" onClick={() => setOfertaModalProd(p)}>
                       <Icon name="rayo" size={14} /> {p.enOferta ? 'Ver oferta' : 'Oferta'}
                     </button>
+                    <button className="vp-action-btn vp-action-btn--delete" onClick={() => setAEliminar(p)} aria-label={`Eliminar ${p.nombre}`}>
+                      <Icon name="basura" size={14} /> Eliminar
+                    </button>
                   </div>
                 </div>
               </div>
@@ -421,12 +442,26 @@ const VendorProductosPage = () => {
                   <button className="vp-action-btn" onClick={() => setOfertaModalProd(p)}>
                     <Icon name="rayo" size={14} /> {p.enOferta ? 'Ver oferta' : 'Oferta'}
                   </button>
+                  <button className="vp-action-btn vp-action-btn--delete" onClick={() => setAEliminar(p)} aria-label={`Eliminar ${p.nombre}`}>
+                    <Icon name="basura" size={14} /> Eliminar
+                  </button>
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!aEliminar}
+        title="Eliminar producto"
+        message={aEliminar ? `¿Eliminar "${aEliminar.nombre}"? Deja de aparecer en tu tienda. Esta acción no se puede deshacer; si solo quieres ocultarlo un tiempo, usa Pausar.` : ''}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        danger
+        onConfirm={eliminar}
+        onCancel={() => setAEliminar(null)}
+      />
 
       <OfertaModal
         producto={ofertaModalProd}
