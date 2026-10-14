@@ -22,6 +22,7 @@ import {
   rutaPorTipo,
 } from '../utils/cuentas';
 import '../styles/AccountSwitcher.css';
+import { useCerrarConAtras } from '../utils/atras';
 
 const NOMBRE_ROL = {
   admin: 'Administrador',
@@ -33,6 +34,7 @@ const NOMBRE_ROL = {
 const AccountSwitcher = ({ variant = 'header', className = '' }) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  useCerrarConAtras(open, () => setOpen(false));
   const [cuentas, setCuentas] = useState([]);
 
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -53,7 +55,8 @@ const AccountSwitcher = ({ variant = 'header', className = '' }) => {
     if (!activado) return;
     // Recarga completa a propósito: limpia el estado en memoria de la cuenta
     // anterior (carrito, contextos, datos cargados) antes de entrar a la nueva.
-    window.location.href = rutaPorTipo(activado.tipo_usuario);
+    // replace (no href) para que "atras" no regrese a la cuenta anterior.
+    window.location.replace(rutaPorTipo(activado.tipo_usuario));
   };
 
   const quitarCuenta = (e, usuarioId) => {

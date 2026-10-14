@@ -37,6 +37,43 @@ export const appleDisponible = () => hayPlugin() && plataforma() === 'ios';
 
 const cargarPlugin = async () => (await import('@capacitor-firebase/authentication')).FirebaseAuthentication;
 
+const esCancelacion = (err) => {
+  const msg = String(err?.message || err || '').toLowerCase();
+  return msg.includes('cancel') || msg.includes('1001') || msg.includes('12501');
+};
+
+// Google en Android. Primero se intenta con Credential Manager (la ventanita
+// nueva de Google). En algunos celulares esa llamada no muestra nada y nunca
+// responde: el boton se quedaba en "Conectando…" para siempre. Por eso:
+//   - Si en 8 segundos no se abrio ninguna ventana (la app no paso a segundo
+//     plano), se usa el selector de cuentas clasico de Google.
+//   - Si Credential Manager falla (por ejemplo, no hay cuentas guardadas),
+//     tambien se usa el selector clasico, que deja agregar una cuenta.
+const googleEnAndroid = async (FirebaseAuthentication) => {
+  const { App } = await import('@capacitor/app');
+  let seAbrioVentana = false;
+  const escucha = await App.addListener('pause', () => { seAbrioVentana = true; });
+  try {
+    const intento = FirebaseAuthentication.signInWithGoogle()
+      .then(valor => ({ valor }), error => ({ error }));
+    const primero = await Promise.race([
+      intento,
+      new Promise(listo => setTimeout(() => listo({ sinRespuesta: true }), 8000)),
+    ]);
+
+    let r = primero;
+    // Hubo ventana pero la persona sigue eligiendo: se espera lo que tarde
+    if (primero.sinRespuesta && seAbrioVentana) r = await intento;
+
+    if (r.valor) return r.valor;
+    if (r.error && esCancelacion(r.error)) throw r.error;
+    // Sin ventana o con error: selector clasico
+    return await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
+  } finally {
+    escucha.remove();
+  }
+};
+
 /**
  * Inicia sesion con 'google' o 'apple'. Devuelve { usuario, nuevo } o null si
  * la persona cerro la ventana sin elegir cuenta. Lanza Error con un mensaje
@@ -46,14 +83,19 @@ export const entrarConProveedor = async (proveedor) => {
   const FirebaseAuthentication = await cargarPlugin();
   let resultado;
   try {
-    resultado = proveedor === 'apple'
-      ? await FirebaseAuthentication.signInWithApple({ scopes: ['email', 'name'] })
-      : await FirebaseAuthentication.signInWithGoogle();
+    if (proveedor === 'apple') {
+      resultado = await FirebaseAuthentication.signInWithApple({ scopes: ['email', 'name'] });
+    } else if (plataforma() === 'android') {
+      resultado = await googleEnAndroid(FirebaseAuthentication);
+    } else {
+      resultado = await FirebaseAuthentication.signInWithGoogle();
+    }
   } catch (err) {
-    const msg = String(err?.message || err || '').toLowerCase();
     // Cerro la ventana o toco "Cancelar": no es un error que haya que mostrar
-    if (msg.includes('cancel') || msg.includes('1001') || msg.includes('12501')) return null;
-    throw new Error('No se pudo abrir el inicio de sesión. Intenta de nuevo.');
+    if (esCancelacion(err)) return null;
+    // El codigo entre parentesis ayuda a saber que paso si alguien lo reporta
+    const codigo = err?.code || String(err?.message || '').slice(0, 60);
+    throw new Error(`No se pudo abrir el inicio de sesión. Intenta de nuevo.${codigo ? ` (${codigo})` : ''}`);
   }
 
   const { token } = await FirebaseAuthentication.getIdToken({ forceRefresh: false });

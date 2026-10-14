@@ -50,6 +50,19 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Pantallas de un solo tipo de cuenta. Si la cuenta activa es de otro tipo
+// (por ejemplo, despues de cambiar de super admin a cliente) se manda a su
+// propio inicio en vez de mostrarle un panel que no es suyo.
+const SoloRol = ({ roles, children }) => {
+  if (!localStorage.getItem('access_token')) return <Navigate to="/login" replace />;
+  const tipo = getStoredTipoUsuario() || 'cliente';
+  if (!roles.includes(tipo)) return <Navigate to={homeRouteFor(tipo)} replace />;
+  return children;
+};
+const Admin = ({ children }) => <SoloRol roles={['admin']}>{children}</SoloRol>;
+const Vendedor = ({ children }) => <SoloRol roles={['vendedor']}>{children}</SoloRol>;
+const Repartidor = ({ children }) => <SoloRol roles={['domiciliario']}>{children}</SoloRol>;
+
 // ── Persistencia de sesión ───────────────────────────────────────────────────
 // Si ya hay un token guardado (login previo), la persona no debe ver el login
 // otra vez al cerrar y volver a abrir la app: se manda directo a su pantalla.
@@ -97,11 +110,11 @@ const PublicOnlyRoute = ({ children }) => {
 
 const App = () => (
   <ThemeProvider>
-    <BackButtonHandler />
     <UpdateGate />
     <ToastProvider>
       <CartProvider>
       <BrowserRouter>
+        <BackButtonHandler />
         <Routes>
           <Route path="/bienvenida" element={<PublicOnlyRoute><BienvenidaPage /></PublicOnlyRoute>} />
           <Route path="/login"    element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
@@ -109,28 +122,28 @@ const App = () => (
           <Route path="/verificar" element={<VerificarCuentaPage />} />
           <Route path="/recuperar" element={<RecuperarPasswordPage />} />
           <Route path="/completar-telefono" element={<ProtectedRoute><CompletarTelefonoPage /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/usuarios/:id" element={<ProtectedRoute><UsuarioDetallePage /></ProtectedRoute>} />
-          <Route path="/usuarios"     element={<ProtectedRoute><UsuariosPage /></ProtectedRoute>} />
-          <Route path="/vendedores/nuevo" element={<ProtectedRoute><NuevoVendedorPage /></ProtectedRoute>} />
-          <Route path="/vendedores" element={<ProtectedRoute><VendedoresPage /></ProtectedRoute>} />
-          <Route path="/solicitudes" element={<ProtectedRoute><SolicitudesPage /></ProtectedRoute>} />
-          <Route path="/validacion" element={<ProtectedRoute><ValidacionPage /></ProtectedRoute>} />
-          <Route path="/negocios"    element={<ProtectedRoute><NegociosPage /></ProtectedRoute>} />
-          <Route path="/repartidores" element={<ProtectedRoute><RepartidoresPage /></ProtectedRoute>} />
-          <Route path="/repartidores/nuevo" element={<ProtectedRoute><NuevoRepartidorPage /></ProtectedRoute>} />
-          <Route path="/roles" element={<ProtectedRoute><RolesPermisosPage /></ProtectedRoute>} />
-          <Route path="/logs" element={<ProtectedRoute><LogsActividadPage /></ProtectedRoute>} />
-          <Route path="/config" element={<ProtectedRoute><ConfigPage /></ProtectedRoute>} />
-          <Route path="/vendor/productos/nuevo"       element={<ProtectedRoute><VendorNuevoProductoPage /></ProtectedRoute>} />
-          <Route path="/vendor/productos/:id/editar" element={<ProtectedRoute><VendorEditarProductoPage /></ProtectedRoute>} />
-          <Route path="/vendor/productos"            element={<ProtectedRoute><VendorProductosPage /></ProtectedRoute>} />
-          <Route path="/vendor/ventas"          element={<ProtectedRoute><VendorVentasPage /></ProtectedRoute>} />
-          <Route path="/vendor/ordenes"   element={<ProtectedRoute><VendorOrdenesPage /></ProtectedRoute>} />
-          <Route path="/vendor/reportes"  element={<ProtectedRoute><VendorReportesPage /></ProtectedRoute>} />
-          <Route path="/vendor/perfil"    element={<ProtectedRoute><VendorPerfilPage /></ProtectedRoute>} />
-          <Route path="/vendor/pagos"     element={<ProtectedRoute><VendorPagosPage /></ProtectedRoute>} />
-          <Route path="/vendor/config"    element={<ProtectedRoute><VendorConfigPage /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<Admin><DashboardPage /></Admin>} />
+          <Route path="/usuarios/:id" element={<Admin><UsuarioDetallePage /></Admin>} />
+          <Route path="/usuarios"     element={<Admin><UsuariosPage /></Admin>} />
+          <Route path="/vendedores/nuevo" element={<Admin><NuevoVendedorPage /></Admin>} />
+          <Route path="/vendedores" element={<Admin><VendedoresPage /></Admin>} />
+          <Route path="/solicitudes" element={<Admin><SolicitudesPage /></Admin>} />
+          <Route path="/validacion" element={<Admin><ValidacionPage /></Admin>} />
+          <Route path="/negocios"    element={<Admin><NegociosPage /></Admin>} />
+          <Route path="/repartidores" element={<Admin><RepartidoresPage /></Admin>} />
+          <Route path="/repartidores/nuevo" element={<Admin><NuevoRepartidorPage /></Admin>} />
+          <Route path="/roles" element={<Admin><RolesPermisosPage /></Admin>} />
+          <Route path="/logs" element={<Admin><LogsActividadPage /></Admin>} />
+          <Route path="/config" element={<Admin><ConfigPage /></Admin>} />
+          <Route path="/vendor/productos/nuevo"       element={<Vendedor><VendorNuevoProductoPage /></Vendedor>} />
+          <Route path="/vendor/productos/:id/editar" element={<Vendedor><VendorEditarProductoPage /></Vendedor>} />
+          <Route path="/vendor/productos"            element={<Vendedor><VendorProductosPage /></Vendedor>} />
+          <Route path="/vendor/ventas"          element={<Vendedor><VendorVentasPage /></Vendedor>} />
+          <Route path="/vendor/ordenes"   element={<Vendedor><VendorOrdenesPage /></Vendedor>} />
+          <Route path="/vendor/reportes"  element={<Vendedor><VendorReportesPage /></Vendedor>} />
+          <Route path="/vendor/perfil"    element={<Vendedor><VendorPerfilPage /></Vendedor>} />
+          <Route path="/vendor/pagos"     element={<Vendedor><VendorPagosPage /></Vendedor>} />
+          <Route path="/vendor/config"    element={<Vendedor><VendorConfigPage /></Vendedor>} />
           <Route path="/vendor" element={<Navigate to="/vendor/productos" replace />} />
           <Route path="/tienda"          element={<UserHomePage />} />
           <Route path="/tienda/carrito"  element={<UserCartPage />} />
@@ -139,7 +152,7 @@ const App = () => (
           <Route path="/tienda/pedidos"         element={<UserPanelPage vista="pedidos" />} />
           <Route path="/tienda/ayuda"           element={<AyudaPage />} />
           <Route path="/tienda/pedido-especial" element={<PedidoEspecialPage />} />
-          <Route path="/repartidor"             element={<RepartidorPage />} />
+          <Route path="/repartidor"             element={<Repartidor><RepartidorPage /></Repartidor>} />
           <Route path="/" element={<RootRedirect />} />
         </Routes>
       </BrowserRouter>

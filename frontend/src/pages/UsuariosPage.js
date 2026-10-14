@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { exportarCSV, avisoExportacion } from '../utils/exportarCSV';
 import { usuariosService } from '../config/api';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
@@ -37,16 +38,12 @@ const avatarBg = nombre => {
   return colors[Math.abs(h) % colors.length];
 };
 
-const exportCSV = data => {
-  const headers = ['ID','Nombre','Email','Rol','Ciudad','Estado','Productos'];
-  const rows = data.map(u => [u.id, u.nombre, u.email, u.rol, u.ciudad || '', u.estado, u.productos]);
-  const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `usuarios_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-  URL.revokeObjectURL(url);
-};
+// Exporta la lista filtrada como tabla (CSV) para abrir en Excel o Sheets.
+const exportCSV = data => exportarCSV(
+  'usuarios',
+  ['Nombre', 'Email', 'Teléfono', 'Rol', 'Estado', 'Fecha de registro', 'Productos', 'ID'],
+  data.map(u => [u.nombre, u.email, u.telefono, u.rol, u.estado, u.fechaRegistro, u.productos, u.id])
+);
 
 /* ── Menú de acciones por fila ───────────────────────────── */
 const RowMenu = ({ usuario, onToggle, onView }) => {
@@ -86,6 +83,14 @@ const RowMenu = ({ usuario, onToggle, onView }) => {
 /* ── Página ──────────────────────────────────────────────── */
 const UsuariosPage = () => {
   const { addToast } = useToast();
+  const exportar = async (lista) => {
+    try {
+      const aviso = avisoExportacion[await exportCSV(lista)];
+      if (aviso) addToast(aviso[0], aviso[1]);
+    } catch {
+      addToast('No se pudo exportar el archivo', 'error');
+    }
+  };
   const navigate     = useNavigate();
 
   const [usuarios, setUsuarios]   = useState([]);
@@ -152,10 +157,10 @@ const UsuariosPage = () => {
           </div>
         </div>
         <div className="us-header-actions">
-          <button className="us-btn-secondary" onClick={() => { exportCSV(filtrados); addToast('CSV exportado', 'info'); }}>
+          <button className="us-btn-secondary" onClick={() => exportar(filtrados)}>
             <Icon name="descargar" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Exportar
           </button>
-          <a href="/vendedores/nuevo" className="us-btn-primary">+ Nuevo vendedor</a>
+          <Link to="/vendedores/nuevo" className="us-btn-primary">+ Nuevo vendedor</Link>
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import AccountSwitcher from './AccountSwitcher';
 import { cx } from '../ui/tw';
 import '../styles/Dashboard.css';
 import '../styles/dark-theme.css';
+import { useCerrarConAtras } from '../utils/atras';
 
 // permId: null = siempre visible, string = requiere ese permiso
 const NAV = [
@@ -45,6 +46,7 @@ const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  useCerrarConAtras(menuOpen, () => setMenuOpen(false));
   const [showPwBanner, setShowPwBanner] = useState(
     () => !sessionStorage.getItem('pw_banner_dismissed')
   );

@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import Icon from '../Icons';
 import { cx, btn } from '../../ui/tw';
+import { useToast } from '../../context/ToastContext';
+import { facturaPDF } from '../../utils/facturaPDF';
+import { entregarArchivo, avisoExportacion } from '../../utils/exportarCSV';
+import { useCerrarConAtras } from '../../utils/atras';
 
 // ============================================================================
 // OrdenDetalle.js - Ventana con el detalle de un pedido para el negocio.
@@ -29,56 +33,12 @@ const PASO = { pendiente: 0, confirmada: 0, en_preparacion: 0, lista_para_retira
 
 export const llamar = (tel) => { if (tel) window.location.href = `tel:${tel}`; };
 
-export const descargarFactura = (orden) => {
-  const filas = orden.items.map(item => `
-    <tr>
-      <td>${item.nombre}</td>
-      <td style="text-align:center">${item.qty}</td>
-      <td style="text-align:right">$${(item.precio / item.qty).toLocaleString('es-CO')}</td>
-      <td style="text-align:right">$${item.precio.toLocaleString('es-CO')}</td>
-    </tr>
-  `).join('');
-
-  const html = `
-    <html>
-      <head>
-        <title>Factura ${orden.id}</title>
-        <meta charset="utf-8" />
-        <style>
-          body { font-family: Arial, sans-serif; color: #1e293b; padding: 32px; }
-          h1 { font-size: 20px; margin-bottom: 4px; }
-          .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-          th { text-align: left; font-size: 12px; color: #64748b; border-bottom: 1px solid #e2e8f0; padding: 8px 4px; }
-          td { padding: 8px 4px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-          .totales td { border: none; }
-          .total-final td { font-weight: bold; font-size: 16px; border-top: 2px solid #1e293b; }
-        </style>
-      </head>
-      <body>
-        <h1>${orden.negocio}</h1>
-        <p class="meta">Factura ${orden.id} · ${orden.fecha}${orden.cliente ? ` · Cliente: ${orden.cliente}` : ''}</p>
-        <p class="meta">Dirección de entrega: ${orden.dir}</p>
-        <table>
-          <thead>
-            <tr><th>Producto</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio unit.</th><th style="text-align:right">Subtotal</th></tr>
-          </thead>
-          <tbody>${filas}</tbody>
-        </table>
-        <table class="totales">
-          <tr><td colspan="3" style="text-align:right">Subtotal</td><td style="text-align:right">$${orden.subtotal.toLocaleString('es-CO')}</td></tr>
-          <tr class="total-final"><td colspan="3" style="text-align:right">Total</td><td style="text-align:right">$${orden.total.toLocaleString('es-CO')}</td></tr>
-        </table>
-      </body>
-    </html>
-  `;
-
-  const ventana = window.open('', '_blank');
-  if (!ventana) return;
-  ventana.document.write(html);
-  ventana.document.close();
-  ventana.focus();
-  ventana.print();
+// La factura sale como PDF: en el computador se descarga y en el celular se
+// abre el menu de compartir. Antes abria una ventana para imprimir, que en la
+// app quedaba en blanco. Devuelve como termino (ver entregarArchivo).
+export const descargarFactura = async (orden) => {
+  const { blob, nombre } = await facturaPDF(orden);
+  return entregarArchivo(blob, nombre);
 };
 
 export const abrirMapa = (direccion) => {
@@ -121,6 +81,20 @@ const AvisoDespacho = ({ children }) => (
 );
 
 const OrdenDetalleModal = ({ orden, onClose, onAvanzar, onConfirmarRecogida }) => {
+  useCerrarConAtras(!!orden, onClose);
+  const { addToast } = useToast();
+  const [haciendoFactura, setHaciendoFactura] = useState(false);
+  const factura = async () => {
+    setHaciendoFactura(true);
+    try {
+      const aviso = avisoExportacion[await descargarFactura(orden)];
+      if (aviso) addToast(aviso[0], aviso[1]);
+    } catch {
+      addToast('No se pudo generar la factura', 'error');
+    } finally {
+      setHaciendoFactura(false);
+    }
+  };
   if (!orden) return null;
   const current = PASO[orden.estadoReal] ?? 0;
   const siguientePaso = VENDEDOR_NEXT[orden.estadoReal];
@@ -204,8 +178,8 @@ const OrdenDetalleModal = ({ orden, onClose, onAvanzar, onConfirmarRecogida }) =
             <button className={btn.borde} disabled={!orden.clienteTelefono} onClick={() => llamar(orden.clienteTelefono)}>
               <Icon name="telefono" size={15} /> {orden.clienteTelefono ? 'Llamar' : 'Sin teléfono'}
             </button>
-            <button className={cx(btn.borde, 'col-span-2 sm:col-span-1')} onClick={() => descargarFactura(orden)}>
-              <Icon name="descargar" size={15} /> Factura
+            <button className={cx(btn.borde, 'col-span-2 sm:col-span-1')} onClick={factura} disabled={haciendoFactura}>
+              <Icon name="descargar" size={15} /> {haciendoFactura ? 'Generando…' : 'Factura'}
             </button>
             {siguientePaso && onAvanzar && (
               <button className={cx(btn.principal, 'col-span-2 sm:col-span-3')} onClick={() => onAvanzar(orden, siguientePaso.next)}>

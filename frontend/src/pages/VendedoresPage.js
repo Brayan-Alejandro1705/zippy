@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { vendedoresService } from '../config/api';
 import { useToast } from '../context/ToastContext';
+import { exportarCSV, avisoExportacion } from '../utils/exportarCSV';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import ConfirmModal from '../components/ConfirmModal';
@@ -14,21 +15,23 @@ const PAGE_SIZE = 10;
 
 const MOCK = [];
 
-const exportCSV = (data) => {
-  const headers = ['ID', 'Nombre', 'Negocio', 'Email', 'Ciudad', 'Productos', 'Estado', 'Registro'];
-  const rows = data.map(v => [v.id, v.nombre, v.negocio, v.email, v.ciudad, v.productos, v.estado, v.fechaRegistro]);
-  const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `vendedores_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
+// Exporta la lista filtrada como tabla (CSV) para abrir en Excel o Sheets.
+const exportCSV = (data) => exportarCSV(
+  'vendedores',
+  ['ID', 'Nombre', 'Negocio', 'Email', 'Ciudad', 'Productos', 'Estado', 'Registro'],
+  data.map(v => [v.id, v.nombre, v.negocio, v.email, v.ciudad, v.productos, v.estado, v.fechaRegistro])
+);
 
 const VendedoresPage = () => {
   const { addToast }  = useToast();
+  const exportar = async (lista) => {
+    try {
+      const aviso = avisoExportacion[await exportCSV(lista)];
+      if (aviso) addToast(aviso[0], aviso[1]);
+    } catch {
+      addToast('No se pudo exportar el archivo', 'error');
+    }
+  };
 
   const [vendedores, setVendedores] = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -84,7 +87,7 @@ const VendedoresPage = () => {
           <p className="us-subtitle">Gestiona los vendedores activos en la plataforma</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="us-export-btn" onClick={() => { exportCSV(filtrados); addToast('CSV exportado', 'info'); }}>
+          <button className="us-export-btn" onClick={() => exportar(filtrados)}>
             <Icon name="descargar" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Exportar CSV
           </button>
         </div>

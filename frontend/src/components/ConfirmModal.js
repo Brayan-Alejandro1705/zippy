@@ -1,7 +1,9 @@
 import React from 'react';
 import '../styles/ConfirmModal.css';
+import { useCerrarConAtras } from '../utils/atras';
 
 const ConfirmModal = ({ isOpen, title, message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', onConfirm, onCancel, danger = false }) => {
+  useCerrarConAtras(isOpen, onCancel);
   if (!isOpen) return null;
   return (
     <div className="cm-overlay" onClick={onCancel}>

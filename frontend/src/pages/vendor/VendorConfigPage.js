@@ -275,8 +275,10 @@ const SeccionCuenta = () => {
     e.preventDefault();
     setSavingPerfil(true);
     try {
-      const { data } = await usuariosService.actualizarPerfil({ nombre: form.nombre, email: form.email });
-      localStorage.setItem('usuario', JSON.stringify({ ...usuarioGuardado, nombre: data.nombre, email: data.email }));
+      // El correo no se cambia aqui: el servidor lo ignoraba y aun asi
+      // decia "actualizado". Ahora el campo es solo de lectura.
+      const { data } = await usuariosService.actualizarPerfil({ nombre: form.nombre.trim() });
+      localStorage.setItem('usuario', JSON.stringify({ ...usuarioGuardado, nombre: data.nombre }));
       addToast('Perfil actualizado correctamente', 'success');
     } catch (err) {
       addToast(err.response?.data?.detail || 'No se pudo actualizar el perfil', 'error');
@@ -326,7 +328,7 @@ const SeccionCuenta = () => {
               <input name="nombre" value={form.nombre} onChange={set} placeholder="Tu nombre" />
             </Field>
             <Field label="Correo electrónico">
-              <input name="email" type="email" value={form.email} onChange={set} placeholder="correo@ejemplo.com" />
+              <input name="email" type="email" value={form.email} readOnly disabled title="El correo no se puede cambiar" />
             </Field>
           </div>
         </CardBlock>

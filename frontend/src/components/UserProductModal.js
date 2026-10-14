@@ -5,6 +5,7 @@ import Icon from './Icons';
 import { urlImagen } from '../utils/media';
 import { estaAbierto, textoCerrado } from '../utils/horario';
 import { cx } from '../ui/tw';
+import { useCerrarConAtras } from '../utils/atras';
 
 const Stars = ({ n, size = 14 }) => (
   <span style={{ fontSize: size, letterSpacing: 1 }}>
@@ -17,6 +18,7 @@ const Stars = ({ n, size = 14 }) => (
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
 const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
+  useCerrarConAtras(!!producto, onClose);
   const { addItem } = useCart();
   const { addToast } = useToast();
   const [qty, setQty] = useState(1);

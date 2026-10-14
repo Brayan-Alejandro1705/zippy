@@ -15,6 +15,7 @@ import AccountSwitcher from '../../components/AccountSwitcher';
 import { registrarPush, alTocarNotificacion } from '../../utils/push';
 import { urlImagen } from '../../utils/media';
 import { esHoy, fechaServidor } from '../../utils/fechas';
+import { useCerrarConAtras } from '../../utils/atras';
 
 const MAP_OPTIONS = {
   disableDefaultUI: false,
@@ -295,6 +296,7 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
 
 /* ── Modal de reporte de problema ────────────────────────── */
 const ReportModal = ({ orden, onClose, onSubmit }) => {
+  useCerrarConAtras(!!orden, onClose);
   if (!orden) return null;
   return (
     <div className="rp-modal-overlay" onClick={onClose}>
@@ -316,6 +318,7 @@ const ReportModal = ({ orden, onClose, onSubmit }) => {
 
 /* ── Modal de cierre de turno ────────────────────────────── */
 const CierreModal = ({ open, onClose, entregadas, ganado }) => {
+  useCerrarConAtras(open, onClose);
   if (!open) return null;
 
   const porPago = Object.keys(PAGO_CFG).map(key => {
@@ -413,14 +416,18 @@ const VehiculoSelect = ({ value, onChange }) => {
 
 /* ── Modal de cuenta del repartidor ──────────────────────── */
 const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
+  useCerrarConAtras(open, onClose);
   const { isDark, toggle } = useTheme();
   const [tab, setTab] = useState('cuenta');
   const [form, setForm] = useState({ nombre: '', telefono: '', email: '', vehiculo: 'moto', placa: '' });
   const [notifs, setNotifs] = useState({ pedidos: true, mensajes: true, promos: false });
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
 
   useEffect(() => {
     if (!open) return;
     setTab('cuenta');
+    setErrorGuardar('');
     setForm({
       nombre:   usuario.nombre   || '',
       telefono: usuario.telefono || '',
@@ -433,9 +440,20 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
 
   if (!open) return null;
 
-  const handleSubmit = e => {
+  // Antes esto solo se guardaba en el celular: el servidor nunca se enteraba
+  // del nombre, el telefono, el vehiculo ni la placa.
+  const handleSubmit = async e => {
     e.preventDefault();
-    onSave({ ...form, notifs });
+    setGuardando(true);
+    setErrorGuardar('');
+    try {
+      await onSave({ ...form, notifs });
+    } catch (err) {
+      const d = err?.response?.data?.detail;
+      setErrorGuardar(typeof d === 'string' ? d : Array.isArray(d) ? d.map(x => String(x.msg || '').replace(/^Value error, /, '')).join('. ') : 'No se pudo guardar. Revisa tu conexión.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -482,7 +500,8 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
         </div>
         <div className="rp-field">
           <label>Email</label>
-          <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="correo@ejemplo.com" />
+          {/* El correo es con el que entra: no se cambia desde aqui */}
+          <input type="email" value={form.email} readOnly disabled title="El correo no se puede cambiar" />
         </div>
 
         <p className="rp-cuenta-section">Vehículo</p>
@@ -529,7 +548,8 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
           </button>
         </div>
 
-        <button type="submit" className="rp-cuenta-save"><Icon name="check" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Guardar cambios</button>
+        {errorGuardar && <p role="alert" style={{ color: '#ef4444', fontSize: 13, margin: '4px 0 10px' }}>{errorGuardar}</p>}
+        <button type="submit" className="rp-cuenta-save" disabled={guardando}><Icon name="check" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
         <button type="button" className="rp-cuenta-logout" onClick={onLogout}><Icon name="salir" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Cerrar sesión</button>
         </form>
         <p className="rp-cuenta-section">Eliminar mi cuenta</p>
@@ -805,6 +825,7 @@ const PedidoEspecialCard = ({ pedido, onAdvance, onChat, ocupado }) => {
 
 /* ── Modal de chat con el cliente ────────────────────────── */
 const ChatModal = ({ orden, onClose }) => {
+  useCerrarConAtras(!!orden, onClose);
   if (!orden) return null;
   return (
     <div className="rp-modal-overlay" onClick={onClose}>
@@ -820,6 +841,7 @@ const ChatModal = ({ orden, onClose }) => {
 
 /* ── Botón de emergencia: avisa a soporte por WhatsApp ───── */
 const SosModal = ({ open, onClose, usuario, driverPos, orden }) => {
+  useCerrarConAtras(open, onClose);
   const [whatsapp, setWhatsapp] = useState('');
   useEffect(() => {
     if (!open) return;
@@ -1392,8 +1414,16 @@ const RepartidorPage = () => {
     }
   };
 
-  const handleCuentaSave = data => {
-    const updated = { ...usuario, ...data };
+  // Guarda en el servidor y, si sale bien, actualiza la copia del celular.
+  // Si falla, el error sube al modal para mostrarlo ahi.
+  const handleCuentaSave = async ({ notifs, nombre, telefono, vehiculo, placa }) => {
+    const { data } = await usuariosService.actualizarPerfil({
+      nombre: nombre.trim(),
+      telefono: telefono.trim() || undefined,
+      vehiculo,
+      placa: placa.trim().toUpperCase().slice(0, 10),
+    });
+    const updated = { ...usuario, ...data, vehiculo, placa: placa.trim().toUpperCase(), notifs };
     localStorage.setItem('usuario', JSON.stringify(updated));
     setUsuario(updated);
     setShowCuenta(false);

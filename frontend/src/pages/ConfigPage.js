@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
-import { authService, usuariosService, adminService } from '../config/api';
+import { usuariosService, adminService } from '../config/api';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import CentroAyuda from '../components/CentroAyuda';
@@ -51,11 +51,17 @@ const SeccionPerfil = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await authService.me();
-      localStorage.setItem('usuario', JSON.stringify({ ...stored, nombre: form.nombre, email: form.email, telefono: form.telefono }));
+      // Antes solo consultaba /auth/me y guardaba en el celular: nada llegaba
+      // al servidor. El correo no se cambia aqui (es con el que se entra).
+      const { data } = await usuariosService.actualizarPerfil({
+        nombre: form.nombre.trim(),
+        telefono: form.telefono.trim() || undefined,
+      });
+      localStorage.setItem('usuario', JSON.stringify({ ...stored, nombre: data.nombre, telefono: data.telefono }));
       addToast('Perfil actualizado correctamente', 'success');
-    } catch {
-      addToast('Error al guardar el perfil', 'error');
+    } catch (err) {
+      const d = err?.response?.data?.detail;
+      addToast(typeof d === 'string' ? d : Array.isArray(d) ? d.map(x => String(x.msg || '').replace(/^Value error, /, '')).join('. ') : 'Error al guardar el perfil', 'error');
     } finally {
       setSaving(false);
     }
@@ -112,7 +118,7 @@ const SeccionPerfil = () => {
             <label>Correo electrónico</label>
             <div className="cfg-input-wrap">
               <span className="cfg-input-icon"><Icon name="correo" size={18} /></span>
-              <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="admin@zippy.com" />
+              <input name="email" type="email" value={form.email} readOnly disabled title="El correo no se puede cambiar" />
             </div>
           </div>
         </div>
