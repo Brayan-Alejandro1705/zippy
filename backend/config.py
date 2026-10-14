@@ -231,6 +231,29 @@ def init_db():
     except Exception as e:
         print(f"⚠️ No se pudo verificar/agregar codigo_recogida: {e}")
 
+    # Oct 2026: la base de produccion se creo cuando el modelo tenia
+    # email unique=True, asi que quedo un indice UNICO solo por email
+    # (ix_usuarios_email) y nunca se creo el de (email, tipo_usuario).
+    # Resultado: el multi-cuenta no funcionaba en produccion; quien ya era
+    # repartidor o vendedor no podia crear su cuenta de cliente con el mismo
+    # correo (el registro y "Continuar con Google" fallaban con error 500).
+    # Se cambia por un indice normal + el unico por (email, tipo_usuario).
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            definicion = conn.execute(text(
+                "SELECT indexdef FROM pg_indexes WHERE tablename = 'usuarios' AND indexname = 'ix_usuarios_email'"
+            )).scalar()
+            if definicion and "UNIQUE" in definicion.upper():
+                conn.execute(text("DROP INDEX ix_usuarios_email"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_usuarios_email ON usuarios (email)"))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_usuarios_email_tipo ON usuarios (email, tipo_usuario)"
+            ))
+            conn.commit()
+    except Exception as e:
+        print(f"⚠️ No se pudo ajustar el indice de email de usuarios: {e}")
+
     print("✅ Base de datos inicializada correctamente")
 
 # ============================================================================

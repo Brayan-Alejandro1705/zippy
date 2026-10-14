@@ -4,6 +4,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 import bcrypt
 from jose import JWTError, jwt
@@ -200,6 +201,16 @@ async def registro(request: Request, usuario: UsuarioCreate, db: Session = Depen
 
     if usuario_existente:
         if usuario_existente.es_verificado:
+            # La cuenta se creo con "Continuar con Google/Apple": no tiene una
+            # contrasena que la persona conozca, asi que se le dice como entrar.
+            metodo_social = str(usuario_existente.metodo_verificacion or "")
+            if metodo_social in METODOS_SOCIALES:
+                nombre_metodo = "Google" if metodo_social == "google" else "Apple"
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(f"Ya tienes una cuenta con este correo creada con {nombre_metodo}. "
+                            f"Toca \"Continuar con {nombre_metodo}\" para entrar."),
+                )
             # Ya tiene una cuenta de ESTE rol con ese correo
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -369,7 +380,16 @@ async def login_social(request: Request, datos: dict, db: Session = Depends(get_
             fecha_creacion=datetime.utcnow(),
         )
         db.add(usuario)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            # El correo choco con otra cuenta (por ejemplo, dos toques seguidos
+            # al boton). Se responde claro en vez de un error 500.
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ese correo ya tiene una cuenta. Entra con tu correo y contraseña.",
+            )
         db.refresh(usuario)
         nuevo = True
     else:

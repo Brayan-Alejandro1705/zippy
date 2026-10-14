@@ -14,10 +14,21 @@ const extractErrorMessage = (data, fallback) => {
 // Flujo en dos pasos, reutiliza el mismo código de 6 dígitos que ya se usa
 // para verificar la cuenta (mismas columnas en el backend, solo que aquí
 // termina en un cambio de contraseña en vez de un login).
+const TIPOS_CUENTA = [
+  ['cliente', 'Cliente'],
+  ['vendedor', 'Negocio'],
+  ['domiciliario', 'Repartidor'],
+  ['admin', 'Administrador'],
+];
+
 const RecuperarPasswordPage = () => {
   const { search } = useLocation();
   const [paso, setPaso] = useState('solicitar'); // 'solicitar' | 'confirmar'
   const [email, setEmail] = useState('');
+  // Un mismo correo puede tener varias cuentas (cliente, negocio, repartidor).
+  // Sin esto, el servidor le cambiaba la clave a la cuenta mas reciente, que
+  // podia no ser la que la persona queria recuperar.
+  const [tipo, setTipo] = useState('cliente');
   const [codigo, setCodigo] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,7 +45,7 @@ const RecuperarPasswordPage = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await authService.olvidePassword(email.trim());
+      const { data } = await authService.olvidePassword(email.trim(), tipo);
       setInfo(data.mensaje || 'Código enviado');
       setPaso('confirmar');
     } catch (err) {
@@ -56,7 +67,7 @@ const RecuperarPasswordPage = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await authService.restablecerPassword(email.trim(), undefined, codigo.trim(), password);
+      const { data } = await authService.restablecerPassword(email.trim(), tipo, codigo.trim(), password);
       setInfo(data.mensaje || 'Contraseña actualizada');
       setPaso('listo');
     } catch (err) {
@@ -71,7 +82,7 @@ const RecuperarPasswordPage = () => {
     setLoading(true);
     setError('');
     try {
-      const { data } = await authService.olvidePassword(email.trim());
+      const { data } = await authService.olvidePassword(email.trim(), tipo);
       setInfo(data.mensaje || 'Código reenviado');
     } catch (err) {
       setError(extractErrorMessage(err.response?.data, 'No se pudo reenviar el código'));
@@ -106,6 +117,25 @@ const RecuperarPasswordPage = () => {
                 autoComplete="email"
                 autoFocus
               />
+            </div>
+
+            <div className="mb-[22px]">
+              <span className={etiquetaAuth}>¿Qué cuenta quieres recuperar?</span>
+              <div className="grid grid-cols-2 gap-2">
+                {TIPOS_CUENTA.map(([valor, nombre]) => (
+                  <button
+                    key={valor}
+                    type="button"
+                    onClick={() => setTipo(valor)}
+                    disabled={loading}
+                    className={tipo === valor
+                      ? 'cursor-pointer rounded-xl border border-solid border-zippy bg-zippy/15 px-3 py-2.5 text-[13px] font-semibold text-zippy'
+                      : 'cursor-pointer rounded-xl border border-solid border-white/10 bg-white/[0.04] px-3 py-2.5 text-[13px] font-medium text-white/60'}
+                  >
+                    {nombre}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button type="submit" className={botonAuth} disabled={loading}>
