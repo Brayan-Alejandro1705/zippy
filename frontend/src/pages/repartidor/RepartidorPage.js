@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLoadScript, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from '@react-google-maps/api';
+import { useLoadScript, GoogleMap, Marker, InfoWindow, Polyline } from '@react-google-maps/api';
 import { useTheme } from '../../context/ThemeContext';
 import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService, negociosService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
@@ -121,10 +121,6 @@ const geocodeAddress = (direccion) => new Promise(resolve => {
   });
 });
 
-const navUrls = position => ({
-  maps: `https://www.google.com/maps/dir/?api=1&destination=${position.lat},${position.lng}`,
-  waze: `https://waze.com/ul?ll=${position.lat},${position.lng}&navigate=yes`,
-});
 
 /* ── Icono SVG para cada marcador ───────────────────────── */
 const makeIcon = (color, label, isDone = false, isActive = false) => {
@@ -166,7 +162,7 @@ const DRIVER_ICON_FN = () => {
 const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
   const mapRef      = useRef(null);
   const [infoOpen,  setInfoOpen]  = useState(null);
-  const [directions, setDirections] = useState(null);
+  const [ruta, setRuta] = useState(null);
   /* Modo "seguir": mientras esta activo, el mapa se recentra solo en el
      repartidor. Se apaga en cuanto el repartidor arrastra el mapa con el
      dedo, para que pueda explorarlo libremente sin que se lo quitemos de
@@ -191,11 +187,19 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
     if (mapRef.current && driverPos) mapRef.current.panTo(driverPos);
   };
 
-  /* Trazar ruta sugerida por todas las órdenes activas */
+  /* Trazar la ruta hacia los pedidos en curso.
+     Antes usaba DirectionsService, que llama a la API de Directions "legacy";
+     el proyecto de Google no la tiene habilitada (Google ya no deja activarla
+     en proyectos nuevos), asi que fallaba en silencio y nunca salia la ruta.
+     Ahora usa la Routes API nueva (clase Route de Maps JS).
+     Cada calculo de ruta se cobra, asi que NO se recalcula con cada paso del
+     GPS: solo cuando cambian los pedidos, o cuando el repartidor se alejo mas
+     de 150 m de donde se calculo, y como maximo una vez cada 45 segundos. */
+  const ultimaRuta = useRef({ clave: '', origen: null, cuando: 0 });
   useEffect(() => {
     if (!driverPos) return;
-    const activas = ordenes.filter(o => o.estado !== 'entregada' && o.position);
-    if (activas.length === 0) { setDirections(null); return; }
+    const activas = ordenes.filter(o => o.position && o.estado !== 'entregada' && o.estado !== 'cancelada');
+    if (activas.length === 0) { setRuta(null); ultimaRuta.current.clave = ''; return; }
 
     /* La orden "en camino" siempre va primero (es la próxima parada) */
     const ordenadas = [...activas].sort((a, b) => {
@@ -204,23 +208,41 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
       return a.distancia - b.distancia;
     });
 
-    const destino   = ordenadas[ordenadas.length - 1].position;
-    const waypoints = ordenadas.slice(0, -1).map(o => ({ location: o.position, stopover: true }));
+    const clave = ordenadas.map(o => `${o.idCompleto || o.id}@${o.position.lat.toFixed(5)},${o.position.lng.toFixed(5)}`).join('|');
+    const prev = ultimaRuta.current;
+    const ahora = Date.now();
+    const movido = prev.origen && window.google?.maps?.geometry
+      ? window.google.maps.geometry.spherical.computeDistanceBetween(
+          new window.google.maps.LatLng(prev.origen), new window.google.maps.LatLng(driverPos))
+      : Infinity;
+    const cambiaronPedidos = clave !== prev.clave;
+    if (!cambiaronPedidos && (movido < 150 || ahora - prev.cuando < 45000)) return;
+    ultimaRuta.current = { clave, origen: driverPos, cuando: ahora };
 
-    const svc = new window.google.maps.DirectionsService();
-    svc.route(
-      {
-        origin:      driverPos,
-        destination: destino,
-        waypoints,
-        optimizeWaypoints: true,
-        travelMode:  window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === 'OK') setDirections(result);
-        else setDirections(null);
+    let activo = true;
+    (async () => {
+      try {
+        const { Route } = await window.google.maps.importLibrary('routes');
+        const destino = ordenadas[ordenadas.length - 1].position;
+        const { routes } = await Route.computeRoutes({
+          origin: driverPos,
+          destination: destino,
+          intermediates: ordenadas.slice(0, -1).map(o => ({ location: o.position })),
+          travelMode: 'DRIVING',
+          fields: ['path'],
+        });
+        const camino = routes?.[0]?.path;
+        if (!activo) return;
+        setRuta(camino && camino.length ? camino.map(p => ({ lat: p.lat, lng: p.lng })) : null);
+      } catch (e) {
+        // Sin Routes API habilitada o sin internet: el mapa sigue funcionando
+        // con los pines, solo sin la linea de la ruta.
+        console.warn('[ruta] no se pudo calcular:', e?.message || e);
+        if (activo) setRuta(null);
+        ultimaRuta.current.clave = ''; // reintentar la proxima vez
       }
-    );
+    })();
+    return () => { activo = false; };
   }, [ordenes, driverPos]);
 
   return (
@@ -244,7 +266,9 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
       )}
 
       {/* Marcadores de órdenes */}
-      {ordenes.filter(o => o.position).map(o => {
+      {/* Solo pedidos en curso: los entregados del dia se quedaban como pines
+          grises en el mapa aunque la lista dijera "Todo entregado". */}
+      {ordenes.filter(o => o.position && o.estado !== 'entregada' && o.estado !== 'cancelada').map(o => {
         const isActive = o.estado === 'en_domicilio' || o.estado === 'recogiendo';
         return (
           <Marker
@@ -270,14 +294,11 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
       })}
 
       {/* Ruta sugerida hacia las órdenes activas */}
-      {directions && (
-        <DirectionsRenderer
-          directions={directions}
-          options={{
-            suppressMarkers: true,
-            polylineOptions: { strokeColor: '#10b981', strokeWeight: 5, strokeOpacity: 0.85 },
-          }}
-        />
+      {ruta && (
+        <>
+          <Polyline path={ruta} options={{ strokeColor: '#ffffff', strokeWeight: 9, strokeOpacity: 0.9, zIndex: 1 }} />
+          <Polyline path={ruta} options={{ strokeColor: '#10b981', strokeWeight: 5, strokeOpacity: 1, zIndex: 2 }} />
+        </>
       )}
     </GoogleMap>
     {!siguiendo && (
@@ -565,7 +586,6 @@ const CuentaModal = ({ open, usuario, onClose, onSave, onLogout }) => {
 const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, reported, onChat }) => {
   const cfg    = ESTADO_CFG[orden.estado];
   const pago   = PAGO_CFG[orden.pago];
-  const nav    = orden.position ? navUrls(orden.position) : null;
   const active = selected?.id === orden.id;
   return (
     <div
@@ -604,20 +624,6 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
         <div>
           <p className="rp-order-addr"><Icon name="ubicacion" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />{orden.direccion}</p>
         </div>
-        {nav && (
-          <div className="rp-nav-btns">
-            <a
-              className="rp-nav-btn rp-nav-btn--maps"
-              href={nav.maps} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()} title="Abrir en Google Maps"
-            ><Icon name="mapa" size={17} /></a>
-            <a
-              className="rp-nav-btn rp-nav-btn--waze"
-              href={nav.waze} target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()} title="Abrir en Waze"
-            ><Icon name="carro" size={17} /></a>
-          </div>
-        )}
       </div>
 
       {/*

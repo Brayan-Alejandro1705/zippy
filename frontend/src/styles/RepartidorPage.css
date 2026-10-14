@@ -288,8 +288,8 @@
   transition: background 0.2s, transform 0.15s;
 }
 .rp-nav-btn:hover { transform: translateY(-1px); }
-.rp-nav-btn--maps { background: #e0f2fe; }
-.rp-nav-btn--waze { background: #dbeafe; }
+.rp-nav-btn--maps { background: #e0f2fe; color: #0369a1; }
+.rp-nav-btn--waze { background: #dbeafe; color: #1d4ed8; }
 
 .rp-order-instructions {
   font-size: 11px; font-weight: 700; color: #92400e;

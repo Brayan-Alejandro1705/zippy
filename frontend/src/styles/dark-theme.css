@@ -546,8 +546,16 @@
 .dark-theme .rp-select-option { color: #cbd5e1; }
 .dark-theme .rp-order-name { color: #94a3b8; }
 .dark-theme .rp-order-items { background-color: #162032; color: #94a3b8; }
-.dark-theme .rp-nav-btn--maps { background-color: #1a2030; }
-.dark-theme .rp-nav-btn--waze { background-color: #162032; }
+.dark-theme .rp-nav-btn--maps { background-color: #1a2030; color: #7dd3fc; }
+.dark-theme .rp-nav-btn--waze { background-color: #162032; color: #93c5fd; }
+/* La hoja de pedidos del celular seguia blanca en modo oscuro y los textos
+   claros ("Órdenes activas", "¡Todo entregado!") casi no se leian. */
+.dark-theme .rp-orders-section.rp-sheet,
+.dark-theme .rp-sheet-handle { background: #0f172a; }
+.dark-theme .rp-sheet-handle-bar { background: #475569; }
+.dark-theme .rp-orders-header { border-bottom-color: #1e293b; }
+.dark-theme .rp-order-negocio { color: #cbd5e1; }
+.dark-theme .rp-offline-msg span { background: linear-gradient(155deg, #3a2a10, #2a1d0b); }
 .dark-theme .rp-report-btn { background-color: #273548; }
 .dark-theme .rp-report-btn:hover { background-color: #3a1a1a; }
 .dark-theme .rp-modal-option { background-color: #273548; border-color: #334155; color: #cbd5e1; }
