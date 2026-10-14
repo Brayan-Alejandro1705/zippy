@@ -699,11 +699,10 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
       </div>
 
       {/*
-        Mientras el pedido esta en "Recogiendo" el repartidor NO tiene boton:
-        quien lo pasa a "En camino" es el vendedor, al escribir el codigo en
-        su pantalla. Es un candado a proposito —evita marcar como recogido algo
-        que no se recogio—, pero la tarjeta no lo explicaba y parecia que
-        faltaba el boton de entregar. Ahora dice que se esta esperando.
+        Recogida (oct 2026): la confirma el propio repartidor con "Ya recogí
+        el pedido". Antes la confirmaba el vendedor escribiendo el codigo y,
+        cuando no lo hacia, el pedido quedaba trabado. El codigo se sigue
+        mostrando para que repartidor y negocio sepan que es el pedido correcto.
       */}
       {orden.estado === 'recogiendo' && (
         orden.estadoServidor !== 'lista_para_retirar' ? (
@@ -711,17 +710,19 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
             <strong>⏳ El negocio todavía lo está preparando.</strong>
             Ve acercándote; aquí te mostramos qué hacer cuando esté listo.
           </p>
-        ) : orden.codigoRecogida ? (
-          <p className="rp-order-codigo">
-            ✅ <b>Ya está listo.</b> Muéstrale este código al vendedor:
-            <strong className="rp-order-codigo-num">{orden.codigoRecogida}</strong>
-            <small>Cuando el negocio lo confirme, aquí te aparece el botón para entregar.</small>
-          </p>
         ) : (
-          <p className="rp-order-codigo">
-            ✅ <b>Ya está listo.</b> Pídele al vendedor que confirme la entrega en su pantalla.
-            <small>Cuando lo confirme, aquí te aparece el botón para entregar.</small>
-          </p>
+          <div className="rp-order-codigo">
+            <span>✅ <b>Ya está listo para recoger.</b>{orden.codigoRecogida && <> Código del pedido: <strong className="rp-order-codigo-ref">{orden.codigoRecogida}</strong></>}</span>
+            <button
+              type="button"
+              className="rp-btn-recogi"
+              disabled={ocupado}
+              onClick={e => { e.stopPropagation(); onAvanzar(orden); }}
+            >
+              {ocupado ? 'Guardando…' : 'Ya recogí el pedido'}
+            </button>
+            <small>Tócalo cuando tengas el pedido en la mano. Ahí se activa el botón para entregar.</small>
+          </div>
         )
       )}
 
@@ -1467,8 +1468,33 @@ const RepartidorPage = () => {
     }
   };
 
+  // El repartidor confirma el mismo que ya recogio el pedido. Antes dependia
+  // de que el vendedor escribiera el codigo en su pantalla y, si no lo hacia
+  // (paso con un pedido real), el repartidor quedaba sin poder entregar.
+  const marcarRecogido = async (orden) => {
+    const id = orden.idCompleto;
+    if (ocupados.has(id)) return;
+    marcarOcupado(id, true);
+    const antes = orden.estado;
+    marcarCambioLocal(id, 'en_domicilio');
+    setOrdenes(prev => prev.map(o => o.idCompleto === id ? { ...o, estado: 'en_domicilio', estadoServidor: 'en_domicilio' } : o));
+    try {
+      await ordenesService.confirmarRecogida(id, orden.codigoRecogida || '');
+      await cargarOrdenes().catch(() => {});
+    } catch (err) {
+      olvidarCambioLocal(id);
+      setOrdenes(prev => prev.map(o => o.idCompleto === id ? { ...o, estado: antes, estadoServidor: 'lista_para_retirar' } : o));
+      alert(err.response?.data?.detail || 'No se pudo marcar como recogido.');
+      await cargarOrdenes().catch(() => {});
+    } finally {
+      olvidarCambioLocal(id);
+      marcarOcupado(id, false);
+    }
+  };
+
   const avanzar = (orden) => {
     if (orden.estado === 'disponible') return aceptar(orden);
+    if (orden.estado === 'recogiendo' && orden.estadoServidor === 'lista_para_retirar') return marcarRecogido(orden);
     if (orden.estado === 'en_domicilio') return marcarEntregado(orden);
   };
 

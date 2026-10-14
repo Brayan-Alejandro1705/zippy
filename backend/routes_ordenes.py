@@ -600,10 +600,14 @@ async def confirmar_recogida(
         )
 
     es_vendedor = orden.negocio.vendedor_id == current_user.id if orden.negocio else False
-    if not es_vendedor:
+    # Oct 2026: el repartidor asignado tambien puede confirmar que ya recogio.
+    # Antes solo el vendedor podia, escribiendo el codigo; si no lo hacia (paso
+    # con un pedido real) el repartidor quedaba sin poder entregar.
+    es_repartidor = bool(orden.domiciliario_id) and orden.domiciliario_id == current_user.id
+    if not es_vendedor and not es_repartidor:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Solo el vendedor puede confirmar la recogida de este pedido"
+            detail="Solo el repartidor asignado o el negocio pueden confirmar la recogida"
         )
 
     if orden.estado != "lista_para_retirar" or not orden.domiciliario_id:
@@ -616,7 +620,7 @@ async def confirmar_recogida(
     # ese caso el vendedor confirma la entrega sin nada que comparar.
     codigo_real = (orden.codigo_recogida or "").strip().upper()
     codigo_ingresado = (datos.codigo or "").strip().upper()
-    if codigo_real and codigo_ingresado != codigo_real:
+    if es_vendedor and codigo_real and codigo_ingresado != codigo_real:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Codigo de recogida incorrecto"
@@ -630,7 +634,7 @@ async def confirmar_recogida(
         orden_id=orden.id,
         estado_anterior=estado_anterior,
         estado_nuevo="en_domicilio",
-        descripcion="Recogida confirmada por el vendedor",
+        descripcion="Recogida confirmada por el repartidor" if es_repartidor else "Recogida confirmada por el vendedor",
         fecha_creacion=datetime.utcnow()
     )
     db.add(seguimiento)

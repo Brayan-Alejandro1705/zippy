@@ -812,3 +812,13 @@
 }
 .dark-theme .rp-order-negocio-info { color: #94a3b8; }
 .dark-theme .rp-order-negocio-tel { background: rgba(255,122,0,0.15); color: #fdba74; }
+
+/* Boton "Ya recogi el pedido": lo confirma el repartidor (oct 2026) */
+.rp-order-codigo .rp-order-codigo-ref { font-size: 14px; letter-spacing: 1px; color: #7c2d12; white-space: nowrap; }
+.rp-btn-recogi {
+  display: block; width: 100%; margin: 10px 0 6px;
+  border: 0; border-radius: 12px; padding: 13px 14px;
+  background: #10b981; color: #fff; font: inherit; font-size: 15px; font-weight: 800;
+  cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+}
+.rp-btn-recogi:disabled { opacity: 0.6; cursor: default; }

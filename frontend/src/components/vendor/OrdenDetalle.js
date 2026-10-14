@@ -62,12 +62,12 @@ const ConfirmarRecogidaBox = ({ orden, onConfirmar }) => {
 
   return (
     <div className="mx-4 mb-4 flex flex-col gap-2 rounded-xl bg-slate-50 p-4 text-[13px] leading-snug text-slate-600 dark:bg-[#162032] dark:text-slate-400 sm:mx-5">
-      <p className="m-0 flex items-start gap-2"><Icon name="moto" size={18} /> Un repartidor viene por este pedido. Debe decirte este código:</p>
+      <p className="m-0 flex items-start gap-2"><Icon name="moto" size={18} /> Un repartidor viene por este pedido. Es el que tenga este código, y él mismo confirma en su app que lo recogió:</p>
       <p className="m-0 rounded-xl border-2 border-dashed border-amber-500 bg-amber-100 p-3 text-center text-[26px] font-extrabold tracking-[3px] text-amber-700 xs:text-[30px] dark:bg-amber-500/10 dark:text-amber-300">
         {orden.codigoRecogida || 'Sin código'}
       </p>
       <button className={cx(btn.principal, 'w-full')} disabled={enviando} onClick={entregar}>
-        {enviando ? 'Confirmando…' : <><Icon name="check" size={16} /> Coincide, ya se lo entregué</>}
+        {enviando ? 'Confirmando…' : <><Icon name="check" size={16} /> Ya se lo entregué (opcional)</>}
       </button>
       {error && <p className="m-0 font-semibold text-red-600">{error}</p>}
     </div>
