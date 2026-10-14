@@ -68,7 +68,20 @@ const googleEnAndroid = async (FirebaseAuthentication) => {
     if (r.valor) return r.valor;
     if (r.error && esCancelacion(r.error)) throw r.error;
     // Sin ventana o con error: selector clasico
-    return await FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
+    // Si tampoco abre nada en 20 s, se corta (si abre, la app pasa a segundo
+    // plano y el reloj se detiene mientras la persona elige).
+    seAbrioVentana = false;
+    const clasico = FirebaseAuthentication.signInWithGoogle({ useCredentialManager: false });
+    const r2 = await Promise.race([
+      clasico.then(valor => ({ valor }), error => ({ error })),
+      new Promise(listo => setTimeout(() => listo({ sinRespuesta: true }), 20000)),
+    ]);
+    if (r2.sinRespuesta && seAbrioVentana) return await clasico;
+    if (r2.valor) return r2.valor;
+    if (r2.error) throw r2.error;
+    const e = new Error('sin respuesta en "google"');
+    e.code = r.error ? `google-${r.error.code || 'error'}` : 'sin-respuesta-google';
+    throw e;
   } finally {
     escucha.remove();
   }
@@ -79,8 +92,28 @@ const googleEnAndroid = async (FirebaseAuthentication) => {
  * la persona cerro la ventana sin elegir cuenta. Lanza Error con un mensaje
  * para mostrar si algo fallo.
  */
+// Si un paso no responde en el tiempo dado, se corta con un error que dice
+// cual fue. Asi el boton nunca se queda en "Conectando…" para siempre y la
+// captura del mensaje dice exactamente donde se trabo.
+const conLimite = (promesa, ms, paso) => Promise.race([
+  promesa,
+  new Promise((_, mal) => setTimeout(() => {
+    const e = new Error(`sin respuesta en "${paso}"`);
+    e.code = `sin-respuesta-${paso}`;
+    mal(e);
+  }, ms)),
+]);
+
 export const entrarConProveedor = async (proveedor) => {
-  const FirebaseAuthentication = await cargarPlugin();
+  let FirebaseAuthentication;
+  try {
+    FirebaseAuthentication = await conLimite(cargarPlugin(), 10000, 'cargar');
+    // Prueba rapida: si el plugin nativo no contesta ni esto, el problema es
+    // el plugin (no la ventana de Google).
+    await conLimite(FirebaseAuthentication.getCurrentUser(), 6000, 'plugin');
+  } catch (err) {
+    throw new Error(`No se pudo abrir el inicio de sesión. (${err.code || err.message})`);
+  }
   let resultado;
   try {
     if (proveedor === 'apple') {
@@ -98,7 +131,13 @@ export const entrarConProveedor = async (proveedor) => {
     throw new Error(`No se pudo abrir el inicio de sesión. Intenta de nuevo.${codigo ? ` (${codigo})` : ''}`);
   }
 
-  const { token } = await FirebaseAuthentication.getIdToken({ forceRefresh: false });
+  let token;
+  try {
+    ({ token } = await conLimite(FirebaseAuthentication.getIdToken({ forceRefresh: false }), 15000, 'token'));
+  } catch (err) {
+    FirebaseAuthentication.signOut().catch(() => {});
+    throw new Error(`No se pudo completar el inicio de sesión. (${err.code || err.message})`);
+  }
   // Apple manda el nombre solo la primera vez: se reenvia para que el backend
   // no cree la cuenta como "Cliente".
   const nombre = resultado?.user?.displayName || resultado?.additionalUserInfo?.profile?.name || '';
