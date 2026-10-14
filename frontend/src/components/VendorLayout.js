@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Icon from './Icons';
 import { registrarPush } from '../utils/push';
+import { negociosService } from '../config/api';
 import { contenedor, Encabezado, Logo, botonEncabezado, Buscador, contenido, BarraInferior, ItemBarra } from './layout/piezas';
 
 // Secciones del panel de vendedor. Ojo: estas rutas son /vendor/*, NO /tienda/*.
@@ -22,6 +23,18 @@ const VendorLayout = ({ children, onSearch, searchPlaceholder = 'Buscar...' }) =
   const [query, setQuery] = useState('');
 
   useEffect(() => { registrarPush(); }, []);
+
+  // Si el local no esta marcado en el mapa, el repartidor no sabe a donde ir a
+  // recoger. Se avisa arriba de cada pantalla hasta que lo marque.
+  const [sinUbicacion, setSinUbicacion] = useState(false);
+  const enConfig = location.pathname === '/vendor/config';
+  useEffect(() => {
+    let activo = true;
+    negociosService.miNegocio()
+      .then(({ data }) => { if (activo) setSinUbicacion(data?.latitud == null || data?.longitud == null); })
+      .catch(() => {});
+    return () => { activo = false; };
+  }, [enConfig]); // se vuelve a revisar al salir de Configuracion
 
   // startsWith para que /vendor/productos/nuevo siga marcando "Productos"
   const activeNav =
@@ -58,6 +71,20 @@ const VendorLayout = ({ children, onSearch, searchPlaceholder = 'Buscar...' }) =
       {/* px-3/xs:px-4: margen a los lados en celular. Antes era 0 y todo el
           panel del negocio quedaba pegado a los bordes de la pantalla. */}
       <main className={`${contenido} px-3 pt-4 xs:px-4 md:px-8 md:pt-6`} style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
+        {sinUbicacion && !enConfig && (
+          <button
+            type="button"
+            onClick={() => navigate('/vendor/config')}
+            className="mb-4 flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-solid border-amber-300 bg-amber-50 px-4 py-3 text-left font-[inherit] dark:border-amber-500/40 dark:bg-amber-500/10"
+          >
+            <span className="inline-flex shrink-0 text-amber-600 dark:text-amber-400"><Icon name="ubicacion" size={22} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-amber-900 dark:text-amber-200">Marca tu local en el mapa</span>
+              <span className="block text-xs text-amber-800 dark:text-amber-300/80">Así los repartidores saben dónde recoger tus pedidos.</span>
+            </span>
+            <span className="shrink-0 text-sm font-bold text-amber-700 dark:text-amber-300">Marcar ›</span>
+          </button>
+        )}
         {children}
       </main>
 

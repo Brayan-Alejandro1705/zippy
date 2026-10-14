@@ -146,6 +146,49 @@ const makeIcon = (color, label, isDone = false, isActive = false) => {
   };
 };
 
+/* Pin con el LOGO del negocio (donde recoger). Se dibuja en un canvas: el logo
+   recortado en circulo, con borde blanco, aro naranja y la punta del pin.
+   Si el logo no carga o el servidor de imagenes no deja leerlo (CORS), se
+   devuelve null y se usa el pin naranja con la inicial. */
+const iconosLogo = new Map(); // url -> Promise<string|null>
+const crearIconoLogo = (url) => {
+  if (iconosLogo.has(url)) return iconosLogo.get(url);
+  const promesa = new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const E = 2;                 // nitidez en pantallas de alta densidad
+        const W = 56, H = 70, R = 26, cx = W / 2, cy = R + 2;
+        const c = document.createElement('canvas');
+        c.width = W * E; c.height = H * E;
+        const g = c.getContext('2d');
+        g.scale(E, E);
+        g.shadowColor = 'rgba(0,0,0,0.3)'; g.shadowBlur = 6; g.shadowOffsetY = 2;
+        g.fillStyle = '#FF7A00';
+        g.beginPath(); g.moveTo(cx - 9, cy + R - 4); g.lineTo(cx + 9, cy + R - 4); g.lineTo(cx, H - 2); g.closePath(); g.fill();
+        g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
+        g.shadowColor = 'transparent';
+        g.fillStyle = '#fff';
+        g.beginPath(); g.arc(cx, cy, R - 3, 0, Math.PI * 2); g.fill();
+        g.save();
+        g.beginPath(); g.arc(cx, cy, R - 5, 0, Math.PI * 2); g.clip();
+        const lado = Math.min(img.width, img.height);   // recorte tipo "cover"
+        g.drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado,
+          cx - (R - 5), cy - (R - 5), (R - 5) * 2, (R - 5) * 2);
+        g.restore();
+        resolve(c.toDataURL('image/png'));
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+  iconosLogo.set(url, promesa);
+  return promesa;
+};
+
 const DRIVER_ICON_FN = () => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
     <circle cx="16" cy="16" r="12" fill="#3b82f6" stroke="white" stroke-width="3"/>
@@ -163,6 +206,19 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
   const mapRef      = useRef(null);
   const [infoOpen,  setInfoOpen]  = useState(null);
   const [ruta, setRuta] = useState(null);
+  /* Logos de los negocios ya convertidos en pin (url del logo -> imagen) */
+  const [pinesLogo, setPinesLogo] = useState({});
+  useEffect(() => {
+    const faltan = [...new Set(ordenes
+      .filter(o => o.estado === 'recogiendo' && o.negocioPos && o.negocioLogo)
+      .map(o => o.negocioLogo))].filter(l => !(l in pinesLogo));
+    if (faltan.length === 0) return;
+    let activo = true;
+    Promise.all(faltan.map(l => crearIconoLogo(urlImagen(l)).then(img => [l, img]))).then(pares => {
+      if (activo) setPinesLogo(p => ({ ...p, ...Object.fromEntries(pares) }));
+    });
+    return () => { activo = false; };
+  }, [ordenes, pinesLogo]);
   /* Modo "seguir": mientras esta activo, el mapa se recentra solo en el
      repartidor. Se apaga en cuanto el repartidor arrastra el mapa con el
      dedo, para que pueda explorarlo libremente sin que se lo quitemos de
@@ -195,20 +251,22 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
      Cada calculo de ruta se cobra, asi que NO se recalcula con cada paso del
      GPS: solo cuando cambian los pedidos, o cuando el repartidor se alejo mas
      de 150 m de donde se calculo, y como maximo una vez cada 45 segundos. */
-  const ultimaRuta = useRef({ clave: '', origen: null, cuando: 0 });
+  const ultimaRuta = useRef({ clave: '', origen: null, cuando: 0, pedido: 0 });
   useEffect(() => {
     if (!driverPos) return;
-    const activas = ordenes.filter(o => o.position && o.estado !== 'entregada' && o.estado !== 'cancelada');
-    if (activas.length === 0) { setRuta(null); ultimaRuta.current.clave = ''; return; }
+    // Solo los pedidos que el repartidor ya tomo (no los disponibles):
+    //   - "recogiendo": primero al negocio (si marco su local) y luego al cliente
+    //   - "en_domicilio": ya recogido, directo al cliente
+    const mias = ordenes.filter(o => o.estado === 'recogiendo' || o.estado === 'en_domicilio');
+    const paradas = [
+      ...mias.filter(o => o.estado === 'recogiendo' && o.negocioPos).map(o => ({ id: `n-${o.idCompleto}`, position: o.negocioPos })),
+      ...mias.filter(o => o.estado === 'en_domicilio' && o.position).map(o => ({ id: o.idCompleto, position: o.position })),
+      ...mias.filter(o => o.estado === 'recogiendo' && o.position).map(o => ({ id: o.idCompleto, position: o.position })),
+    ];
+    if (paradas.length === 0) { setRuta(null); ultimaRuta.current.clave = ''; return; }
+    const ordenadas = paradas;
 
-    /* La orden "en camino" siempre va primero (es la próxima parada) */
-    const ordenadas = [...activas].sort((a, b) => {
-      if (a.estado === 'en_domicilio' || a.estado === 'recogiendo') return -1;
-      if (b.estado === 'en_domicilio' || b.estado === 'recogiendo') return 1;
-      return a.distancia - b.distancia;
-    });
-
-    const clave = ordenadas.map(o => `${o.idCompleto || o.id}@${o.position.lat.toFixed(5)},${o.position.lng.toFixed(5)}`).join('|');
+    const clave = ordenadas.map(o => `${o.id}@${o.position.lat.toFixed(5)},${o.position.lng.toFixed(5)}`).join('|');
     const prev = ultimaRuta.current;
     const ahora = Date.now();
     const movido = prev.origen && window.google?.maps?.geometry
@@ -217,9 +275,12 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
       : Infinity;
     const cambiaronPedidos = clave !== prev.clave;
     if (!cambiaronPedidos && (movido < 150 || ahora - prev.cuando < 45000)) return;
-    ultimaRuta.current = { clave, origen: driverPos, cuando: ahora };
-
-    let activo = true;
+    // Cada calculo lleva un numero: si llega uno viejo despues de uno nuevo, se
+    // ignora. (No se cancela al cambiar el GPS: como el siguiente calculo puede
+    // tardar 45 s por el limite, cancelar dejaba el mapa sin ruta.)
+    const numero = prev.pedido + 1;
+    ultimaRuta.current = { clave, origen: driverPos, cuando: ahora, pedido: numero };
+    const vigente = () => ultimaRuta.current.pedido === numero;
     (async () => {
       try {
         const { Route } = await window.google.maps.importLibrary('routes');
@@ -232,17 +293,15 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
           fields: ['path'],
         });
         const camino = routes?.[0]?.path;
-        if (!activo) return;
+        if (!vigente()) return;
         setRuta(camino && camino.length ? camino.map(p => ({ lat: p.lat, lng: p.lng })) : null);
       } catch (e) {
         // Sin Routes API habilitada o sin internet: el mapa sigue funcionando
         // con los pines, solo sin la linea de la ruta.
         console.warn('[ruta] no se pudo calcular:', e?.message || e);
-        if (activo) setRuta(null);
-        ultimaRuta.current.clave = ''; // reintentar la proxima vez
+        if (vigente()) { setRuta(null); ultimaRuta.current.clave = ''; } // reintentar la proxima vez
       }
     })();
-    return () => { activo = false; };
   }, [ordenes, driverPos]);
 
   return (
@@ -292,6 +351,19 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
           </Marker>
         );
       })}
+
+      {/* Locales donde hay que recoger (pedidos tomados y aun sin recoger) */}
+      {ordenes.filter(o => o.estado === 'recogiendo' && o.negocioPos).map(o => (
+        <Marker
+          key={`n-${o.idCompleto}`}
+          position={o.negocioPos}
+          icon={pinesLogo[o.negocioLogo]
+            ? { url: pinesLogo[o.negocioLogo], scaledSize: new window.google.maps.Size(56, 70), anchor: new window.google.maps.Point(28, 70) }
+            : makeIcon('#FF7A00', (o.negocio || 'N').trim().charAt(0).toUpperCase().replace(/[^A-ZÁÉÍÓÚÑ0-9]/, 'N'), false, true)}
+          zIndex={70}
+          title={`Recoger en ${o.negocio || 'el negocio'}`}
+        />
+      ))}
 
       {/* Ruta sugerida hacia las órdenes activas */}
       {ruta && (
@@ -673,8 +745,22 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
           {orden.negocioLogo
             ? <img src={urlImagen(orden.negocioLogo)} alt="" className="rp-negocio-logo" loading="lazy" />
             : <Icon name="vendedores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />}
-          Recoger en <strong>{orden.negocio}</strong>
+          <span className="min-w-0">Recoger en <strong>{orden.negocio}</strong></span>
         </p>
+      )}
+      {orden.negocio && orden.estado !== 'en_domicilio' && (orden.negocioDireccion || orden.negocioTelefono) && (
+        <div className="rp-order-negocio-info">
+          <span className="rp-order-negocio-dir">
+            <Icon name="ubicacion" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+            {orden.negocioDireccion || 'Dirección no registrada'}
+            {!orden.negocioPos && <em className="rp-order-negocio-sinpin"> · sin punto en el mapa</em>}
+          </span>
+          {orden.negocioTelefono && (
+            <a className="rp-order-negocio-tel" href={`tel:${orden.negocioTelefono}`} onClick={e => e.stopPropagation()}>
+              <Icon name="telefono" size={13} /> Llamar al negocio
+            </a>
+          )}
+        </div>
       )}
 
       <div className="rp-order-products">
@@ -1143,6 +1229,11 @@ const RepartidorPage = () => {
         // DONDE recoger, y el logo evita la cajita gris igual para todos.
         negocio: o.negocio_nombre || negocio?.nombre_negocio || null,
         negocioLogo: o.negocio_logo || negocio?.logo || null,
+        negocioDireccion: o.negocio_direccion || negocio?.direccion || null,
+        negocioTelefono: o.negocio_telefono || negocio?.telefono || null,
+        // Punto del local marcado por el negocio: pin naranja y primera parada
+        negocioPos: o.negocio_latitud != null && o.negocio_longitud != null
+          ? { lat: Number(o.negocio_latitud), lng: Number(o.negocio_longitud) } : null,
         fotoProducto: primerItem?.producto_imagen || primerProducto?.imagenes?.[0] || null,
         total: Number(o.total),
         pago: o.metodo_pago,

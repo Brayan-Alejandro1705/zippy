@@ -347,6 +347,10 @@ async def listar_ordenes(
         if o.negocio:
             r.negocio_nombre = o.negocio.nombre_negocio
             r.negocio_logo = o.negocio.logo
+            r.negocio_direccion = o.negocio.direccion
+            r.negocio_telefono = o.negocio.telefono
+            r.negocio_latitud = o.negocio.latitud
+            r.negocio_longitud = o.negocio.longitud
         for item_r, item_o in zip(r.items, o.items):
             producto = item_o.producto
             if not producto:

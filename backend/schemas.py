@@ -145,12 +145,18 @@ class NegocioUpdate(BaseModel):
     banco: Optional[str] = None
     cuenta_tipo: Optional[str] = None
     cuenta_numero: Optional[str] = None
+    # Punto del local en el mapa (oct 2026): el repartidor ve ahi el pin de
+    # donde recoger y la ruta pasa primero por el negocio.
+    latitud: Optional[Decimal] = Field(None, ge=-90, le=90)
+    longitud: Optional[Decimal] = Field(None, ge=-180, le=180)
 
 class NegocioResponse(NegocioBase):
     id: uuid.UUID
     vendedor_id: uuid.UUID
     logo: Optional[str]
     imagen_portada: Optional[str]
+    latitud: Optional[Decimal] = None
+    longitud: Optional[Decimal] = None
     calificacion_promedio: Decimal
     total_ordenes: int
     es_verificado: bool
@@ -302,6 +308,11 @@ class OrdenResponse(BaseModel):
     cliente_telefono: Optional[str] = None
     negocio_nombre: Optional[str] = None
     negocio_logo: Optional[str] = None
+    # Donde recoger: direccion, telefono y punto del local
+    negocio_direccion: Optional[str] = None
+    negocio_telefono: Optional[str] = None
+    negocio_latitud: Optional[Decimal] = None
+    negocio_longitud: Optional[Decimal] = None
 
     class Config:
         from_attributes = True

@@ -3,6 +3,7 @@ import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { useTheme } from '../../context/ThemeContext';
 import { negociosService, usuariosService, authService } from '../../config/api';
+import SelectorUbicacion from '../../components/SelectorUbicacion';
 import '../../styles/VendorConfig.css';
 import Icon from '../../components/Icons';
 import CentroAyuda from '../../components/CentroAyuda';
@@ -50,6 +51,9 @@ const SeccionTienda = () => {
   const [negocioId, setNegocioId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Punto del local en el mapa: con esto el repartidor sabe a donde ir a
+  // recoger y la ruta pasa primero por aqui.
+  const [ubic, setUbic] = useState(null);
   const [form, setForm] = useState({
     nombre: '', categoria: 'General', descripcion: '', direccion: '',
     telefono: '', whatsapp: '', horaApertura: '', horaCierre: '', ciudad: 'Garzón',
@@ -61,6 +65,7 @@ const SeccionTienda = () => {
       .then(({ data }) => {
         if (!activo) return;
         setNegocioId(data.id);
+        if (data.latitud != null && data.longitud != null) setUbic({ lat: Number(data.latitud), lng: Number(data.longitud) });
         setForm({
           nombre:       data.nombre_negocio || '',
           categoria:    data.categoria || 'General',
@@ -95,6 +100,7 @@ const SeccionTienda = () => {
         hora_apertura:  form.horaApertura,
         hora_cierre:    form.horaCierre,
         ciudad:         form.ciudad,
+        ...(ubic ? { latitud: ubic.lat, longitud: ubic.lng } : {}),
       });
       addToast('Información de la tienda actualizada ✓', 'success');
     } catch (err) {
@@ -205,6 +211,15 @@ const SeccionTienda = () => {
             <span className="vc-input-icon"><Icon name="ubicacion" size={17} /></span>
             <input name="direccion" value={form.direccion} onChange={set} placeholder="Dirección completa" />
           </div>
+        </Field>
+
+        <Field label="Ubicación del local en el mapa">
+          {!ubic && (
+            <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600, color: '#b45309' }}>
+              Marca tu local para que los repartidores sepan dónde recoger los pedidos.
+            </p>
+          )}
+          <SelectorUbicacion direccion={form.direccion} valor={ubic} onChange={setUbic} lugar="local" />
         </Field>
 
         <div className="vc-field-row">

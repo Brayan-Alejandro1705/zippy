@@ -21,10 +21,11 @@ const btn = {
   cursor: 'pointer', fontFamily: 'inherit',
 };
 
-const SelectorUbicacion = ({ direccion, valor, onChange }) => {
+// `lugar` cambia los textos: 'casa' para el cliente, 'local' para el negocio.
+const SelectorUbicacion = ({ direccion, valor, onChange, lugar = 'casa' }) => {
   const { isLoaded, loadError } = useLoadScript({ googleMapsApiKey: MAPS_KEY, libraries: MAPS_LIBRARIES });
   const [centro, setCentro] = useState(valor || GARZON);
-  const [aviso, setAviso]   = useState('Marca en el mapa dónde queda tu casa.');
+  const [aviso, setAviso]   = useState(`Marca en el mapa dónde queda tu ${lugar}.`);
 
   const poner = useCallback((pos, fuente) => {
     onChange({ lat: pos.lat, lng: pos.lng, fuente });
@@ -41,9 +42,9 @@ const SelectorUbicacion = ({ direccion, valor, onChange }) => {
         if (st === 'OK' && res[0]) {
           const l = res[0].geometry.location;
           poner({ lat: l.lat(), lng: l.lng() }, 'busqueda');
-          setAviso('Revisa que el pin quede en tu casa. Si no, arrástralo o toca el punto correcto.');
+          setAviso(`Revisa que el pin quede en tu ${lugar}. Si no, arrástralo o toca el punto correcto.`);
         } else {
-          setAviso('No encontramos esa dirección. Toca en el mapa el punto de tu casa.');
+          setAviso(`No encontramos esa dirección. Toca en el mapa el punto de tu ${lugar}.`);
         }
       }
     );
@@ -55,9 +56,9 @@ const SelectorUbicacion = ({ direccion, valor, onChange }) => {
     navigator.geolocation.getCurrentPosition(
       p => {
         poner({ lat: p.coords.latitude, lng: p.coords.longitude }, 'gps');
-        setAviso('Listo. Si el pin no quedó justo en tu casa, arrástralo.');
+        setAviso(`Listo. Si el pin no quedó justo en tu ${lugar}, arrástralo.`);
       },
-      () => setAviso('No pudimos obtener tu ubicación. Revisa el permiso o toca tu casa en el mapa.'),
+      () => setAviso(`No pudimos obtener tu ubicación. Revisa el permiso o toca tu ${lugar} en el mapa.`),
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
@@ -71,7 +72,7 @@ const SelectorUbicacion = ({ direccion, valor, onChange }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '4px 0 8px' }}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" style={btn} onClick={miUbicacion}><Icon name="ubicacion" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Estoy en mi casa</button>
+        <button type="button" style={btn} onClick={miUbicacion}><Icon name="ubicacion" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Estoy en mi {lugar}</button>
         <button type="button" style={btn} onClick={buscar}><Icon name="buscar" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Buscar dirección</button>
       </div>
       {isLoaded ? (
