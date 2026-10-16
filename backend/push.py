@@ -17,10 +17,20 @@ import threading
 
 import firebase_admin
 from firebase_admin import credentials, messaging
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from config import settings
 from models import Usuario, Notificacion
+
+# Como se llama cada perfil en el titulo del aviso cuando el celular tiene
+# varias cuentas guardadas (ver notificar_usuario).
+_NOMBRE_ROL = {
+    "admin": "Súper admin",
+    "vendedor": "Negocio",
+    "domiciliario": "Repartidor",
+    "cliente": "Cliente",
+}
 
 _firebase_app = None
 _firebase_lock = threading.Lock()
@@ -96,6 +106,7 @@ def notificar_usuario(
     mensaje: str,
     relacionado_tabla: str = None,
     relacionado_id=None,
+    _enviados: set = None,
 ) -> None:
     """
     Registra la notificación en la base de datos (historial dentro de la app)
@@ -117,13 +128,45 @@ def notificar_usuario(
     )
     db.add(notificacion)
 
-    if usuario.fcm_token:
-        _enviar_fcm(
-            usuario.fcm_token,
-            titulo,
-            mensaje,
-            data={"tipo": tipo, "relacionado_id": str(relacionado_id or "")},
-        )
+    token = usuario.fcm_token
+    if not token:
+        return
+
+    # Un mismo celular puede tener guardadas varias cuentas (cliente, negocio,
+    # super admin...) y todas comparten el token de ese celular, para que los
+    # avisos suenen aunque la persona este en otro perfil. En un aviso a
+    # varios usuarios a la vez, ese celular solo debe sonar una vez.
+    if _enviados is not None:
+        if token in _enviados:
+            return
+        _enviados.add(token)
+
+    rol = str(getattr(usuario.tipo_usuario, "value", usuario.tipo_usuario) or "").lower()
+
+    # Si el celular tiene mas de una cuenta, el titulo dice para cual es:
+    # "Súper admin · Pedido por validar". Con una sola cuenta no hace falta.
+    titulo_push = titulo
+    try:
+        cuentas_en_celular = db.query(func.count(Usuario.id)).filter(
+            Usuario.fcm_token == token
+        ).scalar() or 0
+        if cuentas_en_celular > 1 and rol in _NOMBRE_ROL:
+            titulo_push = f"{_NOMBRE_ROL[rol]} · {titulo}"
+    except Exception as e:
+        print(f"[push] no se pudo contar las cuentas del celular: {e}")
+
+    _enviar_fcm(
+        token,
+        titulo_push,
+        mensaje,
+        # usuario_id le dice a la app a que cuenta cambiarse al tocar el aviso
+        data={
+            "tipo": tipo,
+            "relacionado_id": str(relacionado_id or ""),
+            "usuario_id": str(usuario.id),
+            "rol": rol,
+        },
+    )
 
 
 def notificar_usuarios(
@@ -136,5 +179,7 @@ def notificar_usuarios(
     relacionado_id=None,
 ) -> None:
     """Igual que notificar_usuario pero para una lista (ej: todos los domiciliarios disponibles)."""
+    enviados = set()
     for usuario in usuarios:
-        notificar_usuario(db, usuario, tipo, titulo, mensaje, relacionado_tabla, relacionado_id)
+        notificar_usuario(db, usuario, tipo, titulo, mensaje, relacionado_tabla, relacionado_id,
+                          _enviados=enviados)

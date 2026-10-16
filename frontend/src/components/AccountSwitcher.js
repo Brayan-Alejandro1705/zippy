@@ -23,6 +23,7 @@ import {
 } from '../utils/cuentas';
 import '../styles/AccountSwitcher.css';
 import { useCerrarConAtras } from '../utils/atras';
+import { cuentasConAvisos, dejarDeAvisar } from '../utils/push';
 
 const NOMBRE_ROL = {
   admin: 'Administrador',
@@ -61,6 +62,8 @@ const AccountSwitcher = ({ variant = 'header', className = '' }) => {
 
   const quitarCuenta = (e, usuarioId) => {
     e.stopPropagation();
+    // Si se quita la cuenta, deja de sonar en este celular
+    dejarDeAvisar(cuentas.find(c => c.usuario.id === usuarioId));
     olvidarCuenta(usuarioId);
     refrescar();
   };
@@ -69,6 +72,12 @@ const AccountSwitcher = ({ variant = 'header', className = '' }) => {
     setOpen(false);
     navigate('/login?agregar=1');
   };
+
+  // Cuentas que reciben avisos en este celular (solo existe en la app)
+  const conAvisos = new Set(cuentasConAvisos());
+  const Avisos = ({ id }) => (conAvisos.has(id)
+    ? <span className="acsw-avisos">Recibe avisos</span>
+    : null);
 
   const Lista = ({ enDrawer = false, enLinea = false }) => (
     <div
@@ -79,6 +88,7 @@ const AccountSwitcher = ({ variant = 'header', className = '' }) => {
         <strong>{usuario.nombre} {usuario.apellido}</strong>
         <span>{usuario.email}{enDrawer ? ' (actual)' : ''}</span>
         <span className="acsw-rol">{NOMBRE_ROL[usuario.tipo_usuario] || usuario.tipo_usuario}</span>
+        <Avisos id={usuario.id} />
       </div>
       {otrasCuentas.length > 0 && (
         <div className="acsw-list">
@@ -88,6 +98,7 @@ const AccountSwitcher = ({ variant = 'header', className = '' }) => {
                 <strong>{c.usuario.nombre} {c.usuario.apellido}</strong>
                 <span>{c.usuario.email}</span>
                 <span className="acsw-rol">{NOMBRE_ROL[c.usuario.tipo_usuario] || c.usuario.tipo_usuario}</span>
+                <Avisos id={c.usuario.id} />
               </div>
               <button
                 className="acsw-remove"

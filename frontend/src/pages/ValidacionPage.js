@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import { useToast } from '../context/ToastContext';
@@ -52,9 +53,25 @@ const MOTIVO_QUIETO = {
   sin_repartidor: { titulo: 'Listo para recoger y sin repartidor', a: 'Busca un repartidor', color: '#7c3aed' },
 };
 
+const TABS = ['validar', 'quietos', 'reportados'];
+
+// Avisa al menu del admin que cambio lo pendiente (para su contador)
+const avisarCambio = () => {
+  try { window.dispatchEvent(new Event('zippy-validacion-cambio')); } catch (e) { /* nada */ }
+};
+
 const ValidacionPage = () => {
   const { addToast } = useToast();
-  const [tab, setTab] = useState('validar');
+  // Cuando se llega tocando una notificacion: ?tab=validar&orden=<id>&aviso=1
+  // (y &cambio=1 si la app tuvo que pasarse a la cuenta de super admin)
+  const [params] = useSearchParams();
+  const tabInicial = TABS.includes(params.get('tab')) ? params.get('tab') : 'validar';
+  const ordenAviso = params.get('orden');
+  const desdeAviso = params.get('aviso') === '1';
+  const cambioCuenta = params.get('cambio') === '1';
+  const [tab, setTab] = useState(tabInicial);
+  useEffect(() => { setTab(tabInicial); }, [tabInicial]);
+  const resaltado = useRef(null);
   const [pendientes, setPendientes] = useState([]);
   const [reportados, setReportados] = useState([]);
   const [quietos, setQuietos] = useState({ total: 0, pedidos: [], umbrales: {} });
@@ -79,8 +96,23 @@ const ValidacionPage = () => {
   useEffect(() => {
     cargar();
     const t = setInterval(cargar, 30000);
-    return () => clearInterval(t);
-  }, [cargar]);
+    // Si llega un aviso con la pantalla abierta, la lista se actualiza ya
+    // (antes tardaba hasta 30 segundos).
+    window.addEventListener('zippy-aviso', cargar);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('zippy-aviso', cargar);
+    };
+  }, [cargar, ordenAviso]);
+
+  // Lleva la vista al pedido del aviso cuando termina de cargar
+  useEffect(() => {
+    if (!cargando && ordenAviso && resaltado.current) {
+      resaltado.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [cargando, ordenAviso, tab]);
+
+  const esDelAviso = (id) => Boolean(ordenAviso) && String(id) === String(ordenAviso);
 
   const validar = async (o, aprobar) => {
     if (!aprobar && !window.confirm(`¿Rechazar el pedido #${o.id.slice(0, 8)} de ${o.cliente.nombre}? Al cliente le llega un aviso.`)) return;
@@ -89,6 +121,7 @@ const ValidacionPage = () => {
       await ordenesService.validar(o.id, aprobar, aprobar ? null : 'No se pudo confirmar con el cliente');
       addToast(aprobar ? 'Pedido aprobado: ya le llegó al negocio' : 'Pedido rechazado', aprobar ? 'success' : 'warning');
       setPendientes(prev => prev.filter(x => x.id !== o.id));
+      avisarCambio();
     } catch (err) {
       addToast(err.response?.data?.detail || 'No se pudo actualizar el pedido', 'error');
       cargar();
@@ -103,6 +136,7 @@ const ValidacionPage = () => {
       await ordenesService.reactivarCliente(c.id);
       addToast('Cuenta reactivada', 'success');
       cargar();
+      avisarCambio();
     } catch (err) {
       addToast(err.response?.data?.detail || 'No se pudo reactivar', 'error');
     }
@@ -134,6 +168,16 @@ const ValidacionPage = () => {
         </button>
       </div>
 
+      {desdeAviso && (cambioCuenta ? (
+        <div style={{ maxWidth: 640, background: '#1e293b', color: '#fff', borderRadius: 12, padding: '10px 14px', fontSize: 13.5, marginBottom: 12 }}>
+          Te pasamos a tu cuenta de <strong>súper admin</strong> para atender este aviso.
+        </div>
+      ) : (
+        <div style={{ maxWidth: 640, background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 12, padding: '9px 14px', fontSize: 13, fontWeight: 700, marginBottom: 12 }}>
+          Abriste este pedido desde la notificación
+        </div>
+      ))}
+
       {cargando ? (
         <div className="us-empty"><p>Cargando…</p></div>
       ) : tab === 'validar' ? (
@@ -145,7 +189,8 @@ const ValidacionPage = () => {
               const wa = numeroWa(o.cliente.telefono);
               const texto = `Hola ${o.cliente.nombre}, te escribimos de ZIPPYGO para confirmar tu pedido en ${o.negocio} por ${fmt(o.total)} para entregar en ${o.direccion_entrega}. ¿Nos confirmas que es correcto?`;
               return (
-                <div key={o.id} style={{ ...card, border: '2px solid #f59e0b' }}>
+                <div key={o.id} ref={esDelAviso(o.id) ? resaltado : undefined}
+                  style={{ ...card, border: esDelAviso(o.id) ? '2px solid #10b981' : '2px solid #f59e0b', boxShadow: esDelAviso(o.id) ? '0 0 0 4px rgba(16,185,129,.18)' : card.boxShadow }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                     <strong>#{o.id.slice(0, 8)}</strong>
                     <span style={muted}>{hace(o.fecha_creacion)}</span>
@@ -200,7 +245,8 @@ const ValidacionPage = () => {
               const textoNegocio = `Hola, te escribimos de ZIPPYGO. El pedido #${o.corto} de ${o.cliente.nombre} lleva ${o.minutos} minutos esperando. ¿Lo puedes atender o lo cancelamos?`;
               const textoCliente = `Hola ${o.cliente.nombre}, te escribimos de ZIPPYGO por tu pedido #${o.corto}. Estamos sobre él para que te llegue lo antes posible.`;
               return (
-                <div key={o.id + o.motivo} style={{ ...card, border: `2px solid ${m.color}` }}>
+                <div key={o.id + o.motivo} ref={esDelAviso(o.id) ? resaltado : undefined}
+                  style={{ ...card, border: `2px solid ${esDelAviso(o.id) ? '#10b981' : m.color}`, boxShadow: esDelAviso(o.id) ? '0 0 0 4px rgba(16,185,129,.18)' : card.boxShadow }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
                     <strong>#{o.corto}</strong>
                     <span style={{ fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999, background: '#fee2e2', color: m.color }}>

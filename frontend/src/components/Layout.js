@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import GlobalSearch from './GlobalSearch';
 import Icon from './Icons';
@@ -9,6 +9,51 @@ import { cx } from '../ui/tw';
 import '../styles/Dashboard.css';
 import '../styles/dark-theme.css';
 import { useCerrarConAtras } from '../utils/atras';
+import { registrarPush, alTocarNotificacion, dejarDeAvisarCuentaActual } from '../utils/push';
+import { ordenesService } from '../config/api';
+
+// A donde lleva cada aviso del super admin al tocarlo (ver backend/push.py y
+// vigilante_pedidos.py, que son los que los mandan).
+const PESTANA_AVISO = {
+  pedido_por_validar:   'validar',
+  recordatorio_validar: 'validar',
+  negocio_sin_aceptar:  'quietos',
+  cliente_reportado:    'reportados',
+};
+
+// Lo que falta por atender en Validacion: primeros pedidos sin validar mas
+// pedidos quietos. Los quietos "sin_validar" ya estan contados en lo primero.
+const usePendientesValidacion = (activo) => {
+  const [total, setTotal] = useState(0);
+  const contar = useCallback(async () => {
+    try {
+      const [p, q] = await Promise.all([
+        ordenesService.porValidar().then(r => r.data || []).catch(() => []),
+        ordenesService.atascados().then(r => r.data?.pedidos || []).catch(() => []),
+      ]);
+      setTotal(p.length + q.filter(o => o.motivo !== 'sin_validar').length);
+    } catch (e) { /* sin red: se deja el ultimo numero */ }
+  }, []);
+  useEffect(() => {
+    if (!activo) return undefined;
+    contar();
+    const t = setInterval(contar, 60000);
+    window.addEventListener('zippy-aviso', contar);
+    window.addEventListener('zippy-validacion-cambio', contar);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('zippy-aviso', contar);
+      window.removeEventListener('zippy-validacion-cambio', contar);
+    };
+  }, [activo, contar]);
+  return total;
+};
+
+const Contador = ({ n, className = '' }) => (n > 0 ? (
+  <span className={cx('ml-auto min-w-[20px] rounded-full bg-[#dc2626] px-1.5 py-px text-center text-[11px] font-extrabold leading-[18px] text-white', className)}>
+    {n > 99 ? '99+' : n}
+  </span>
+) : null);
 
 // permId: null = siempre visible, string = requiere ese permiso
 const NAV = [
@@ -65,11 +110,29 @@ const Layout = ({ children }) => {
     navigate('/config');
   };
 
+  const esAdmin = usuario.tipo_usuario === 'admin';
+  const porAtender = usePendientesValidacion(esAdmin);
+
+  // Avisos al celular del super admin (oct 2026). Antes este panel nunca
+  // registraba el celular, asi que los avisos se guardaban pero no sonaban.
+  useEffect(() => { if (esAdmin) registrarPush(); }, [esAdmin]);
+
+  useEffect(() => alTocarNotificacion((datos) => {
+    const pestana = PESTANA_AVISO[datos?.tipo];
+    if (!pestana) return false;
+    const q = new URLSearchParams({ tab: pestana, aviso: '1' });
+    if (datos.relacionado_id) q.set('orden', datos.relacionado_id);
+    if (datos.cambio_cuenta) q.set('cambio', '1');
+    navigate(`/validacion?${q.toString()}`, { replace: location.pathname === '/validacion' });
+    return true;
+  }), [navigate, location.pathname]);
+
   const visibleNav    = NAV.filter(({ permId }) => canSee(permId, rolKey, matrix));
   const visibleBottom = BOTTOM_NAV.filter(({ permId }) => canSee(permId, rolKey, matrix));
 
   const handleLogout = () => {
     if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
+    dejarDeAvisarCuentaActual();
     olvidarCuenta(usuario.id);
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -109,13 +172,18 @@ const Layout = ({ children }) => {
           <div className="header-right flex shrink-0 items-center gap-1">
             <AccountSwitcher variant="header" />
             <button
-              className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] border-0 bg-transparent p-0 text-white md:hidden"
+              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-[10px] border-0 bg-transparent p-0 text-white md:hidden"
               onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Abrir menú"
+              aria-label={porAtender > 0 ? `Abrir menú, ${porAtender} por atender en Validación` : 'Abrir menú'}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </svg>
+              {porAtender > 0 && (
+                <span className="absolute -right-0.5 top-0.5 min-w-[18px] rounded-full border-2 border-solid border-zippy bg-[#dc2626] px-1 text-center text-[10px] font-extrabold leading-[14px] text-white">
+                  {porAtender > 99 ? '99+' : porAtender}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -137,6 +205,7 @@ const Layout = ({ children }) => {
             {visibleNav.map(({ path, icon, label }) => (
               <Link key={path} to={path} className={itemDrawer(isActive(path))} onClick={() => setMenuOpen(false)}>
                 <span className="inline-flex"><Icon name={icon} size={20} /></span> {label}
+                {path === '/validacion' && <Contador n={porAtender} />}
               </Link>
             ))}
 
@@ -160,6 +229,7 @@ const Layout = ({ children }) => {
             {visibleNav.map(({ path, icon, label }) => (
               <Link key={path} to={path} className={itemMenu(isActive(path))}>
                 <span className="inline-flex"><Icon name={icon} size={20} /></span> {label}
+                {path === '/validacion' && <Contador n={porAtender} />}
               </Link>
             ))}
           </div>

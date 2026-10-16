@@ -11,6 +11,7 @@ import AccountSwitcher from '../../components/AccountSwitcher';
 import EliminarCuenta from '../../components/EliminarCuenta';
 import { opcionesCategoria } from '../../constants/categorias';
 import { useNavigate } from 'react-router-dom';
+import { cerrarSesionAqui } from '../../utils/push';
 
 const TABS = [
   { id: 'tienda',         icon: 'vendedores',     label: 'Mi Tienda'      },
@@ -258,6 +259,8 @@ const SeccionCuenta = () => {
   const navigate = useNavigate();
 
   const cerrarSesion = () => {
+    // Cerrar sesion = este celular deja de recibir los avisos de esta cuenta
+    cerrarSesionAqui();
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('usuario');

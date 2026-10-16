@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
+from pydantic import BaseModel
 from datetime import datetime, timedelta
 import bcrypt
 
@@ -69,6 +70,30 @@ async def actualizar_mi_perfil(
     db.commit()
     db.refresh(usuario)
     return usuario
+
+
+class SoltarPush(BaseModel):
+    fcm_token: str
+
+
+@router.post(
+    "/me/soltar-push/",
+    response_model=MensajeResponse,
+    summary="Dejar de recibir avisos en un celular",
+    description="Se usa al cerrar sesion o quitar una cuenta guardada. Solo borra el token si es el de ese celular."
+)
+async def soltar_push(
+    datos: SoltarPush,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Si la cuenta ya entro desde otro telefono, su token es otro y ese
+    # telefono debe seguir recibiendo: por eso se compara antes de borrar.
+    usuario = db.query(Usuario).filter(Usuario.id == current_user.id).first()
+    if usuario and datos.fcm_token and usuario.fcm_token == datos.fcm_token:
+        usuario.fcm_token = None
+        db.commit()
+    return MensajeResponse(mensaje="Listo")
 
 @router.post(
     "/me/password/",

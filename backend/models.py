@@ -338,6 +338,9 @@ class Orden(Base):
     # Cuando se le aviso al dueño que el negocio no habia aceptado el pedido.
     # Sirve para avisar una sola vez por pedido (ver vigilante_pedidos.py).
     alerta_sin_confirmar = Column(DateTime)
+    # Cuando se le recordo al super admin que el primer pedido seguia sin
+    # validar. Igual que el anterior: un solo recordatorio por pedido.
+    alerta_sin_validar = Column(DateTime)
     fecha_reporte = Column(DateTime)
     
     fecha_ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

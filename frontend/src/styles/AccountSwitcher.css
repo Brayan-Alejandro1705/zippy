@@ -78,6 +78,22 @@
 
 .acsw-list { max-height: 240px; overflow-y: auto; }
 
+/* Oct 2026: cuentas que reciben avisos en este celular */
+.acsw-current span.acsw-avisos,
+.acsw-item span.acsw-avisos {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.dark-theme .acsw-current span.acsw-avisos,
+.dark-theme .acsw-item span.acsw-avisos { color: #6ee7b7; background: rgba(16, 185, 129, 0.15); }
+
 .acsw-item {
   display: flex;
   align-items: center;

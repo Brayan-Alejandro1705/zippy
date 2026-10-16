@@ -53,6 +53,19 @@ export const sincronizarAccessToken = (accessToken) => {
   escribir(lista);
 };
 
+/**
+ * Igual que sincronizarAccessToken pero para una cuenta guardada que no es la
+ * activa (push.js la renueva al registrar el celular en todas las cuentas).
+ */
+export const actualizarAccessCuenta = (usuarioId, accessToken) => {
+  if (!usuarioId || !accessToken) return;
+  const lista = leer();
+  const cuenta = lista.find(c => c.usuario.id === usuarioId);
+  if (!cuenta) return;
+  cuenta.access_token = accessToken;
+  escribir(lista);
+};
+
 /** Activa una cuenta guardada como la sesión actual. Devuelve el usuario activado, o null. */
 export const activarCuenta = (usuarioId) => {
   const cuenta = leer().find(c => c.usuario.id === usuarioId);

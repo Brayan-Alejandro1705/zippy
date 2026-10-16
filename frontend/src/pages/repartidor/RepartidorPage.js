@@ -12,7 +12,7 @@ import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
 import AccountSwitcher from '../../components/AccountSwitcher';
-import { registrarPush, alTocarNotificacion } from '../../utils/push';
+import { registrarPush, alTocarNotificacion, cerrarSesionAqui } from '../../utils/push';
 import { urlImagen } from '../../utils/media';
 import { esHoy, fechaServidor } from '../../utils/fechas';
 import { useCerrarConAtras } from '../../utils/atras';
@@ -1522,7 +1522,17 @@ const RepartidorPage = () => {
     }
   };
 
-  const handleLogout = () => { if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return; localStorage.clear(); navigate('/login'); };
+  const handleLogout = () => {
+    if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
+    // Antes se borraba TODO (localStorage.clear), incluidas las demas cuentas
+    // guardadas en el celular. Ahora sale solo de esta, como en los otros perfiles,
+    // y este celular deja de recibir sus avisos.
+    cerrarSesionAqui();
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('usuario');
+    navigate('/login');
+  };
 
   const handleReportSubmit = async (orden, reason) => {
     if (!window.confirm(`¿Reportar el pedido ${orden.id}? Se cancela y queda en la cuenta del cliente.`)) return;

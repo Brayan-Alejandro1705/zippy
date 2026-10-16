@@ -17,6 +17,7 @@ import { urlImagen } from '../../utils/media';
 import { fechaCorta, fechaHoraLarga, fechaServidor, minutosDesde } from '../../utils/fechas';
 import Icon from '../../components/Icons';
 import { clienteService, soporteService } from '../../config/api';
+import { cerrarSesionAqui } from '../../utils/push';
 
 // Clases de Tailwind de esta pantalla (antes en UserPanel.css)
 const C = {
@@ -890,6 +891,8 @@ const SeccionCuenta = ({ addToast }) => {
 
   const handleLogout = () => {
     if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
+    // Cerrar sesion = este celular deja de recibir los avisos de esta cuenta
+    cerrarSesionAqui();
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('usuario');
@@ -1176,6 +1179,8 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
 
   const handleLogout = () => {
     if (!window.confirm('¿Seguro que quieres cerrar sesión?')) return;
+    // Cerrar sesion = este celular deja de recibir los avisos de esta cuenta
+    cerrarSesionAqui();
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('usuario');

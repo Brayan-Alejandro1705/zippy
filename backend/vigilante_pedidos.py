@@ -17,7 +17,8 @@ import urllib.request
 from datetime import datetime, timedelta
 
 from config import SessionLocal, settings
-from models import Orden
+from models import EstadoUsuario, Orden, Usuario
+from push import notificar_usuarios
 
 # Decision del dueño (oct 2026): a los 5 minutos ya quiere enterarse. Va igual
 # que MINUTOS_SIN_CONFIRMAR del panel de soporte para que las dos cuentas
@@ -27,6 +28,10 @@ SEGUNDOS_ENTRE_REVISIONES = 120
 # Pedidos mas viejos que esto no se avisan: son de pruebas o de dias atras, y
 # al prender esto por primera vez llegaria una avalancha de avisos viejos.
 HORAS_MAXIMO = 12
+# Oct 2026: el primer pedido de un cliente no le llega al negocio hasta que el
+# super admin lo valida. Si a los 10 minutos sigue esperando, se le recuerda
+# con una notificacion al celular (una sola vez por pedido).
+MINUTOS_RECORDAR_VALIDAR = 10
 
 
 def _hora_colombia(momento: datetime) -> str:
@@ -91,6 +96,65 @@ def _enviar_correo(texto: str) -> bool:
         return False
 
 
+def _admins(db):
+    return db.query(Usuario).filter(
+        Usuario.tipo_usuario == "admin",
+        Usuario.estado == EstadoUsuario.ACTIVO,
+    ).all()
+
+
+def _nombre_cliente(o) -> str:
+    c = getattr(o, "cliente", None)
+    return (c.nombre if c and c.nombre else "un cliente")
+
+
+def recordar_sin_validar() -> int:
+    """Avisa al super admin de los primeros pedidos que siguen sin validar."""
+    ahora = datetime.utcnow()
+    db = SessionLocal()
+    try:
+        candidatos = db.query(Orden).filter(
+            Orden.estado == "pendiente",
+            Orden.requiere_validacion == True,  # noqa: E712
+            Orden.fecha_validacion.is_(None),
+            Orden.alerta_sin_validar.is_(None),
+            Orden.fecha_creacion < ahora - timedelta(minutes=MINUTOS_RECORDAR_VALIDAR),
+            Orden.fecha_creacion >= ahora - timedelta(hours=HORAS_MAXIMO),
+        ).all()
+        if not candidatos:
+            return 0
+
+        admins = _admins(db)
+        avisados = 0
+        for o in candidatos:
+            # Se aparta primero, como en revisar_una_vez, para no avisar dos veces
+            apartado = db.query(Orden).filter(
+                Orden.id == o.id, Orden.alerta_sin_validar.is_(None)
+            ).update({Orden.alerta_sin_validar: ahora}, synchronize_session=False)
+            if not apartado:
+                continue
+            minutos = int((ahora - o.fecha_creacion).total_seconds() // 60)
+            negocio = o.negocio.nombre_negocio if o.negocio else "el negocio"
+            notificar_usuarios(
+                db, admins,
+                tipo="recordatorio_validar",
+                titulo="Sigue sin validar",
+                mensaje=(f"El pedido de {_nombre_cliente(o)} en {negocio} lleva {minutos} min esperando. "
+                         "El negocio no lo recibe hasta que lo valides."),
+                relacionado_tabla="ordenes",
+                relacionado_id=o.id,
+            )
+            avisados += 1
+        db.commit()
+        return avisados
+    except Exception as e:
+        db.rollback()
+        print(f"[vigilante] fallo el recordatorio de validacion: {e}")
+        return 0
+    finally:
+        db.close()
+
+
 def revisar_una_vez() -> int:
     """Busca pedidos sin aceptar, los marca y avisa. Devuelve cuantos aviso."""
     ahora = datetime.utcnow()
@@ -127,6 +191,18 @@ def revisar_una_vez() -> int:
                     "total": float(o.total or 0),
                     "desde": desde,
                 })
+                # Oct 2026: ademas del correo, le suena al super admin en el
+                # celular, aunque este en otro perfil.
+                minutos = int((ahora - desde).total_seconds() // 60)
+                notificar_usuarios(
+                    db, _admins(db),
+                    tipo="negocio_sin_aceptar",
+                    titulo="Negocio sin aceptar",
+                    mensaje=(f"{pedidos[-1]['negocio']} lleva {minutos} min sin aceptar "
+                             f"el pedido de {_nombre_cliente(o)}."),
+                    relacionado_tabla="ordenes",
+                    relacionado_id=o.id,
+                )
         db.commit()
 
         if not pedidos:
@@ -154,6 +230,7 @@ async def vigilar_pedidos():
             # En un hilo aparte: la consulta y los envios son bloqueantes y no
             # pueden frenar las respuestas al resto de la app.
             await asyncio.to_thread(revisar_una_vez)
+            await asyncio.to_thread(recordar_sin_validar)
         except Exception as e:
             print(f"[vigilante] error inesperado: {e}")
         await asyncio.sleep(SEGUNDOS_ENTRE_REVISIONES)
