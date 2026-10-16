@@ -477,7 +477,23 @@ async def actualizar_orden(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Este pedido ya fue tomado por otro domiciliario"
             )
+        recien_tomado = orden.domiciliario_id is None
         orden.domiciliario_id = current_user.id
+
+        # Oct 2026: el cliente se entera de quien va por su pedido
+        if recien_tomado and orden.cliente:
+            try:
+                nombre_negocio = orden.negocio.nombre_negocio if orden.negocio else "la tienda"
+                notificar_usuario(
+                    db, orden.cliente,
+                    tipo="repartidor_asignado",
+                    titulo="Ya tienes repartidor",
+                    mensaje=f"{current_user.nombre} va a recoger tu pedido en {nombre_negocio}.",
+                    relacionado_tabla="ordenes",
+                    relacionado_id=orden.id,
+                )
+            except Exception as e:
+                print(f"[ordenes] no se pudo avisar al cliente del repartidor: {e}")
 
     # Verificar permisos (con el domiciliario_id ya actualizado si se reclamó arriba)
     es_vendedor = orden.negocio.vendedor_id == current_user.id if orden.negocio else False
@@ -1068,6 +1084,25 @@ async def enviar_mensaje(
     db.add(mensaje)
     db.commit()
     db.refresh(mensaje)
+
+    # Oct 2026: avisarle al otro, igual que en el chat de los mandados. Antes
+    # el mensaje se quedaba esperando a que la otra persona abriera el chat.
+    try:
+        otro_id = orden.domiciliario_id if current_user.id == orden.cliente_id else orden.cliente_id
+        otro = db.query(Usuario).filter(Usuario.id == otro_id).first() if otro_id else None
+        if otro:
+            notificar_usuario(
+                db, otro,
+                tipo="mensaje_orden",
+                titulo=f"Mensaje de {current_user.nombre}",
+                mensaje=contenido[:120],
+                relacionado_tabla="ordenes",
+                relacionado_id=orden.id,
+            )
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"[ordenes] no se pudo avisar del mensaje: {e}")
 
     return {
         "id": str(mensaje.id),

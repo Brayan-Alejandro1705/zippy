@@ -175,7 +175,8 @@
 }
 
 .cfg-field input,
-.cfg-field select {
+.cfg-field select,
+.cfg-field textarea {
   padding: 10px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -186,10 +187,77 @@
 }
 
 .cfg-field input:focus,
-.cfg-field select:focus {
+.cfg-field select:focus,
+.cfg-field textarea:focus {
   outline: none;
   border-color: #FF7A00;
   background: white;
+}
+
+/* Oct 2026: la caja de texto salia con la letra "de maquina" del navegador */
+.cfg-field textarea {
+  font-family: inherit;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 72px;
+}
+
+/* Oct 2026: botones de Guardar y "Probar chat". Las clases existian en el
+   codigo pero nunca se les dio estilo, asi que salian con el boton gris del
+   navegador (letra chiquita y borde de los 90). */
+.cfg-btn-save,
+.cfg-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s, transform 0.1s;
+}
+.cfg-btn-save {
+  border: 0;
+  background: #FF7A00;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 122, 0, 0.25);
+}
+.cfg-btn-save:hover:not(:disabled) { background: #e66d00; }
+.cfg-btn-secondary {
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #1e293b;
+}
+.cfg-btn-secondary:hover:not(:disabled) { border-color: #FF7A00; color: #c2410c; }
+.cfg-btn-save:active:not(:disabled),
+.cfg-btn-secondary:active:not(:disabled) { transform: translateY(1px); }
+.cfg-btn-save:disabled,
+.cfg-btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Casilla con su texto (ej. "Forzar la actualizacion ahora mismo") */
+.cfg-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+.cfg-check input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #FF7A00;
+  flex-shrink: 0;
 }
 
 .cfg-hint {
@@ -500,13 +568,15 @@
 
 .dark-theme .cfg-field label { color: #94a3b8; }
 .dark-theme .cfg-field input,
-.dark-theme .cfg-field select {
+.dark-theme .cfg-field select,
+.dark-theme .cfg-field textarea {
   background: #273548;
   border-color: #334155;
   color: #e2e8f0;
 }
 .dark-theme .cfg-field input:focus,
-.dark-theme .cfg-field select:focus {
+.dark-theme .cfg-field select:focus,
+.dark-theme .cfg-field textarea:focus {
   background: #1e293b;
   border-color: #FF7A00;
 }
@@ -519,6 +589,9 @@
 .dark-theme .cfg-notif-desc { color: #64748b; }
 .dark-theme .cfg-notif-row { border-color: #273548; }
 .dark-theme .cfg-card-footer { border-color: #273548; }
+.dark-theme .cfg-btn-secondary { background: transparent; border-color: #334155; color: #e2e8f0; }
+.dark-theme .cfg-btn-secondary:hover:not(:disabled) { border-color: #FF7A00; color: #fdba74; }
+.dark-theme .cfg-check { color: #e2e8f0; }
 .dark-theme .cfg-toggle { background: #334155; }
 .dark-theme .cfg-toggle--on { background: #FF7A00; }
 .dark-theme .cfg-preview-label { color: #64748b; }

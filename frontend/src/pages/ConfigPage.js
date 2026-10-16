@@ -757,7 +757,7 @@ const SeccionActualizacion = () => {
           />
         </div>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, cursor: 'pointer' }}>
+        <label className="cfg-check">
           <input
             type="checkbox"
             checked={obligatoria}

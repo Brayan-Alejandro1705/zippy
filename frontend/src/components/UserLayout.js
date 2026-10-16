@@ -98,15 +98,20 @@ const UserLayout = ({ children, onSearch }) => {
   const [abrirSenal, setAbrirSenal] = useState(0);
 
   useEffect(() => alTocarNotificacion((datos) => {
-    if (String(datos?.tipo || '') !== 'mensaje_mandado') return false;
+    const tipo = String(datos?.tipo || '');
     const id = String(datos?.relacionado_id || '');
-    if (!id) return false;
-    setChatPorAviso(id);
+    // "Ya tienes repartidor": lleva a Pedidos, donde se ve quien va y el mapa
+    if (tipo === 'repartidor_asignado') { navigate('/tienda/pedidos'); return true; }
+    // Mensajes del chat: del mandado (desde antes) y, desde oct 2026, tambien
+    // del pedido normal de una tienda
+    if (!id || (tipo !== 'mensaje_mandado' && tipo !== 'mensaje_orden')) return false;
+    setChatPorAviso({ id, tipo });
     setAbrirSenal(n => n + 1);
     return true;
-  }), []);
+  }), [navigate]);
 
-  const idChat = chatPorAviso || mandadoActivo?.idCompleto || null;
+  const chatDePedido = chatPorAviso?.tipo === 'mensaje_orden';
+  const idChat = chatPorAviso?.id || mandadoActivo?.idCompleto || null;
   // El numero corto del mandado (#PE4829). Si el chat se abrio por una
   // notificacion y el pedido todavia no ha llegado del servidor, no hay numero
   // corto: antes se mostraba el UUID entero de 36 caracteres en el titulo.
@@ -202,8 +207,8 @@ const UserLayout = ({ children, onSearch }) => {
       {idChat && (
         <ChatBurbuja
           id={idChat}
-          servicio={pedidosEspecialesService}
-          titulo={codigoChat ? `Mandado ${codigoChat}` : 'Mandado'}
+          servicio={chatDePedido ? ordenesService : pedidosEspecialesService}
+          titulo={chatDePedido ? `Pedido #${String(idChat).slice(0, 8)}` : (codigoChat ? `Mandado ${codigoChat}` : 'Mandado')}
           arrancaAbierto={false}
           abrirSenal={abrirSenal}
           onCerrar={() => { setChatPorAviso(null); setMandadoActivo(null); }}

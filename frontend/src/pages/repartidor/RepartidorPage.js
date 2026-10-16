@@ -1016,6 +1016,8 @@ const RepartidorPage = () => {
   // Mandados que este repartidor entrego hoy (solo el numero)
   const [mandadosHoy, setMandadosHoy] = useState(0);
   const especialesRef = useRef([]);
+  // Para abrir el chat de un pedido desde la notificacion sin depender del render
+  const ordenesRef = useRef([]);
   // Pedidos a los que se les acaba de tocar el boton, para bloquear ESE boton
   // y avisar. Es un conjunto y no un solo id porque antes, con un pedido en
   // vuelo, el boton de los demas se tragaba el toque sin decir nada.
@@ -1074,7 +1076,16 @@ const RepartidorPage = () => {
    * servidor el chat se abre igual, porque se pide por id.
    */
   useEffect(() => alTocarNotificacion((datos) => {
-    if (String(datos?.tipo || '') !== 'mensaje_mandado') return false;
+    const tipoAviso = String(datos?.tipo || '');
+    // Oct 2026: mensaje del cliente en el chat de un pedido normal
+    if (tipoAviso === 'mensaje_orden') {
+      const idOrden = String(datos?.relacionado_id || '');
+      if (!idOrden) return false;
+      const orden = ordenesRef.current.find(o => String(o.idCompleto) === idOrden);
+      setChatOrden(orden || { idCompleto: idOrden, id: `#${idOrden.slice(0, 8)}`, cliente: '', direccion: '' });
+      return true;
+    }
+    if (tipoAviso !== 'mensaje_mandado') return false;
     const id = String(datos?.relacionado_id || '');
     if (!id) return false;
     const enLista = especialesRef.current.find(p => String(p.idCompleto) === id);
@@ -1323,6 +1334,7 @@ const RepartidorPage = () => {
   // Copia de la lista para el aviso de arriba, que corre fuera del render y no
   // puede leer el estado directamente sin quedarse con una version vieja.
   useEffect(() => { especialesRef.current = pedidosEspeciales; }, [pedidosEspeciales]);
+  useEffect(() => { ordenesRef.current = ordenes; }, [ordenes]);
 
   // Si el chat se abrio por una notificacion antes de que llegara el mandado,
   // se le completa el numero y el nombre del cliente en cuanto aparezca.

@@ -481,6 +481,16 @@
   transition: box-shadow 0.2s, transform 0.2s;
 }
 .us-stat:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-1px); }
+/* Oct 2026: en Validacion las tarjetas son botones y el navegador les ponia su
+   borde negro arriba, a la derecha y abajo. Solo se deja la rayita de color. */
+button.us-stat {
+  border-top: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+}
 .us-stat--green  { border-left-color: #22c55e; }
 .us-stat--red    { border-left-color: #ef4444; }
 .us-stat--orange { border-left-color: #FF7A00; }

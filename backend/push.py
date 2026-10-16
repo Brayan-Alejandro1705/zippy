@@ -67,8 +67,14 @@ def _get_firebase_app():
             return None
 
 
-def _enviar_fcm(token: str, titulo: str, cuerpo: str, data: dict = None) -> bool:
-    """Manda un push a un solo token. Devuelve True/False, nunca lanza excepción."""
+# Firebase responde esto cuando el celular desinstalo la app o el token ya no
+# sirve: no vale la pena seguir intentando (ver notificar_usuario).
+TOKEN_INVALIDO = "token_invalido"
+
+
+def _enviar_fcm(token: str, titulo: str, cuerpo: str, data: dict = None):
+    """Manda un push a un solo token. Devuelve True, False o TOKEN_INVALIDO;
+    nunca lanza excepción."""
     app = _get_firebase_app()
     if not app or not token:
         return False
@@ -93,6 +99,9 @@ def _enviar_fcm(token: str, titulo: str, cuerpo: str, data: dict = None) -> bool
         )
         messaging.send(mensaje, app=app)
         return True
+    except messaging.UnregisteredError:
+        print(f"[push] token {token[:12]}... ya no existe (desinstalaron la app)")
+        return TOKEN_INVALIDO
     except Exception as e:
         print(f"[push] fallo enviando a token {token[:12]}...: {e}")
         return False
@@ -155,7 +164,7 @@ def notificar_usuario(
     except Exception as e:
         print(f"[push] no se pudo contar las cuentas del celular: {e}")
 
-    _enviar_fcm(
+    resultado = _enviar_fcm(
         token,
         titulo_push,
         mensaje,
@@ -167,6 +176,17 @@ def notificar_usuario(
             "rol": rol,
         },
     )
+
+    # Oct 2026: si el celular ya no existe, se le quita el token a todas las
+    # cuentas que lo tenian, para no seguir mandando avisos al vacio. Cuando
+    # la persona vuelva a instalar la app, se registra solo otra vez.
+    if resultado == TOKEN_INVALIDO:
+        try:
+            db.query(Usuario).filter(Usuario.fcm_token == token).update(
+                {Usuario.fcm_token: None}, synchronize_session=False
+            )
+        except Exception as e:
+            print(f"[push] no se pudo borrar el token viejo: {e}")
 
 
 def notificar_usuarios(
