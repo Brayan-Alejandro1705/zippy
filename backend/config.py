@@ -217,6 +217,8 @@ def init_db():
                 # Oct 2026: cuando se le aviso al dueño que el negocio no acepto
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS alerta_sin_confirmar TIMESTAMP",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS alerta_sin_validar TIMESTAMP",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS zona_domicilio VARCHAR(40)",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS distancia_km NUMERIC(6,2)",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS reportes_cliente INTEGER NOT NULL DEFAULT 0",
                 # Oct 2026: el cliente califica al repartidor que le llevo el pedido
                 "ALTER TABLE resenas_calificaciones ADD COLUMN IF NOT EXISTS domiciliario_id UUID REFERENCES usuarios(id)",

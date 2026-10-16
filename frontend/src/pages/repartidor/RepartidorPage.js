@@ -698,6 +698,13 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
         </div>
       </div>
 
+      {orden.zona && orden.domicilio != null && (
+        <p className="rp-order-zona">
+          Domicilio <strong>{fmt(orden.domicilio)}</strong> · {orden.zona}
+          {orden.kmCentro != null && ` · ${String(orden.kmCentro).replace('.', ',')} km del centro`}
+        </p>
+      )}
+
       {/*
         Recogida (oct 2026): la confirma el propio repartidor con "Ya recogí
         el pedido". Antes la confirmaba el vendedor escribiendo el codigo y,
@@ -1237,6 +1244,10 @@ const RepartidorPage = () => {
           ? { lat: Number(o.negocio_latitud), lng: Number(o.negocio_longitud) } : null,
         fotoProducto: primerItem?.producto_imagen || primerProducto?.imagenes?.[0] || null,
         total: Number(o.total),
+        // Domicilio por zonas: cuanto se cobro y en que zona cayo la casa
+        domicilio: o.costo_domicilio != null ? Number(o.costo_domicilio) : null,
+        zona: o.zona_domicilio || null,
+        kmCentro: o.distancia_km != null ? Number(o.distancia_km) : null,
         pago: o.metodo_pago,
         instrucciones: o.notas_cliente || null,
         codigoRecogida: o.codigo_recogida || null,

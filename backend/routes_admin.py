@@ -4,7 +4,10 @@
 
 import re
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import json
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
@@ -13,6 +16,7 @@ from config import get_db
 from models import Usuario, ConfiguracionSistema, Orden, ItemOrden, Producto, Negocio, PedidoEspecial
 from routes_auth import get_current_user
 from logs_utils import registrar_log
+import calculos
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -348,22 +352,105 @@ async def actualizar_whatsapp_soporte(
 async def obtener_costo_domicilio(db: Session = Depends(get_db)):
     from config import settings
 
+    # Oct 2026: con zonas activas el carrito muestra "desde" (la zona mas
+    # barata); el precio exacto sale de /domicilio/cotizar con la direccion.
+    zonas = calculos.leer_zonas(db)
+    extra = {
+        "por_zonas": bool(zonas["activo"] and zonas["zonas"]),
+        "desde": float(calculos.domicilio_minimo(db)),
+    }
+
     # Sin configurar todavia: se usa el respaldo de config.py.
     valor = _obtener_valor(db, CLAVE_DOMICILIO, "")
     if not valor:
         return {
             "costo_domicilio": float(settings.COSTO_DOMICILIO_BASE),
             "configurado": False,
+            **extra,
         }
 
     try:
-        return {"costo_domicilio": float(valor), "configurado": True}
+        return {"costo_domicilio": float(valor), "configurado": True, **extra}
     except ValueError:
         # Alguien guardo basura: no se rompe el checkout por eso.
         return {
             "costo_domicilio": float(settings.COSTO_DOMICILIO_BASE),
             "configurado": False,
+            **extra,
         }
+
+
+@router.get(
+    "/configuracion/domicilio/cotizar",
+    summary="Cuánto cuesta el domicilio a un punto",
+    description="Público. El checkout lo usa para mostrar la zona y el precio "
+                "antes de confirmar; el servidor vuelve a calcularlo al crear la orden.",
+)
+async def cotizar_domicilio(
+    lat: Optional[float] = Query(None, ge=-90, le=90),
+    lng: Optional[float] = Query(None, ge=-180, le=180),
+    db: Session = Depends(get_db),
+):
+    c = calculos.cotizar_domicilio(db, lat, lng)
+    return {
+        "costo_domicilio": float(c["costo"]) if c["costo"] is not None else None,
+        "por_zonas": c["por_zonas"],
+        "zona": c["zona"],
+        "km": c["km"],
+        "sin_punto": c["sin_punto"],
+        "fuera": c["fuera"],
+        "max_km": c["max_km"],
+    }
+
+
+@router.get(
+    "/configuracion/zonas",
+    summary="Zonas de domicilio",
+    description="Centro, anillos y precio de cada zona. No tiene datos privados.",
+)
+async def obtener_zonas(db: Session = Depends(get_db)):
+    return calculos.leer_zonas(db)
+
+
+@router.put(
+    "/configuracion/zonas",
+    summary="Guardar las zonas de domicilio",
+    description="Solo administradores.",
+)
+async def guardar_zonas(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _es_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo un administrador puede cambiar las zonas",
+        )
+    try:
+        limpio = calculos.validar_zonas(datos)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    _guardar_valor(
+        db,
+        calculos.CLAVE_ZONAS,
+        json.dumps(limpio, ensure_ascii=False),
+        "Zonas de domicilio: centro, anillos y precio de cada zona",
+    )
+    resumen = ", ".join(f"{z['nombre']} hasta {z['hasta_km']:g} km ${z['precio']:,}".replace(",", ".")
+                        for z in limpio["zonas"]) or "sin zonas"
+    registrar_log(
+        db,
+        usuario_id=current_user.id,
+        accion="Configuración",
+        tabla_afectada="configuracion_sistema",
+        detalle=f"Zonas de domicilio {'activas' if limpio['activo'] else 'apagadas'}: {resumen}",
+    )
+    return {
+        **limpio,
+        "mensaje": "Zonas guardadas" + ("" if limpio["activo"] else " (apagadas: se cobra el precio único)"),
+    }
 
 
 @router.put(

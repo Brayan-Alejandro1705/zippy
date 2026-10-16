@@ -322,6 +322,9 @@ class OrdenResponse(BaseModel):
     direccion_entrega: str
     latitud_entrega: Optional[float] = None
     longitud_entrega: Optional[float] = None
+    # Zona de domicilio y distancia al centro (vacios con precio unico)
+    zona_domicilio: Optional[str] = None
+    distancia_km: Optional[float] = None
     notas_cliente: Optional[str] = None
     items: List[ItemOrdenResponse]
     fecha_creacion: datetime

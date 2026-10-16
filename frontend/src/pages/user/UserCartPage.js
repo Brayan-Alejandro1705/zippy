@@ -20,11 +20,17 @@ const UserCartPage = () => {
   // panel sin que haya que reconstruir la app. El valor del archivo queda
   // como respaldo mientras carga o si la red falla.
   const [envioUnitario, setEnvioUnitario] = useState(ENVIO_POR_TIENDA);
+  // Con domicilio por zonas el carrito todavia no sabe a donde va el pedido:
+  // muestra "desde" (la zona mas barata) y el precio exacto sale al confirmar.
+  const [porZonas, setPorZonas] = useState(false);
 
   useEffect(() => {
     domicilioService.obtener()
       .then(({ data }) => {
-        if (typeof data?.costo_domicilio === 'number') {
+        if (data?.por_zonas && typeof data?.desde === 'number') {
+          setPorZonas(true);
+          setEnvioUnitario(data.desde);
+        } else if (typeof data?.costo_domicilio === 'number') {
           setEnvioUnitario(data.costo_domicilio);
         }
       })
@@ -75,7 +81,7 @@ const UserCartPage = () => {
               <div key={tienda} className={cx(tarjeta, 'overflow-hidden rounded-xl')}>
                 <div className="flex items-center justify-between gap-3 bg-[#4c1d95] px-3.5 py-2.5 text-[13px] font-bold text-white md:px-4 md:py-[11px] md:text-sm">
                   <span className="flex min-w-0 items-center gap-1.5"><Icon name="vendedores" size={15} /><span className="truncate">{tienda}</span></span>
-                  <span className="shrink-0 text-xs font-medium opacity-85">Envío: {fmt(envioUnitario)}</span>
+                  <span className="shrink-0 text-xs font-medium opacity-85">Envío: {porZonas ? 'desde ' : ''}{fmt(envioUnitario)}</span>
                 </div>
 
                 {tiendaCerrada && (
@@ -119,8 +125,11 @@ const UserCartPage = () => {
             <span>Subtotal productos:</span><span>{fmt(subtotal)}</span>
           </div>
           <div className="mb-2 flex justify-between text-[13px] text-slate-600 dark:text-slate-400">
-            <span>Envío:</span><span>{fmt(envioTotal)}</span>
+            <span>Envío:</span><span>{porZonas ? 'desde ' : ''}{fmt(envioTotal)}</span>
           </div>
+          {porZonas && (
+            <p className="m-0 mb-2 text-[11.5px] leading-snug text-slate-400">El domicilio depende de qué tan lejos queda tu dirección. Lo ves exacto al confirmar.</p>
+          )}
           <div className="mb-4 mt-3.5 flex items-baseline justify-end gap-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100">
             <span>$</span>
             <span className="text-[22px] font-black text-zippy md:text-[26px]">{fmt(total).replace('$', '')}</span>

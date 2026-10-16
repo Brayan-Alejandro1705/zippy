@@ -30,11 +30,14 @@ router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 # FUNCIONES AUXILIARES
 # ============================================================================
 
-def calcular_total_orden(items_data: List[dict], db: Session) -> tuple:
+def calcular_total_orden(items_data: List[dict], db: Session, lat=None, lng=None) -> tuple:
     """
     Calcula subtotal, impuesto, domicilio y total de una orden.
 
-    Retorna: (subtotal, impuesto, costo_domicilio, total)
+    Retorna: (subtotal, impuesto, costo_domicilio, total, cotizacion)
+
+    Oct 2026: si el super admin activo las zonas, el domicilio depende de que
+    tan lejos del centro queda el punto que marco el cliente (lat, lng).
 
     El domicilio se suma AQUI y no se recibe del frontend: un precio que
     llega desde el navegador lo puede modificar cualquiera con las
@@ -62,10 +65,24 @@ def calcular_total_orden(items_data: List[dict], db: Session) -> tuple:
         subtotal += producto.precio * item['cantidad']
     
     impuesto = subtotal * (Decimal(settings.IMPUESTO_IVA) / 100)
-    costo_domicilio = calculos.costo_domicilio(db)
+
+    cotizacion = calculos.cotizar_domicilio(db, lat, lng)
+    if cotizacion["sin_punto"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Marca tu dirección en el mapa para calcular el domicilio. Agrégala de nuevo y pon el punto de tu casa.",
+        )
+    if cotizacion["fuera"]:
+        km = f"{cotizacion['km']:g}".replace(".", ",")
+        maximo = f"{cotizacion['max_km']:g}".replace(".", ",")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Por ahora no llegamos hasta allá: esa dirección está a {km} km del centro y entregamos hasta {maximo} km.",
+        )
+    costo_domicilio = cotizacion["costo"]
     total = subtotal + impuesto + costo_domicilio
 
-    return subtotal, impuesto, costo_domicilio, total
+    return subtotal, impuesto, costo_domicilio, total, cotizacion
 
 # ============================================================================
 # ENDPOINTS: CRUD DE ÓRDENES
@@ -161,7 +178,9 @@ async def crear_orden(
 
     # Calcular totales
     items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad} for item in orden.items]
-    subtotal, impuesto, costo_domicilio, total = calcular_total_orden(items_list, db)
+    subtotal, impuesto, costo_domicilio, total, cotizacion = calcular_total_orden(
+        items_list, db, orden.latitud_entrega, orden.longitud_entrega
+    )
     
     # Crear orden
     nueva_orden = Orden(
@@ -178,6 +197,8 @@ async def crear_orden(
         direccion_entrega=orden.direccion_entrega,
         latitud_entrega=orden.latitud_entrega,
         longitud_entrega=orden.longitud_entrega,
+        zona_domicilio=cotizacion.get("zona"),
+        distancia_km=cotizacion.get("km"),
         notas_cliente=orden.notas_cliente,
         fecha_creacion=datetime.utcnow()
     )

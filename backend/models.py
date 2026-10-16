@@ -316,6 +316,10 @@ class Orden(Base):
     direccion_entrega = Column(String(500))
     latitud_entrega = Column(DECIMAL(10, 8))
     longitud_entrega = Column(DECIMAL(11, 8))
+    # Oct 2026: zona de domicilio en la que cayo la direccion y su distancia
+    # al centro (vacios si se cobro precio unico)
+    zona_domicilio = Column(String(40))
+    distancia_km = Column(DECIMAL(6, 2))
     
     # Tiempos
     fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)

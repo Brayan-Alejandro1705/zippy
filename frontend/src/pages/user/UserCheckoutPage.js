@@ -70,6 +70,31 @@ const UserCheckoutPage = () => {
   const dirElegida = direcciones.find(d => d.id === dirId) || null;
 
   /*
+   * Domicilio por zonas (oct 2026): el precio depende de que tan lejos del
+   * centro queda el punto que marco el cliente. Se pregunta al servidor cada
+   * vez que cambia la direccion; al crear la orden el servidor lo vuelve a
+   * calcular, asi que esto solo sirve para mostrarlo antes de confirmar.
+   */
+  const [cot, setCot] = useState(null);
+  const latDir = dirElegida?.lat ?? null;
+  const lngDir = dirElegida?.lng ?? null;
+  useEffect(() => {
+    if (!dirElegida) { setCot(null); return undefined; }
+    let vivo = true;
+    domicilioService.cotizar(latDir, lngDir)
+      .then(({ data }) => { if (vivo) setCot(data || null); })
+      .catch(() => { if (vivo) setCot(null); });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirElegida?.id, latDir, lngDir]);
+
+  const porZonas  = Boolean(cot?.por_zonas);
+  const fueraZona = porZonas && cot?.fuera;
+  const sinPunto  = porZonas && cot?.sin_punto;
+  const bloqueoZona = fueraZona || sinPunto;
+  const kmTexto = (km) => String(km ?? '').replace('.', ',');
+
+  /*
    * Elegir o agregar la direccion SIN salir del pedido.
    *
    * Antes, para agregar una direccion habia que irse al Perfil: el enlace
@@ -118,7 +143,8 @@ const UserCheckoutPage = () => {
   };
 
   const tiendas    = [...new Set(items.map(i => i.tienda))];
-  const envioTotal = tiendas.length * envioUnitario;
+  const envioPorTienda = typeof cot?.costo_domicilio === 'number' ? cot.costo_domicilio : envioUnitario;
+  const envioTotal = tiendas.length * envioPorTienda;
   const total      = subtotal + envioTotal;
   const itemsCerrados = items.filter(i => !estaAbierto(i));
   // Bebidas alcoholicas: el backend es quien decide (tambien mira la categoria
@@ -145,6 +171,10 @@ const UserCheckoutPage = () => {
     }
     if (tieneAlcohol && !mayorEdad) {
       addToast('Confirma que eres mayor de 18 años para pedir bebidas alcohólicas.', 'error');
+      return;
+    }
+    if (bloqueoZona) {
+      addToast(fueraZona ? 'Por ahora no llegamos a esa dirección. Elige otra.' : 'Marca tu dirección en el mapa para calcular el domicilio.', 'error');
       return;
     }
     setLoading(true);
@@ -271,6 +301,16 @@ const UserCheckoutPage = () => {
                 <p className="m-0 break-words text-[12.5px] leading-snug text-slate-500 dark:text-slate-400">
                   {dirElegida ? <>{dirElegida.dir}{dirElegida.referencia ? ` · ${dirElegida.referencia}` : ''}</> : 'Dinos a dónde llevarlo'}
                 </p>
+                {porZonas && cot?.zona && (
+                  <span className="mt-1.5 inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-[11.5px] font-extrabold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                    {cot.zona} · {kmTexto(cot.km)} km del centro
+                  </span>
+                )}
+                {fueraZona && (
+                  <span className="mt-1.5 inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-[11.5px] font-extrabold text-red-700 dark:bg-red-500/15 dark:text-red-300">
+                    A {kmTexto(cot.km)} km · fuera de cobertura
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -281,6 +321,21 @@ const UserCheckoutPage = () => {
                 onClick={abrirHojaDir}
               >
                 {dirElegida ? 'Cambiar' : '+ Agregar'}
+              </button>
+            </div>
+          )}
+          {fueraZona && (
+            <div className="mt-2.5 rounded-[10px] border border-solid border-red-200 bg-red-50 px-3 py-2.5 text-[13px] leading-snug text-red-900 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+              <strong className="mb-0.5 block text-red-700 dark:text-red-300">Por ahora no llegamos hasta allá</strong>
+              Esa dirección está a {kmTexto(cot.km)} km del centro y entregamos hasta {kmTexto(cot.max_km)} km. Elige otra dirección o escríbenos desde Ayuda.
+            </div>
+          )}
+          {sinPunto && (
+            <div className="mt-2.5 rounded-[10px] bg-amber-500/[0.12] px-3 py-2.5 text-[13px] leading-snug text-amber-800 dark:text-amber-300">
+              <strong className="mb-0.5 block">Falta marcar tu casa en el mapa</strong>
+              Sin el punto no sabemos cuánto cuesta el domicilio. Agrega la dirección de nuevo y marca dónde queda.
+              <button type="button" className="mt-2 block cursor-pointer rounded-full border-[1.5px] border-solid border-amber-600 bg-transparent px-3.5 py-1.5 font-[inherit] text-[12.5px] font-extrabold text-amber-700 dark:border-amber-400 dark:text-amber-300" onClick={() => { setDirMarcada(dirId); setHojaDir('nueva'); }}>
+                Agregar con el mapa
               </button>
             </div>
           )}
@@ -307,7 +362,7 @@ const UserCheckoutPage = () => {
           />
         </div>
 
-        {dirElegida && dirElegida.lat == null && (
+        {dirElegida && dirElegida.lat == null && !porZonas && (
           <p className="m-0 mx-4 mb-3 rounded-[10px] bg-amber-500/[0.12] px-3 py-2.5 text-[13px] leading-snug text-amber-700 dark:text-amber-300 sm:mx-5">
             Esta dirección no está marcada en el mapa. Para que el repartidor llegue exacto, agrégala de nuevo en Perfil → Direcciones y marca tu casa.
           </p>
@@ -325,22 +380,44 @@ const UserCheckoutPage = () => {
           </label>
         )}
 
+        {/* Desglose: productos y domicilio por separado */}
+        {!bloqueoZona && (
+          <div className="px-4 pb-2.5 pt-1 sm:px-5">
+            <div className="flex justify-between py-1 text-[13.5px] text-slate-500 dark:text-slate-400">
+              <span>Productos</span><strong className="text-slate-800 dark:text-slate-100">{fmt(subtotal)}</strong>
+            </div>
+            <div className="flex justify-between py-1 text-[13.5px] text-slate-500 dark:text-slate-400">
+              <span>
+                Domicilio{porZonas && cot?.zona ? ` · ${cot.zona}` : ''}
+                {tiendas.length > 1 ? ` (${tiendas.length} tiendas × ${fmt(envioPorTienda)})` : ''}
+              </span>
+              <strong className="text-slate-800 dark:text-slate-100">{fmt(envioTotal)}</strong>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between bg-zippy-50 px-4 py-3.5 dark:bg-[#1a2030] sm:px-5 sm:py-4">
           <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Total</span>
-          <span className="text-2xl font-black text-zippy sm:text-[26px]">{fmt(total)}</span>
+          <span className={cx('text-2xl font-black sm:text-[26px]', bloqueoZona ? 'text-slate-400' : 'text-zippy')}>{bloqueoZona ? '—' : fmt(total)}</span>
         </div>
 
         <div className="px-4 pt-3.5 sm:px-5 sm:pt-4">
           <button
             className={botonGrande}
             onClick={handleConfirmar}
-            disabled={loading || !dirElegida || itemsCerrados.length > 0 || (tieneAlcohol && !mayorEdad)}
+            disabled={loading || !dirElegida || itemsCerrados.length > 0 || (tieneAlcohol && !mayorEdad) || bloqueoZona}
           >
             {loading
               ? 'Procesando...'
               : itemsCerrados.length > 0
                 ? 'Hay productos no disponibles'
-                : (!dirElegida ? 'Agrega una dirección' : 'Confirmar Orden')}
+                : !dirElegida
+                  ? 'Agrega una dirección'
+                  : fueraZona
+                    ? 'Elige otra dirección'
+                    : sinPunto
+                      ? 'Marca tu dirección en el mapa'
+                      : 'Confirmar Orden'}
           </button>
         </div>
         <p className="m-0 px-4 pb-5 pt-1.5 text-center text-xs text-slate-400 sm:px-5 sm:pb-4">Recibirás confirmación en tu correo</p>

@@ -5,6 +5,7 @@ import { usuariosService, adminService } from '../config/api';
 import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import CentroAyuda from '../components/CentroAyuda';
+import ZonasDomicilio from '../components/ZonasDomicilio';
 import { getPrefs, savePrefs, requestPermission, checkPermission, sendNotification, scheduleReporteSemanal } from '../utils/notifications';
 import '../styles/Config.css';
 
@@ -440,10 +441,12 @@ const SeccionPrecios = () => {
 
   return (
     <div className="cfg-sections">
+      <ZonasDomicilio />
+
       <form className="cfg-card" onSubmit={guardar}>
-        <div className="cfg-card-title">Costo del domicilio</div>
+        <div className="cfg-card-title">Precio único del domicilio</div>
         <p className="cfg-notif-desc" style={{ marginBottom: 16 }}>
-          Se cobra una vez por cada tienda del pedido. Si un cliente compra en
+          Es el que se cobra cuando las zonas están apagadas. Se cobra una vez por cada tienda del pedido. Si un cliente compra en
           dos negocios distintos, paga dos domicilios porque son dos recogidas.
           El cambio aplica de inmediato a los pedidos nuevos.
         </p>

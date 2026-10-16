@@ -160,6 +160,9 @@ export const adminService = {
   obtenerSoporte:    () => api.get('/admin/configuracion/soporte'),
   actualizarSoporte: (whatsapp) => api.put('/admin/configuracion/soporte', { whatsapp }),
   obtenerDomicilio:    () => api.get('/admin/configuracion/domicilio'),
+  // Domicilio por zonas (oct 2026): centro, anillos y precio de cada uno
+  obtenerZonas:        () => api.get('/admin/configuracion/zonas'),
+  guardarZonas:        (datos) => api.put('/admin/configuracion/zonas', datos),
   actualizarDomicilio: (costo) =>
     api.put('/admin/configuracion/domicilio', { costo_domicilio: costo }),
   obtenerMandado:    () => api.get('/admin/configuracion/mandado'),
@@ -180,6 +183,11 @@ export const soporteService = {
 // MISMO valor que el servidor va a cobrar. El endpoint de lectura es publico.
 export const domicilioService = {
   obtener: () => api.get('/admin/configuracion/domicilio'),
+  // Precio y zona para el punto que marco el cliente (el servidor lo vuelve
+  // a calcular al crear la orden; esto es para mostrarlo antes)
+  cotizar: (lat, lng) => api.get('/admin/configuracion/domicilio/cotizar', {
+    params: lat != null && lng != null ? { lat, lng } : {},
+  }),
 };
 
 // Lo que cobra ZIPPYGO por un mandado, aparte de lo que valga la compra.
