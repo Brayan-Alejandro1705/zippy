@@ -517,6 +517,19 @@ const PATHS = {
     </>
   ),
 
+  camara: (
+    <>
+      <path d="M4 8.5a2 2 0 012-2h2l1.5-2h5L16 6.5h2a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </>
+  ),
+  galeria: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <circle cx="9" cy="9.5" r="1.6" />
+      <path d="M20.5 15.5l-5-5-8.5 9" />
+    </>
+  ),
   mapa: (
     <>
       <path d="M9 4.5L3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5l-6-2z" />

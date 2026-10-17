@@ -116,6 +116,7 @@ def notificar_usuario(
     relacionado_tabla: str = None,
     relacionado_id=None,
     _enviados: set = None,
+    guardar: bool = True,
 ) -> None:
     """
     Registra la notificación en la base de datos (historial dentro de la app)
@@ -127,15 +128,18 @@ def notificar_usuario(
     if usuario is None:
         return
 
-    notificacion = Notificacion(
-        usuario_id=usuario.id,
-        tipo=tipo,
-        titulo=titulo,
-        mensaje=mensaje,
-        relacionado_tabla=relacionado_tabla,
-        relacionado_id=relacionado_id,
-    )
-    db.add(notificacion)
+    # guardar=False: solo suena en el celular, sin quedar en el historial de
+    # la campanita (lo usan los recordatorios, que se repiten cada 75 s)
+    if guardar:
+        notificacion = Notificacion(
+            usuario_id=usuario.id,
+            tipo=tipo,
+            titulo=titulo,
+            mensaje=mensaje,
+            relacionado_tabla=relacionado_tabla,
+            relacionado_id=relacionado_id,
+        )
+        db.add(notificacion)
 
     token = usuario.fcm_token
     if not token:
@@ -197,9 +201,10 @@ def notificar_usuarios(
     mensaje: str,
     relacionado_tabla: str = None,
     relacionado_id=None,
+    guardar: bool = True,
 ) -> None:
     """Igual que notificar_usuario pero para una lista (ej: todos los domiciliarios disponibles)."""
     enviados = set()
     for usuario in usuarios:
         notificar_usuario(db, usuario, tipo, titulo, mensaje, relacionado_tabla, relacionado_id,
-                          _enviados=enviados)
+                          _enviados=enviados, guardar=guardar)

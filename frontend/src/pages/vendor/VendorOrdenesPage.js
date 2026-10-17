@@ -61,7 +61,7 @@ const ordenDeApi = (o, negocioNombre, productosMap, clienteNombre, clienteTelefo
 
 const ESTADO_REAL_LABEL = {
   pendiente:           'Pendiente',
-  confirmada:           'Confirmado',
+  confirmada:           'Preparando',
   en_preparacion:       'Preparando',
   lista_para_retirar:   'Listo para recoger',
 };

@@ -109,7 +109,7 @@ const MAP_STYLE = { width: '100%', height: '220px', borderRadius: '12px' };
 
 const PASO_LABEL = {
   pendiente:          'Recibido',
-  confirmada:          'Confirmado',
+  confirmada:          'En preparación',
   en_preparacion:      'En preparación',
   lista_para_retirar:  'Listo para recoger',
   en_domicilio:        'En camino',
@@ -119,7 +119,8 @@ const PASO_LABEL = {
 
 const ESTADO_UI = {
   pendiente:          'Pendiente',
-  confirmada:         'Confirmado',
+  // Oct 2026: aceptar el pedido ya lo pone en preparacion (ver OrdenDetalle)
+  confirmada:         'En preparación',
   en_preparacion:     'En preparación',
   lista_para_retirar: 'Listo para recoger',
   en_domicilio:       'En camino',
@@ -130,9 +131,8 @@ const ESTADO_UI = {
 
 // Pasos que ve el cliente, en orden
 const PASOS_PEDIDO = [
-  { estado: 'Pendiente',          icon: 'reloj',        titulo: 'Pedido recibido',    detalle: 'Esperando que el negocio lo confirme' },
-  { estado: 'Confirmado',         icon: 'check',        titulo: 'Confirmado',         detalle: 'El negocio aceptó tu pedido' },
-  { estado: 'En preparación',     icon: 'vendedores',   titulo: 'En preparación',     detalle: 'Están alistando tu pedido' },
+  { estado: 'Pendiente',          icon: 'reloj',        titulo: 'Pedido recibido',    detalle: 'Esperando que el negocio lo acepte' },
+  { estado: 'En preparación',     icon: 'vendedores',   titulo: 'Aceptado y en preparación', detalle: 'El negocio aceptó tu pedido y lo está preparando' },
   { estado: 'Listo para recoger', icon: 'paquete',      titulo: 'Listo',              detalle: 'Esperando al repartidor' },
   { estado: 'En camino',          icon: 'repartidores', titulo: 'En camino',          detalle: 'Tu pedido va hacia ti' },
   { estado: 'Entregado',          icon: 'check',        titulo: 'Entregado',          detalle: 'Pedido completado' },
@@ -183,7 +183,7 @@ const esperaLegible = (min) => {
 // Estados en los que el cliente todavia puede cancelar. Una vez el negocio
 // empieza a preparar el pedido ya gasto en el, asi que cancelar ahi le hace
 // perder plata: de ese punto en adelante toca por soporte.
-const ESTADOS_CANCELABLES = ['Pendiente', 'En validación', 'Confirmado'];
+const ESTADOS_CANCELABLES = ['Pendiente', 'En validación'];
 
 const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, repitiendo, onCancelar, cancelando }) => {
   // WhatsApp de soporte, para el primer pedido que esta en validacion
@@ -479,6 +479,8 @@ const LineaEstado = ({ estado, tieneRepartidor, nombreRepartidor }) => {
         })}
       </ol>
 
+      {/* Mientras el negocio no lo acepta, hablar de repartidor confunde */}
+      {!['Pendiente', 'En validación'].includes(estado) && (
       <div
         className={cx(
           'mt-3.5 flex items-center gap-2 rounded-[10px] border border-solid px-[13px] py-[11px] text-[13px]',
@@ -494,6 +496,7 @@ const LineaEstado = ({ estado, tieneRepartidor, nombreRepartidor }) => {
             : 'Todavía ningún repartidor ha tomado tu pedido'}
         </span>
       </div>
+      )}
     </div>
   );
 };
@@ -661,6 +664,8 @@ const SeguimientoModal = ({ pedido, onClose }) => {
             </>
           ) : pedido.estado === 'En camino' ? (
             <p><Icon name="repartidores" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tu pedido va en camino.</p>
+          ) : ['Pendiente', 'En validación'].includes(pedido.estado) ? (
+            <p><Icon name="reloj" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Esperando que el negocio acepte tu pedido.</p>
           ) : (
             <p><Icon name="paquete" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />Tu pedido está siendo preparado. Aún no hay un repartidor asignado.</p>
           )}

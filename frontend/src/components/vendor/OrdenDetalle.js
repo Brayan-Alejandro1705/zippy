@@ -18,10 +18,14 @@ import { useCerrarConAtras } from '../../utils/atras';
 
 const fmtFull = n => `$${Math.round(n).toLocaleString('es-CO')}`;
 
-// Pasos que el vendedor controla antes de que un repartidor pueda tomar el pedido
+// Pasos que el vendedor controla antes de que un repartidor pueda tomar el pedido.
+// Oct 2026: "Confirmar" y "En preparación" eran dos toques seguidos (en los
+// pedidos reales pasaban 5-15 segundos entre uno y otro). Ahora al aceptar el
+// pedido queda de una vez en preparación. "confirmada" se deja por si queda
+// algun pedido viejo en ese estado.
 export const VENDEDOR_NEXT = {
-  pendiente:      { next: 'confirmada',         label: 'Confirmar pedido' },
-  confirmada:     { next: 'en_preparacion',      label: 'Marcar en preparación' },
+  pendiente:      { next: 'en_preparacion',      label: 'Aceptar pedido' },
+  confirmada:     { next: 'en_preparacion',      label: 'Aceptar pedido' },
   en_preparacion: { next: 'lista_para_retirar',  label: 'Marcar listo para recoger' },
 };
 

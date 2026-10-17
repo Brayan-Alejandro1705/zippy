@@ -8,6 +8,7 @@ import Icon from '../../components/Icons';
 import '../../styles/VendorProductos.css';
 import { useCategoriasProducto } from '../../hooks/useCategoriasProducto';
 import CampoPesos, { PRECIO_MINIMO } from '../../components/CampoPesos';
+import BotonesFoto from '../../components/BotonesFoto';
 
 
 const Field = ({ label, error, children }) => (
@@ -232,11 +233,12 @@ const VendorEditarProductoPage = () => {
                       ? <img src={preview} alt="preview" className="vnp-preview" />
                       : <>
                           <span className="vnp-drop-icon text-slate-400"><Icon name="paquete" size={34} /></span>
-                          <span className="vnp-drop-text">Cambiar foto</span>
-                          <span className="vnp-drop-sub">Arrastra o haz click · JPG, PNG, WEBP</span>
+                          <span className="vnp-drop-text">Agrega la foto del producto</span>
+                          <span className="vnp-drop-sub">Tómala con la cámara o elígela de tu galería</span>
                         </>
                     }
                   </div>
+                  <BotonesFoto onArchivo={handleFile} hayFoto={Boolean(preview)} />
                   {preview && (
                     <button type="button" className="vnp-remove-photo"
                       onClick={e => { e.stopPropagation(); setPreview(null); setFoto(null); }}>

@@ -578,8 +578,10 @@ async def actualizar_orden(
         MENSAJES_CLIENTE = {
             "confirmada": ("pedido_confirmado", "Pedido confirmado",
                 lambda n: f"{n} confirmo tu pedido y lo esta preparando"),
-            "en_preparacion": ("pedido_en_preparacion", "Tu pedido esta en preparacion",
-                lambda n: f"{n} ya esta preparando tu pedido"),
+            # Oct 2026: aceptar el pedido ya lo pone en preparacion (un solo
+            # paso para el negocio), asi que este es el aviso de "aceptado"
+            "en_preparacion": ("pedido_en_preparacion", "Pedido aceptado",
+                lambda n: f"{n} aceptó tu pedido y ya lo está preparando"),
             "en_domicilio": ("pedido_en_camino", "Tu pedido va en camino",
                 lambda n: "El domiciliario ya recogio tu pedido y va en camino"),
             "entregada": ("pedido_entregado", "Pedido entregado",

@@ -33,6 +33,19 @@ HORAS_MAXIMO = 12
 # con una notificacion al celular (una sola vez por pedido).
 MINUTOS_RECORDAR_VALIDAR = 10
 
+# Oct 2026 (pedido del dueño): un pedido que se queda quieto suena cada 75
+# segundos a quien tiene que moverlo, maximo 8 veces (10 minutos). Despues ya
+# no se insiste mas: si suena sin parar terminan apagando las notificaciones
+# de la app. Para entonces el super admin ya tiene su propio aviso.
+SEGUNDOS_RECORDATORIO = 75
+MAX_RECORDATORIOS = 8
+SEGUNDOS_VUELTA_RAPIDA = 15
+# Cuantos recordatorios lleva cada pedido: {(orden_id, motivo): cuantos}.
+# Vive en memoria: si el servidor se reinicia, se retoma por el tiempo que
+# lleva el pedido (no se repiten de golpe los que ya sonaron).
+_recordatorios = {}
+_admin_sin_repartidor = set()
+
 
 def _hora_colombia(momento: datetime) -> str:
     return (momento - timedelta(hours=5)).strftime("%I:%M %p").lstrip("0")
@@ -155,6 +168,120 @@ def recordar_sin_validar() -> int:
         db.close()
 
 
+def _plata(valor) -> str:
+    return f"{float(valor or 0):,.0f}".replace(",", ".")
+
+
+def _toca_recordar(clave, desde, ahora) -> int:
+    """Devuelve el numero de recordatorio que toca mandar ahora (1..8), o 0."""
+    if not desde:
+        return 0
+    numero = int((ahora - desde).total_seconds() // SEGUNDOS_RECORDATORIO)
+    if numero < 1 or numero > MAX_RECORDATORIOS:
+        return 0
+    if _recordatorios.get(clave, 0) >= numero:
+        return 0
+    _recordatorios[clave] = numero
+    return numero
+
+
+def recordatorios() -> int:
+    """Recordatorios cada 75 s: al negocio que no ha aceptado, a los
+    repartidores cuando nadie toma un pedido listo, y al repartidor que lo
+    tomo y no ha pasado a recogerlo."""
+    ahora = datetime.utcnow()
+    db = SessionLocal()
+    mandados = 0
+    try:
+        recientes = ahora - timedelta(hours=HORAS_MAXIMO)
+        ordenes = db.query(Orden).filter(
+            Orden.estado.in_(["pendiente", "lista_para_retirar"]),
+            Orden.fecha_creacion >= recientes,
+        ).all()
+        vivos = set()
+        repartidores = None
+        for o in ordenes:
+            estado = getattr(o.estado, "value", o.estado)
+            negocio = o.negocio.nombre_negocio if o.negocio else "la tienda"
+            cliente = _nombre_cliente(o)
+
+            if estado == "pendiente":
+                # El primer pedido espera a soporte: el negocio todavia no lo ve
+                if o.requiere_validacion and o.fecha_validacion is None:
+                    continue
+                desde = o.fecha_validacion or o.fecha_creacion
+                clave = (str(o.id), "aceptar"); vivos.add(clave)
+                if _toca_recordar(clave, desde, ahora) and o.negocio and o.negocio.vendedor:
+                    minutos = max(1, int((ahora - desde).total_seconds() // 60))
+                    notificar_usuarios(
+                        db, [o.negocio.vendedor], guardar=False,
+                        tipo="recordatorio_aceptar",
+                        titulo="Recordatorio: tienes un pedido pendiente",
+                        mensaje=f"{cliente} pidió ${_plata(o.total)} hace {minutos} min. Acéptalo para que el cliente sepa que ya va.",
+                        relacionado_tabla="ordenes", relacionado_id=o.id,
+                    )
+                    mandados += 1
+
+            elif estado == "lista_para_retirar" and o.domiciliario_id is None:
+                desde = o.fecha_ultima_actualizacion or o.fecha_creacion
+                clave = (str(o.id), "tomar"); vivos.add(clave)
+                minutos = max(1, int((ahora - desde).total_seconds() // 60))
+                if _toca_recordar(clave, desde, ahora):
+                    if repartidores is None:
+                        repartidores = db.query(Usuario).filter(
+                            Usuario.tipo_usuario == "domiciliario",
+                            Usuario.estado == EstadoUsuario.ACTIVO,
+                            Usuario.fcm_token.isnot(None),
+                        ).all()
+                    notificar_usuarios(
+                        db, repartidores, guardar=False,
+                        tipo="recordatorio_tomar",
+                        titulo="Recordatorio: pedido sin repartidor",
+                        mensaje=f"Hay un pedido listo para recoger en {negocio} hace {minutos} min. Tómalo antes de que se enfríe.",
+                        relacionado_tabla="ordenes", relacionado_id=o.id,
+                    )
+                    mandados += 1
+                # Ya sonaron los 8 y nadie lo toma: un solo aviso al super admin
+                limite = SEGUNDOS_RECORDATORIO * MAX_RECORDATORIOS
+                if (ahora - desde).total_seconds() >= limite and str(o.id) not in _admin_sin_repartidor:
+                    _admin_sin_repartidor.add(str(o.id))
+                    notificar_usuarios(
+                        db, _admins(db),
+                        tipo="pedido_sin_repartidor",
+                        titulo="Pedido sin repartidor",
+                        mensaje=f"El pedido de {negocio} lleva {minutos} min listo y ningún repartidor lo ha tomado.",
+                        relacionado_tabla="ordenes", relacionado_id=o.id,
+                    )
+
+            elif estado == "lista_para_retirar" and o.domiciliario:
+                desde = o.fecha_ultima_actualizacion or o.fecha_creacion
+                clave = (str(o.id), "recoger"); vivos.add(clave)
+                if _toca_recordar(clave, desde, ahora):
+                    minutos = max(1, int((ahora - desde).total_seconds() // 60))
+                    notificar_usuarios(
+                        db, [o.domiciliario], guardar=False,
+                        tipo="recordatorio_recoger",
+                        titulo="Recordatorio: pasa a recoger el pedido",
+                        mensaje=f"{negocio} tiene listo el pedido de {cliente} hace {minutos} min.",
+                        relacionado_tabla="ordenes", relacionado_id=o.id,
+                    )
+                    mandados += 1
+
+        # Se olvidan los pedidos que ya se movieron, para no crecer sin fin
+        for clave in list(_recordatorios):
+            if clave not in vivos:
+                _recordatorios.pop(clave, None)
+        _admin_sin_repartidor.intersection_update({c[0] for c in vivos if c[1] == "tomar"})
+        db.commit()
+        return mandados
+    except Exception as e:
+        db.rollback()
+        print(f"[vigilante] fallo los recordatorios: {e}")
+        return mandados
+    finally:
+        db.close()
+
+
 def revisar_una_vez() -> int:
     """Busca pedidos sin aceptar, los marca y avisa. Devuelve cuantos aviso."""
     ahora = datetime.utcnow()
@@ -225,12 +352,18 @@ def revisar_una_vez() -> int:
 async def vigilar_pedidos():
     """Bucle que corre mientras viva el servidor."""
     await asyncio.sleep(30)  # que el servidor termine de arrancar primero
+    vuelta = 0
     while True:
         try:
             # En un hilo aparte: la consulta y los envios son bloqueantes y no
             # pueden frenar las respuestas al resto de la app.
-            await asyncio.to_thread(revisar_una_vez)
-            await asyncio.to_thread(recordar_sin_validar)
+            # Los recordatorios de 75 s necesitan revisar seguido (cada 15 s);
+            # lo demas sigue cada 2 minutos.
+            await asyncio.to_thread(recordatorios)
+            if vuelta % (SEGUNDOS_ENTRE_REVISIONES // SEGUNDOS_VUELTA_RAPIDA) == 0:
+                await asyncio.to_thread(revisar_una_vez)
+                await asyncio.to_thread(recordar_sin_validar)
         except Exception as e:
             print(f"[vigilante] error inesperado: {e}")
-        await asyncio.sleep(SEGUNDOS_ENTRE_REVISIONES)
+        vuelta += 1
+        await asyncio.sleep(SEGUNDOS_VUELTA_RAPIDA)
