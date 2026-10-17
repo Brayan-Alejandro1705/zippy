@@ -162,6 +162,8 @@ export const adminService = {
   obtenerDomicilio:    () => api.get('/admin/configuracion/domicilio'),
   // Domicilio por zonas (oct 2026): centro, anillos y precio de cada uno
   obtenerZonas:        () => api.get('/admin/configuracion/zonas'),
+  // Lo que hizo un repartidor: periodo = 'hoy' | 'semana' | 'mes'
+  domiciliosRepartidor: (id, periodo) => api.get(`/admin/repartidores/${id}/domicilios`, { params: { periodo } }),
   guardarZonas:        (datos) => api.put('/admin/configuracion/zonas', datos),
   actualizarDomicilio: (costo) =>
     api.put('/admin/configuracion/domicilio', { costo_domicilio: costo }),

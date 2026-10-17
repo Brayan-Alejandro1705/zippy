@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { usuariosService } from '../config/api';
 import Layout from '../components/Layout';
@@ -98,6 +99,9 @@ const RepartidoresPage = () => {
                     <div>
                       <div className="vd-nombre">{r.nombre}</div>
                       <div className="vd-negocio">{r.email}</div>
+                      {/* En el celular la tabla es ancha y los botones de la derecha
+                          quedan escondidos: este enlace se ve sin desplazar */}
+                      <Link to={`/repartidores/${r.id}/domicilios`} className="mt-1 inline-block text-[12.5px] font-extrabold text-zippy no-underline">Ver domicilios →</Link>
                     </div>
                   </div>
                 </td>
@@ -121,6 +125,7 @@ const RepartidoresPage = () => {
                 <td className="us-email">{r.fechaRegistro}</td>
                 <td className="us-actions">
                   <div className="us-row-actions">
+                    <Link to={`/repartidores/${r.id}/domicilios`} className="us-toggle-btn us-toggle-view">Ver domicilios</Link>
                     <a href={`/usuarios/${r.id}`} className="us-toggle-btn us-toggle-view">Ver</a>
                     <button
                       className={`us-toggle-btn ${r.estado === 'Activo' ? 'us-toggle-suspend' : 'us-toggle-activate'}`}

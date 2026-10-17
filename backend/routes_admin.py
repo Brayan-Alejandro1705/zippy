@@ -13,7 +13,7 @@ from sqlalchemy import func
 from datetime import datetime, timedelta
 
 from config import get_db
-from models import Usuario, ConfiguracionSistema, Orden, ItemOrden, Producto, Negocio, PedidoEspecial
+from models import Usuario, ConfiguracionSistema, Orden, ItemOrden, Producto, Negocio, PedidoEspecial, SeguimientoOrden
 from routes_auth import get_current_user
 from logs_utils import registrar_log
 import calculos
@@ -378,6 +378,120 @@ async def obtener_costo_domicilio(db: Session = Depends(get_db)):
             "configurado": False,
             **extra,
         }
+
+
+# ============================================================================
+# DOMICILIOS DE UN REPARTIDOR (oct 2026)
+# ============================================================================
+# Para que el super admin vea que hizo cada repartidor (hoy, semana o mes) y
+# pueda cuadrar cuentas con el: cuanto cobro de domicilios y cuanto efectivo
+# recibio en la puerta. El Excel se arma en el celular con estos mismos datos.
+
+_ZONA_CO = timedelta(hours=5)   # Colombia es UTC-5 todo el año
+
+
+def _inicio_periodo(periodo: str) -> datetime:
+    ahora_co = datetime.utcnow() - _ZONA_CO
+    hoy_co = ahora_co.replace(hour=0, minute=0, second=0, microsecond=0)
+    if periodo == "semana":
+        inicio = hoy_co - timedelta(days=hoy_co.weekday())      # desde el lunes
+    elif periodo == "mes":
+        inicio = hoy_co.replace(day=1)
+    else:
+        inicio = hoy_co
+    return inicio + _ZONA_CO   # de vuelta a UTC, que es como se guarda
+
+
+@router.get(
+    "/repartidores/{repartidor_id}/domicilios",
+    summary="Domicilios de un repartidor (hoy, semana o mes)",
+)
+async def domicilios_repartidor(
+    repartidor_id: str,
+    periodo: str = Query("hoy", pattern="^(hoy|semana|mes)$"),
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _es_admin(current_user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo administradores")
+
+    rep = db.query(Usuario).filter(Usuario.id == repartidor_id).first()
+    if not rep:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Repartidor no encontrado")
+
+    desde = _inicio_periodo(periodo)
+    del_periodo = db.query(Orden).filter(
+        Orden.domiciliario_id == rep.id,
+        Orden.fecha_creacion >= desde,
+    ).order_by(Orden.fecha_creacion.desc()).all()
+    # Lo que tiene en la mano ahora mismo, sea del dia que sea
+    en_curso = db.query(Orden).filter(
+        Orden.domiciliario_id == rep.id,
+        Orden.estado.in_(["lista_para_retirar", "en_domicilio"]),
+    ).all()
+
+    ordenes = {o.id: o for o in del_periodo}
+    for o in en_curso:
+        ordenes.setdefault(o.id, o)
+
+    # Horas de cada paso, sacadas del seguimiento del pedido
+    pasos = {}
+    if ordenes:
+        for s in db.query(SeguimientoOrden).filter(
+            SeguimientoOrden.orden_id.in_(list(ordenes.keys()))
+        ).order_by(SeguimientoOrden.fecha_creacion.asc()).all():
+            nuevo = getattr(s.estado_nuevo, "value", s.estado_nuevo)
+            pasos.setdefault(s.orden_id, {})[nuevo] = s.fecha_creacion
+
+    def iso(f):
+        return f.isoformat() if f else None
+
+    lista, entregados, domicilios, efectivo = [], 0, 0.0, 0.0
+    for o in sorted(ordenes.values(), key=lambda x: x.fecha_creacion, reverse=True):
+        estado = getattr(o.estado, "value", o.estado)
+        pago = getattr(o.metodo_pago, "value", o.metodo_pago)
+        p = pasos.get(o.id, {})
+        recogido = p.get("en_domicilio")
+        entregado = o.fecha_entrega or p.get("entregada")
+        segundos = int((entregado - recogido).total_seconds()) if (recogido and entregado) else None
+        if estado == "entregada":
+            entregados += 1
+            domicilios += float(o.costo_domicilio or 0)
+            if str(pago).lower() == "efectivo":
+                efectivo += float(o.total or 0)
+        lista.append({
+            "id": str(o.id),
+            "corto": str(o.id)[:8],
+            "estado": estado,
+            "negocio": o.negocio.nombre_negocio if o.negocio else "",
+            "cliente": (o.cliente.nombre if o.cliente else "") or "",
+            "direccion": o.direccion_entrega or "",
+            "metodo_pago": pago,
+            "total": float(o.total or 0),
+            "costo_domicilio": float(o.costo_domicilio or 0),
+            "creado": iso(o.fecha_creacion),
+            "listo": iso(p.get("lista_para_retirar")),
+            "recogido": iso(recogido),
+            "entregado": iso(entregado),
+            "segundos_recogido_entregado": segundos,
+        })
+
+    return {
+        "repartidor": {
+            "id": str(rep.id),
+            "nombre": f"{rep.nombre or ''} {rep.apellido or ''}".strip(),
+            "telefono": rep.telefono,
+            "vehiculo": getattr(rep, "vehiculo", None),
+        },
+        "periodo": periodo,
+        "resumen": {
+            "entregados": entregados,
+            "en_curso": len(en_curso),
+            "domicilios_cobrados": domicilios,
+            "efectivo_recibido": efectivo,
+        },
+        "pedidos": lista,
+    }
 
 
 @router.get(

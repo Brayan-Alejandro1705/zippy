@@ -24,6 +24,7 @@ import VendedoresPage from './pages/VendedoresPage';
 import SolicitudesPage from './pages/SolicitudesPage';
 import ValidacionPage from './pages/ValidacionPage';
 import RepartidoresPage from './pages/RepartidoresPage';
+import RepartidorDomiciliosPage from './pages/RepartidorDomiciliosPage';
 import NuevoRepartidorPage from './pages/NuevoRepartidorPage';
 import RecuperarPasswordPage from './pages/RecuperarPasswordPage';
 import CompletarTelefonoPage from './pages/CompletarTelefonoPage';
@@ -132,6 +133,7 @@ const App = () => (
           <Route path="/negocios"    element={<Admin><NegociosPage /></Admin>} />
           <Route path="/repartidores" element={<Admin><RepartidoresPage /></Admin>} />
           <Route path="/repartidores/nuevo" element={<Admin><NuevoRepartidorPage /></Admin>} />
+          <Route path="/repartidores/:id/domicilios" element={<Admin><RepartidorDomiciliosPage /></Admin>} />
           <Route path="/roles" element={<Admin><RolesPermisosPage /></Admin>} />
           <Route path="/logs" element={<Admin><LogsActividadPage /></Admin>} />
           <Route path="/config" element={<Admin><ConfigPage /></Admin>} />
