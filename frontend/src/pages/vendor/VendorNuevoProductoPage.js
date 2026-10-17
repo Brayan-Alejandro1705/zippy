@@ -7,6 +7,7 @@ import ZLoader from '../../components/ZLoader';
 import Icon from '../../components/Icons';
 import '../../styles/VendorProductos.css';
 import { useCategoriasProducto } from '../../hooks/useCategoriasProducto';
+import CampoPesos, { PRECIO_MINIMO } from '../../components/CampoPesos';
 
 
 const Field = ({ label, error, children }) => (
@@ -39,7 +40,11 @@ const VendorNuevoProductoPage = () => {
   const errors = {
     nombre:    !form.nombre.trim()             ? 'El nombre es requerido'         : '',
     categoria: !form.categoria                 ? 'Selecciona una categoría'        : '',
-    precio:    !form.precio || Number(form.precio) <= 0 ? 'Ingresa un precio válido' : '',
+    precio:    !form.precio || Number(form.precio) <= 0
+      ? 'Ingresa un precio válido'
+      : Number(form.precio) < PRECIO_MINIMO
+        ? `El precio parece muy bajo (${'$'}${Number(form.precio).toLocaleString('es-CO')}). Escríbelo completo, por ejemplo 32.000`
+        : '',
     stock:     !form.stock  || Number(form.stock)  < 0  ? 'Ingresa el stock'          : '',
   };
   const hasErrors = Object.values(errors).some(Boolean);
@@ -146,9 +151,9 @@ const VendorNuevoProductoPage = () => {
 
                 <div className="vnp-field-row [&>*]:min-w-0 [&_input]:box-border [&_input]:w-full [&_input]:min-w-0">
                   <Field label="Precio (COP)" error={tried && errors.precio}>
-                    <input
-                      name="precio" type="number" min="0" value={form.precio} onChange={handleChange}
-                      placeholder="0"
+                    <CampoPesos
+                      name="precio" value={form.precio} onChange={handleChange}
+                      placeholder="Ej: 32.000"
                       className={tried && errors.precio ? 'vnp-input-err' : ''}
                     />
                   </Field>

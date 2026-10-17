@@ -9,6 +9,7 @@ import '../../styles/VendorProductos.css';
 import Icon from '../../components/Icons';
 import { cx, titulo, subtitulo, btn, chip, chipsFila } from '../../ui/tw';
 import { urlImagen } from '../../utils/media';
+import CampoPesos from '../../components/CampoPesos';
 
 const productoDeApi = (p) => ({
   id: p.id,
@@ -128,10 +129,10 @@ const OfertaModal = ({ producto, onClose, onCreada, onCancelada }) => {
         ) : (
           <div className="vp-modal-body">
             <label className="vp-modal-label">Precio de oferta (actual: {fmt(producto.precio)})</label>
-            <input
-              type="number"
+            <CampoPesos
+              name="precioOferta"
               className="vp-modal-input"
-              placeholder="Ej: 15000"
+              placeholder="Ej: 15.000"
               value={precioOferta}
               onChange={e => setPrecioOferta(e.target.value)}
             />

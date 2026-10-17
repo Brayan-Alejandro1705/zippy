@@ -222,8 +222,28 @@ class ProductoBase(BaseModel):
     categoria: Optional[str] = None
     subcategoria: Optional[str] = None
 
+# Oct 2026: un negocio escribio "32.000" y el producto quedo en $32 (el punto
+# se tomo como decimal). Ningun producto cuesta menos de $100 en pesos: si
+# llega algo asi, casi seguro es ese error. No se pone en ProductoBase porque
+# ProductoResponse lo hereda y los productos viejos ya guardados mal dejarian
+# de cargar.
+PRECIO_MINIMO = 100
+
+
+def _revisar_precio(v):
+    if v is not None and v < PRECIO_MINIMO:
+        plata = f"{v:,.0f}".replace(",", ".")
+        raise ValueError(f"El precio parece muy bajo (${plata}). Escríbelo completo, por ejemplo 32000")
+    return v
+
+
 class ProductoCreate(ProductoBase):
     imagenes: Optional[List[str]] = []
+
+    @field_validator('precio')
+    @classmethod
+    def _precio_minimo(cls, v):
+        return _revisar_precio(v)
 
 class ProductoUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -237,6 +257,11 @@ class ProductoUpdate(BaseModel):
     subcategoria: Optional[str] = None
     es_visible: Optional[bool] = None
     imagenes: Optional[List[str]] = None
+
+    @field_validator('precio')
+    @classmethod
+    def _precio_minimo(cls, v):
+        return _revisar_precio(v)
 
 class ProductoResponse(ProductoBase):
     id: uuid.UUID
@@ -258,6 +283,11 @@ class OfertaCreate(BaseModel):
     precio_oferta: Decimal = Field(..., gt=0)
     horas: Optional[int] = Field(None, gt=0, description="Duración de la oferta en horas desde ahora")
     fecha_fin: Optional[datetime] = Field(None, description="Fecha y hora exacta de fin (alternativa a 'horas')")
+
+    @field_validator('precio_oferta')
+    @classmethod
+    def _precio_minimo(cls, v):
+        return _revisar_precio(v)
 
 # ============================================================================
 # SCHEMAS: ÓRDENES
