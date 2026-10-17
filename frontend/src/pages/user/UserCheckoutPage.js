@@ -271,7 +271,7 @@ const UserCheckoutPage = () => {
                 <div className="flex min-w-0 items-center gap-2.5">
                   <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-slate-100 text-slate-400 dark:bg-noche-alt">
                     {item.foto
-                      ? <img src={urlImagen(item.foto)} alt={item.nombre} loading="lazy" className="block h-full w-full object-cover" />
+                      ? <img src={urlImagen(item.foto, true)} alt={item.nombre} loading="lazy" className="block h-full w-full object-cover" />
                       : <Icon name="paquete" size={20} strokeWidth={1.3} />}
                   </div>
                   <div className="min-w-0">

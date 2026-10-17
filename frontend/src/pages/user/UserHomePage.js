@@ -323,7 +323,7 @@ const UserHomePage = () => {
               >
                 <div className="relative flex h-24 items-center justify-center overflow-hidden md:h-[110px]" style={{ background: getGradient(p.categoria, p.gradIdx) }}>
                   {p.foto
-                    ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" className="h-full w-full object-cover" />
+                    ? <img src={urlImagen(p.foto, true)} alt={p.nombre} loading="lazy" className="h-full w-full object-cover" />
                     : <Icon name={getIcon(p.categoria)} size={30} strokeWidth={1.4} />}
                   {p.rating > 0 && (
                     <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-[10px] bg-white/95 px-2 py-[3px] text-[11px] font-bold text-[#333] shadow-[0_2px_6px_rgba(0,0,0,0.1)] dark:bg-noche-card/85 dark:text-slate-200">
@@ -432,7 +432,7 @@ const UserHomePage = () => {
                     {/* Sin logo, la inicial del nombre: con el cubo de antes todas
                         las tiendas sin logo se veian iguales. */}
                     {t.logo
-                      ? <img src={urlImagen(t.logo)} alt={t.nombre} loading="lazy" className="block h-full w-full object-cover" />
+                      ? <img src={urlImagen(t.logo, true)} alt={t.nombre} loading="lazy" className="block h-full w-full object-cover" />
                       : <span className="text-2xl font-black leading-none sm:text-[22px]">{(t.nombre || '?').trim().charAt(0).toUpperCase()}</span>}
                   </div>
                   <div className="min-w-0 flex-1 text-left">
@@ -489,7 +489,7 @@ const UserHomePage = () => {
                         <button key={t.id} className={item(tiendaFiltro === t.nombre)} onClick={() => setTiendaFiltro(prev => prev === t.nombre ? '' : t.nombre)}>
                           <span className="flex w-[22px] shrink-0 justify-center">
                             {t.logo
-                              ? <img src={urlImagen(t.logo)} alt="" className="block h-[17px] w-[17px] rounded-[5px] object-cover" loading="lazy" />
+                              ? <img src={urlImagen(t.logo, true)} alt="" className="block h-[17px] w-[17px] rounded-[5px] object-cover" loading="lazy" />
                               : <Icon name={t.icon} size={17} />}
                           </span>
                           <span className="text-xs">{t.nombre}</span>
@@ -579,7 +579,7 @@ const UserHomePage = () => {
                   >
                     <div className="relative flex h-[108px] shrink-0 items-center justify-center md:h-[130px]" style={{ background: getGradient(p.categoria, p.gradIdx) }}>
                       {p.foto
-                        ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" className="h-full w-full object-cover" />
+                        ? <img src={urlImagen(p.foto, true)} alt={p.nombre} loading="lazy" className="h-full w-full object-cover" />
                         : <Icon name={getIcon(p.categoria)} size={40} strokeWidth={1.3} />}
                       {p.enOferta && <span className={cx(etiquetaFoto, 'left-2.5 top-2.5 inline-flex items-center gap-0.5 bg-[linear-gradient(135deg,#ff7a00,#ff4d4d)] text-white')}><Icon name="destacado" size={12} />Oferta</span>}
                       {p.nuevo && !p.enOferta && <span className={cx(etiquetaFoto, 'left-2.5 top-2.5 bg-red-500 tracking-[0.5px] text-white')}>NUEVO</span>}

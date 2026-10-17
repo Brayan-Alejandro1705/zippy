@@ -341,7 +341,7 @@ const VendorProductosPage = () => {
                 <div className="vp-photo">
                   {p.foto ? (
                     <>
-                      <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" />
+                      <img src={urlImagen(p.foto, true)} alt={p.nombre} loading="lazy" />
                       <span className="vp-cat-badge">{p.categoria}</span>
                     </>
                   ) : (
@@ -404,7 +404,7 @@ const VendorProductosPage = () => {
             return (
               <div key={p.id} className={`vp-list-row ${lowStock ? 'vp-list-row--low-stock' : ''} ${p.pausado ? 'vp-list-row--pausado' : ''}`}>
                 <div className="vp-list-photo">
-                  {p.foto ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" /> : <span className="vp-list-icon text-indigo-400"><Icon name="paquete" size={22} /></span>}
+                  {p.foto ? <img src={urlImagen(p.foto, true)} alt={p.nombre} loading="lazy" /> : <span className="vp-list-icon text-indigo-400"><Icon name="paquete" size={22} /></span>}
                 </div>
                 <div className="vp-list-info">
                   <p className="vp-list-nombre">{p.nombre}</p>

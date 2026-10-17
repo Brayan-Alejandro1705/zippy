@@ -214,7 +214,7 @@ const MapaReal = ({ ordenes, driverPos, selected, onSelectOrden }) => {
       .map(o => o.negocioLogo))].filter(l => !(l in pinesLogo));
     if (faltan.length === 0) return;
     let activo = true;
-    Promise.all(faltan.map(l => crearIconoLogo(urlImagen(l)).then(img => [l, img]))).then(pares => {
+    Promise.all(faltan.map(l => crearIconoLogo(urlImagen(l, true)).then(img => [l, img]))).then(pares => {
       if (activo) setPinesLogo(p => ({ ...p, ...Object.fromEntries(pares) }));
     });
     return () => { activo = false; };
@@ -751,7 +751,7 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
       {orden.negocio && (
         <p className="rp-order-negocio">
           {orden.negocioLogo
-            ? <img src={urlImagen(orden.negocioLogo)} alt="" className="rp-negocio-logo" loading="lazy" />
+            ? <img src={urlImagen(orden.negocioLogo, true)} alt="" className="rp-negocio-logo" loading="lazy" />
             : <Icon name="vendedores" size={14} style={{ verticalAlign: '-2px', marginRight: 5 }} />}
           <span className="min-w-0">Recoger en <strong>{orden.negocio}</strong></span>
         </p>
@@ -776,9 +776,9 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
             salia literalmente la palabra "paquete" dentro de un cuadro gris. */}
         <div className="rp-order-thumb">
           {orden.fotoProducto
-            ? <img src={urlImagen(orden.fotoProducto)} alt="" loading="lazy" />
+            ? <img src={urlImagen(orden.fotoProducto, true)} alt="" loading="lazy" />
             : orden.negocioLogo
-              ? <img src={urlImagen(orden.negocioLogo)} alt="" loading="lazy" />
+              ? <img src={urlImagen(orden.negocioLogo, true)} alt="" loading="lazy" />
               : <Icon name={orden.emoji || 'paquete'} size={20} />}
         </div>
         <div className="rp-order-items">{orden.items}</div>

@@ -17,6 +17,7 @@ from models import Producto, Negocio, Usuario, EstadoUsuario
 from schemas import ProductoCreate, ProductoUpdate, ProductoResponse, OfertaCreate
 from routes_auth import get_current_user
 from storage_supabase import subir_archivo, SupabaseStorageError
+import imagenes
 from restricciones import es_tabaco, MENSAJE_TABACO
 
 router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
@@ -68,8 +69,6 @@ async def subir_imagen_producto(
             detail="Formato de imagen no soportado. Usa JPG, PNG o WEBP"
         )
 
-    nombre_archivo = f"{uuid.uuid4()}{extension}"
-
     contenido = await file.read()
 
     if len(contenido) > TAMANO_MAXIMO_IMAGEN:
@@ -78,23 +77,27 @@ async def subir_imagen_producto(
             detail="La imagen supera el tamaño máximo permitido (5 MB)"
         )
 
-    content_type_map = {
-        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".png": "image/png", ".webp": "image/webp",
-    }
+    # Oct 2026: se comprime antes de guardar (ver imagenes.py). Se guardan dos
+    # tamaños: la grande para el detalle y la mini para las listas.
     try:
-        url = subir_archivo(
-            contenido,
-            nombre_archivo,
-            content_type_map.get(extension, "application/octet-stream"),
+        grande, mini = imagenes.procesar(contenido)
+    except imagenes.ImagenInvalida:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No pudimos leer esa imagen. Prueba con otra foto (JPG, PNG o WEBP)",
         )
+
+    base = str(uuid.uuid4())
+    try:
+        url = subir_archivo(grande, f"{base}-g.webp", "image/webp", cache=imagenes.CACHE)
+        url_mini = subir_archivo(mini, f"{base}-m.webp", "image/webp", cache=imagenes.CACHE)
     except SupabaseStorageError as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(e),
         )
 
-    return {"url": url}
+    return {"url": url, "mini": url_mini}
 
 # ============================================================================
 # ENDPOINTS: CRUD DE PRODUCTOS

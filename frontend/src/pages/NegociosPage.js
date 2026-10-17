@@ -171,7 +171,7 @@ const NegociosPage = () => {
               {/* Avatar del negocio */}
               <div className="ng-card-avatar" style={{ background: COLORS[i % COLORS.length] }}>
                 {n.logo
-                  ? <img src={urlImagen(n.logo)} alt={n.nombre_negocio} loading="lazy" />
+                  ? <img src={urlImagen(n.logo, true)} alt={n.nombre_negocio} loading="lazy" />
                   : <span>{n.nombre_negocio?.charAt(0) ?? '?'}</span>
                 }
               </div>

@@ -12,10 +12,20 @@ import { API_BASE_URL } from '../config/api';
 // De "https://zippy-eedd.onrender.com/api/v1" saca "https://zippy-eedd.onrender.com"
 const ORIGEN_API = (API_BASE_URL || '').replace(/\/api\/v\d+\/?$/, '');
 
-export const urlImagen = (ruta) => {
+/*
+ * Oct 2026: el servidor guarda cada foto en dos tamaños (backend/imagenes.py):
+ * "...-g.webp" (grande, para el detalle) y "...-m.webp" (mini, para listas).
+ * Con mini = true se pide la pequeña: en la tienda una foto ocupa media
+ * pantalla y no vale la pena bajar la grande. Las fotos viejas que no tengan
+ * ese nombre se devuelven tal cual.
+ */
+export const urlImagen = (ruta, mini = false) => {
   if (!ruta) return null;
-  if (/^(https?:|data:|blob:)/i.test(ruta)) return ruta;   // ya es absoluta
-  return `${ORIGEN_API}${ruta.startsWith('/') ? '' : '/'}${ruta}`;
+  let url = ruta;
+  if (!/^(https?:|data:|blob:)/i.test(ruta)) {
+    url = `${ORIGEN_API}${ruta.startsWith('/') ? '' : '/'}${ruta}`;
+  }
+  return mini ? url.replace(/-g\.webp$/, '-m.webp') : url;
 };
 
 export default urlImagen;

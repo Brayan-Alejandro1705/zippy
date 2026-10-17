@@ -723,7 +723,7 @@ const SeccionGuardados = ({ addItem, addToast }) => {
         <div key={p.id} className={C.savedCard}>
           <div className={C.savedPhoto}>
             {p.foto
-              ? <img src={urlImagen(p.foto)} alt={p.nombre} loading="lazy" />
+              ? <img src={urlImagen(p.foto, true)} alt={p.nombre} loading="lazy" />
               : <span><Icon name="paquete" size={26} strokeWidth={1.4} /></span>}
             <button className={C.savedRemove} onClick={() => quitar(p)}>✕</button>
           </div>

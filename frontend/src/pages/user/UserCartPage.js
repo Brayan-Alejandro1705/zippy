@@ -93,7 +93,7 @@ const UserCartPage = () => {
                   <div key={item.id} className="flex flex-wrap items-center gap-2 gap-y-2.5 border-0 border-b border-solid border-slate-100 p-3 last:border-b-0 dark:border-noche-borde sm:flex-nowrap sm:gap-3 sm:px-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-slate-100 text-slate-400 dark:bg-noche-alt dark:text-slate-500 sm:h-14 sm:w-14">
                       {item.foto
-                        ? <img src={urlImagen(item.foto)} alt={item.nombre} loading="lazy" className="block h-full w-full object-cover" />
+                        ? <img src={urlImagen(item.foto, true)} alt={item.nombre} loading="lazy" className="block h-full w-full object-cover" />
                         : <Icon name="paquete" size={24} strokeWidth={1.3} />}
                     </div>
                     <div className="min-w-0 flex-1 basis-[calc(100%-64px)] sm:basis-auto">

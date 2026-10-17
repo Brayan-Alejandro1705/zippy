@@ -21,7 +21,8 @@ class SupabaseStorageError(Exception):
     pass
 
 
-def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str, bucket: str = None) -> str:
+def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str, bucket: str = None,
+                  cache: str = None) -> str:
     """
     Sube 'contenido' (bytes) al bucket indicado, en la ruta 'ruta_archivo'
     (ej. 'abc123.jpg'). Devuelve la URL publica del archivo.
@@ -53,6 +54,10 @@ def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str, bucket
             # Si ya existiera un archivo con el mismo nombre (no deberia,
             # usamos uuid4), lo sobreescribe en vez de fallar.
             "x-upsert": "true",
+            # Oct 2026: las fotos tienen nombre unico (uuid) y nunca cambian,
+            # asi que el celular puede guardarlas un año. Sin esto Supabase
+            # respondia "no-cache" y el celular las volvia a pedir cada vez.
+            **({"cache-control": cache} if cache else {}),
         },
     )
 
