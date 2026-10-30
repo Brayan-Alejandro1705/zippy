@@ -12,6 +12,10 @@ import UserPanelPage from './pages/user/UserPanelPage';
 import PedidoEspecialPage from './pages/user/PedidoEspecialPage';
 // ServiciosPage pausado — ver frontend/src/pages/user/ServiciosPage.js (queda el archivo, solo se desconectó del router)
 import RepartidorPage from './pages/repartidor/RepartidorPage';
+import ConductorPage from './pages/conductor/ConductorPage';
+import InscripcionConductorPage from './pages/conductor/InscripcionConductorPage';
+import MotoPage from './pages/user/MotoPage';
+import ConductoresPage from './pages/ConductoresPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import VerificarCuentaPage from './pages/VerificarCuentaPage';
@@ -63,6 +67,7 @@ const SoloRol = ({ roles, children }) => {
 const Admin = ({ children }) => <SoloRol roles={['admin']}>{children}</SoloRol>;
 const Vendedor = ({ children }) => <SoloRol roles={['vendedor']}>{children}</SoloRol>;
 const Repartidor = ({ children }) => <SoloRol roles={['domiciliario']}>{children}</SoloRol>;
+const Conductor = ({ children }) => <SoloRol roles={['conductor']}>{children}</SoloRol>;
 
 // ── Persistencia de sesión ───────────────────────────────────────────────────
 // Si ya hay un token guardado (login previo), la persona no debe ver el login
@@ -71,6 +76,7 @@ const homeRouteFor = (tipo) => {
   if (tipo === 'admin')        return '/dashboard';
   if (tipo === 'vendedor')     return '/vendor/productos';
   if (tipo === 'domiciliario') return '/repartidor';
+  if (tipo === 'conductor')    return '/conductor';
   return '/tienda';
 };
 
@@ -134,6 +140,7 @@ const App = () => (
           <Route path="/repartidores" element={<Admin><RepartidoresPage /></Admin>} />
           <Route path="/repartidores/nuevo" element={<Admin><NuevoRepartidorPage /></Admin>} />
           <Route path="/repartidores/:id/domicilios" element={<Admin><RepartidorDomiciliosPage /></Admin>} />
+          <Route path="/conductores" element={<Admin><ConductoresPage /></Admin>} />
           <Route path="/roles" element={<Admin><RolesPermisosPage /></Admin>} />
           <Route path="/logs" element={<Admin><LogsActividadPage /></Admin>} />
           <Route path="/config" element={<Admin><ConfigPage /></Admin>} />
@@ -154,7 +161,10 @@ const App = () => (
           <Route path="/tienda/pedidos"         element={<UserPanelPage vista="pedidos" />} />
           <Route path="/tienda/ayuda"           element={<AyudaPage />} />
           <Route path="/tienda/pedido-especial" element={<PedidoEspecialPage />} />
+          <Route path="/tienda/moto"            element={<MotoPage />} />
           <Route path="/repartidor"             element={<Repartidor><RepartidorPage /></Repartidor>} />
+          <Route path="/conductor"              element={<Conductor><ConductorPage /></Conductor>} />
+          <Route path="/conductor/inscripcion"  element={<InscripcionConductorPage />} />
           <Route path="/" element={<RootRedirect />} />
         </Routes>
       </BrowserRouter>

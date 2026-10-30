@@ -3,7 +3,7 @@
 # ============================================================================
 
 from sqlalchemy import (
-    Column, String, Integer, Float, DateTime, Boolean, Text, 
+    Column, String, Integer, Float, DateTime, Date, Boolean, Text, 
     ForeignKey, Numeric, Time, JSON, CheckConstraint, UniqueConstraint,
     DECIMAL, Enum as SQLEnum
 )
@@ -24,6 +24,9 @@ class TipoUsuario(str, enum.Enum):
     VENDEDOR = "vendedor"
     DOMICILIARIO = "domiciliario"
     ADMIN = "admin"
+    # Oct 2026: conductor de moto independiente (viajes). No es empleado de
+    # ZIPPYGO: solo aparece en la app para que los pasajeros lo encuentren.
+    CONDUCTOR = "conductor"
 
 class EstadoUsuario(str, enum.Enum):
     ACTIVO = "activo"
@@ -855,3 +858,99 @@ class PedidoEspecial(Base):
 
     def __repr__(self):
         return f"<PedidoEspecial {self.id} - {self.estado}>"
+
+
+# ============================================================================
+# VIAJES EN MOTO Y CARRO (oct 2026)
+#
+# ZIPPYGO solo conecta al pasajero con un conductor independiente: no fija la
+# tarifa ni cobra el viaje. El conductor pone el precio al aceptar y el
+# pasajero le paga directo a el. El conductor paga una mensualidad por
+# aparecer en la app (pagado_hasta).
+# ============================================================================
+
+class ConductorMoto(Base):
+    __tablename__ = "conductores_moto"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, unique=True, index=True)
+
+    # moto | carro: cada conductor solo recibe viajes de su tipo
+    tipo_vehiculo = Column(String(10), default="moto", nullable=False, index=True)
+
+    placa = Column(String(10))
+    moto = Column(String(80))            # marca, modelo y color: "Honda CB 125 roja" (o del carro)
+    # Opcionales, si el carro es un taxi: empresa, número del móvil y tarjeta de operación
+    empresa = Column(String(80))
+    numero_interno = Column(String(10))
+    tarjeta_operacion_vence = Column(Date)
+    foto_moto = Column(String(500))
+
+    # Documentos que revisa el súper admin. Si alguno vence, el conductor no
+    # puede ponerse en línea hasta que lo renueve.
+    licencia_vence = Column(Date)
+    soat_vence = Column(Date)
+    tecnomecanica_vence = Column(Date)   # vacío = moto nueva, todavía no le aplica
+
+    # Mensualidad por aparecer en la app
+    pagado_hasta = Column(Date)
+
+    en_linea = Column(Boolean, default=False, nullable=False)
+    ultima_conexion = Column(DateTime)
+    notas_admin = Column(Text)
+
+    # Inscripción desde la app: el conductor se registra solo y queda trabajando
+    # de una vez (oct 2026, decisión del dueño). Las fotos quedan para consulta.
+    estado_inscripcion = Column(String(15), default="aprobado", nullable=False, index=True)  # pendiente | aprobado | rechazado
+    motivo_rechazo = Column(String(300))
+    fecha_inscripcion = Column(DateTime)
+    # Rutas dentro del bucket PRIVADO "documentos-conductores" (no son URLs públicas)
+    foto_cedula = Column(String(300))
+    foto_licencia = Column(String(300))
+    foto_soat = Column(String(300))
+    foto_vehiculo = Column(String(300))
+    foto_tarjeta_operacion = Column(String(300))
+
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<ConductorMoto {self.placa}>"
+
+
+class ViajeMoto(Base):
+    __tablename__ = "viajes_moto"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    pasajero_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, index=True)
+    conductor_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True, index=True)
+
+    # buscando -> aceptado -> llego -> en_viaje -> terminado / cancelado
+    estado = Column(String(20), default="buscando", nullable=False, index=True)
+    tipo_vehiculo = Column(String(10), default="moto", nullable=False, index=True)  # moto | carro
+
+    origen = Column(String(300), nullable=False)
+    origen_lat = Column(DECIMAL(10, 8))
+    origen_lng = Column(DECIMAL(11, 8))
+    destino = Column(String(300), nullable=False)
+    destino_lat = Column(DECIMAL(10, 8))
+    destino_lng = Column(DECIMAL(11, 8))
+    referencia = Column(Text)
+    telefono = Column(String(30))
+
+    # Lo pone el conductor al aceptar; el pasajero se lo paga directo a el
+    precio = Column(DECIMAL(10, 2))
+    distancia_km = Column(DECIMAL(6, 2))
+
+    calificacion = Column(Integer)       # 1 a 5, la pone el pasajero
+    cancelado_por = Column(String(20))   # pasajero, conductor, sistema
+    motivo_cancelacion = Column(String(200))
+
+    fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)
+    fecha_aceptacion = Column(DateTime)
+    fecha_llegada = Column(DateTime)
+    fecha_inicio = Column(DateTime)
+    fecha_fin = Column(DateTime)
+    fecha_cancelacion = Column(DateTime)
+
+    def __repr__(self):
+        return f"<ViajeMoto {self.id} - {self.estado}>"

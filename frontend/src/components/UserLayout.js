@@ -102,6 +102,8 @@ const UserLayout = ({ children, onSearch }) => {
     const id = String(datos?.relacionado_id || '');
     // "Ya tienes repartidor": lleva a Pedidos, donde se ve quien va y el mapa
     if (tipo === 'repartidor_asignado') { navigate('/tienda/pedidos'); return true; }
+    // Avisos del viaje en moto: llevan a la pantalla del viaje
+    if (tipo.startsWith('viaje_')) { navigate('/tienda/moto'); return true; }
     // Mensajes del chat: del mandado (desde antes) y, desde oct 2026, tambien
     // del pedido normal de una tienda
     if (!id || (tipo !== 'mensaje_mandado' && tipo !== 'mensaje_orden')) return false;

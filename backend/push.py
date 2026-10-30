@@ -29,6 +29,7 @@ _NOMBRE_ROL = {
     "admin": "Súper admin",
     "vendedor": "Negocio",
     "domiciliario": "Repartidor",
+    "conductor": "Conductor",
     "cliente": "Cliente",
 }
 

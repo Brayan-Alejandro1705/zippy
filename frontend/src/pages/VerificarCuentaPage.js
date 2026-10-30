@@ -9,6 +9,7 @@ const redirectByTipo = (navigate, tipo) => {
   if (tipo === 'admin')        return navigate('/dashboard');
   if (tipo === 'vendedor')     return navigate('/vendor/productos');
   if (tipo === 'domiciliario') return navigate('/repartidor');
+  if (tipo === 'conductor')    return navigate('/conductor');
   return navigate('/tienda');
 };
 

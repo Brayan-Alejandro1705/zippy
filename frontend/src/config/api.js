@@ -207,6 +207,34 @@ export const usuariosService = {
     api.post('/usuarios/me/password/', { password_actual: passwordActual, password_nueva: passwordNueva }),
 };
 
+// Viajes en moto y carro (oct 2026): conductores independientes, ZIPPYGO solo conecta
+export const viajesService = {
+  servicio:     () => api.get('/viajes/servicio/'),
+  // pasajero
+  pedir:        (datos) => api.post('/viajes/', datos),
+  mio:          () => api.get('/viajes/mio/'),
+  historial:    () => api.get('/viajes/historial/'),
+  cancelar:     (id, motivo) => api.post(`/viajes/${id}/cancelar/`, { motivo }),
+  calificar:    (id, calificacion) => api.post(`/viajes/${id}/calificar/`, { calificacion }),
+  // conductor
+  estado:       () => api.get('/viajes/conductor/estado/'),
+  enLinea:      (en_linea) => api.post('/viajes/conductor/en-linea/', { en_linea }),
+  disponibles:  (pos) => api.get('/viajes/disponibles/', { params: pos || {} }),
+  aceptar:      (id, precio) => api.post(`/viajes/${id}/aceptar/`, { precio }),
+  llegue:       (id) => api.post(`/viajes/${id}/llegue/`),
+  iniciar:      (id) => api.post(`/viajes/${id}/iniciar/`),
+  terminar:     (id) => api.post(`/viajes/${id}/terminar/`),
+  soltar:       (id, motivo) => api.post(`/viajes/${id}/soltar/`, { motivo }),
+  // súper admin
+  resumen:          () => api.get('/viajes/admin/resumen/'),
+  encender:         (tipo_vehiculo, activo) => api.put('/viajes/admin/servicio/', { tipo_vehiculo, activo }),
+  crearConductor:   (datos) => api.post('/viajes/admin/conductores/', datos),
+  editarConductor:  (id, datos) => api.put(`/viajes/admin/conductores/${id}/`, datos),
+  documentos:       (id) => api.get(`/viajes/admin/conductores/${id}/documentos/`),
+  // el conductor se inscribe solo (fotos de sus papeles): puede tardar con datos
+  inscribirse:      (formData) => api.post('/viajes/inscripcion/', formData, { timeout: 120000, headers: { 'Content-Type': 'multipart/form-data' } }),
+};
+
 export const repartidoresService = {
   // Solo un súper admin puede llamar esto (ver _requiere_super_admin en el backend).
   crear: (datos) => api.post('/usuarios/repartidor/', datos),

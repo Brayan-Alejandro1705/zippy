@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService, clienteService } from '../../config/api';
 import PantallaCarga from '../../components/PantallaCarga';
+import BannerMoto from '../../components/BannerMoto';
 import { cx } from '../../ui/tw';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
@@ -305,6 +306,9 @@ const UserHomePage = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Viajes en moto (solo si el servicio está encendido) ── */}
+      <div className="mb-5 px-4 md:mb-7 md:px-0"><BannerMoto /></div>
 
       {/* ── Más pedidos hoy ─────────────────────────────── */}
       {populares.length > 0 && (

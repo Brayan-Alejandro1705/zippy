@@ -7,6 +7,7 @@ export const TIPO_TO_ROL = {
   cliente: 'Cliente',
   vendedor: 'Vendedor',
   domiciliario: 'Repartidor',
+  conductor: 'Conductor',
   admin: 'Admin',
 };
 
@@ -14,6 +15,7 @@ export const ROL_TO_TIPO = {
   Cliente: 'cliente',
   Vendedor: 'vendedor',
   Repartidor: 'domiciliario',
+  Conductor: 'conductor',
   Admin: 'admin',
 };
 

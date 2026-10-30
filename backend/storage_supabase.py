@@ -76,3 +76,78 @@ def subir_archivo(contenido: bytes, ruta_archivo: str, content_type: str, bucket
         raise SupabaseStorageError(f"No se pudo conectar a Supabase Storage: {e.reason}")
 
     return f"{base}/storage/v1/object/public/{bucket}/{ruta_archivo}"
+
+# ============================================================================
+# Documentos privados (oct 2026): cédula, licencia, SOAT... de los conductores.
+#
+# Esos NO pueden ir a un bucket público como las fotos de productos: cualquiera
+# con el enlace los vería. Van a un bucket privado y solo el súper admin los ve,
+# con un enlace firmado que vence a los pocos minutos.
+# ============================================================================
+
+def _cabeceras(content_type: str = "application/json") -> dict:
+    return {
+        "apikey": settings.SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_KEY}",
+        "Content-Type": content_type,
+    }
+
+
+def _crear_bucket_privado(bucket: str) -> None:
+    import json
+    base = settings.SUPABASE_URL.rstrip("/")
+    req = urllib.request.Request(
+        f"{base}/storage/v1/bucket", method="POST", headers=_cabeceras(),
+        data=json.dumps({"id": bucket, "name": bucket, "public": False}).encode(),
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20):
+            pass
+    except urllib.error.HTTPError as e:
+        detalle = e.read().decode("utf-8", errors="replace")
+        if "already exists" not in detalle.lower() and e.code != 409:
+            raise SupabaseStorageError(f"No se pudo crear el bucket privado ({e.code}): {detalle}")
+
+
+def subir_privado(contenido: bytes, ruta_archivo: str, content_type: str, bucket: str) -> str:
+    """Sube a un bucket PRIVADO (lo crea la primera vez). Devuelve la ruta
+    dentro del bucket, no una URL: para verlo hay que pedir url_firmada()."""
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_KEY:
+        raise SupabaseStorageError("Supabase Storage no esta configurado.")
+    base = settings.SUPABASE_URL.rstrip("/")
+    for intento in (1, 2):
+        req = urllib.request.Request(
+            f"{base}/storage/v1/object/{bucket}/{ruta_archivo}", data=contenido, method="POST",
+            headers={**_cabeceras(content_type), "x-upsert": "true"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30):
+                return ruta_archivo
+        except urllib.error.HTTPError as e:
+            detalle = e.read().decode("utf-8", errors="replace")
+            if intento == 1 and ("bucket" in detalle.lower() and "not found" in detalle.lower()):
+                _crear_bucket_privado(bucket)
+                continue
+            raise SupabaseStorageError(f"Error subiendo documento ({e.code}): {detalle}")
+        except urllib.error.URLError as e:
+            raise SupabaseStorageError(f"No se pudo conectar a Supabase Storage: {e.reason}")
+    raise SupabaseStorageError("No se pudo subir el documento")
+
+
+def url_firmada(bucket: str, ruta_archivo: str, segundos: int = 900) -> str:
+    """Enlace temporal para ver un archivo de un bucket privado."""
+    import json
+    base = settings.SUPABASE_URL.rstrip("/")
+    req = urllib.request.Request(
+        f"{base}/storage/v1/object/sign/{bucket}/{ruta_archivo}", method="POST", headers=_cabeceras(),
+        data=json.dumps({"expiresIn": segundos}).encode(),
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            datos = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        raise SupabaseStorageError(f"No se pudo firmar el enlace ({e.code})")
+    firmada = datos.get("signedURL") or datos.get("signedUrl") or ""
+    if firmada.startswith("http"):
+        return firmada
+    return f"{base}/storage/v1{firmada}"

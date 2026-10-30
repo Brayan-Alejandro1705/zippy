@@ -56,3 +56,19 @@ def procesar(contenido: bytes) -> tuple:
         img = img.convert("RGB")
 
     return _a_webp(img, LADO_GRANDE, CALIDAD_GRANDE), _a_webp(img, LADO_MINI, CALIDAD_MINI)
+
+
+# Documentos (cédula, licencia, SOAT): tienen que leerse bien, así que van más
+# grandes que las fotos de producto y en un solo tamaño.
+LADO_DOCUMENTO = 1600
+CALIDAD_DOCUMENTO = 82
+
+
+def documento(contenido: bytes) -> bytes:
+    try:
+        img = Image.open(io.BytesIO(contenido))
+        img.load()
+    except Exception as e:
+        raise ImagenInvalida(f"No se pudo leer la imagen: {e}")
+    img = ImageOps.exif_transpose(img).convert("RGB")
+    return _a_webp(img, LADO_DOCUMENTO, CALIDAD_DOCUMENTO)

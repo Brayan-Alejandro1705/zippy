@@ -18,6 +18,7 @@ const TIPOS_CUENTA = [
   ['cliente', 'Cliente'],
   ['vendedor', 'Negocio'],
   ['domiciliario', 'Repartidor'],
+  ['conductor', 'Conductor de moto'],
   ['admin', 'Administrador'],
 ];
 

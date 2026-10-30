@@ -22,10 +22,11 @@ const btn = {
 };
 
 // `lugar` cambia los textos: 'casa' para el cliente, 'local' para el negocio.
-const SelectorUbicacion = ({ direccion, valor, onChange, lugar = 'casa' }) => {
+// `textoGps` y `textoInicial` sirven para otros usos (el viaje en moto: "Estoy aquí").
+const SelectorUbicacion = ({ direccion, valor, onChange, lugar = 'casa', textoGps, textoInicial }) => {
   const { isLoaded, loadError } = useLoadScript({ googleMapsApiKey: MAPS_KEY, libraries: MAPS_LIBRARIES });
   const [centro, setCentro] = useState(valor || GARZON);
-  const [aviso, setAviso]   = useState(`Marca en el mapa dónde queda tu ${lugar}.`);
+  const [aviso, setAviso]   = useState(textoInicial || `Marca en el mapa dónde queda tu ${lugar}.`);
 
   const poner = useCallback((pos, fuente) => {
     onChange({ lat: pos.lat, lng: pos.lng, fuente });
@@ -72,7 +73,7 @@ const SelectorUbicacion = ({ direccion, valor, onChange, lugar = 'casa' }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '4px 0 8px' }}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" style={btn} onClick={miUbicacion}><Icon name="ubicacion" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Estoy en mi {lugar}</button>
+        <button type="button" style={btn} onClick={miUbicacion}><Icon name="ubicacion" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />{textoGps || `Estoy en mi ${lugar}`}</button>
         <button type="button" style={btn} onClick={buscar}><Icon name="buscar" size={15} style={{ verticalAlign: '-3px', marginRight: 5 }} />Buscar dirección</button>
       </div>
       {isLoaded ? (

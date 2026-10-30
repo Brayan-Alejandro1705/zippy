@@ -29,6 +29,7 @@ const NOMBRE_ROL = {
   admin: 'Administrador',
   vendedor: 'Vendedor',
   domiciliario: 'Repartidor',
+  conductor: 'Conductor',
   cliente: 'Cliente',
 };
 

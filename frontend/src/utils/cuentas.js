@@ -85,5 +85,6 @@ export const rutaPorTipo = (tipo) => {
   if (tipo === 'admin')        return '/dashboard';
   if (tipo === 'vendedor')     return '/vendor/productos';
   if (tipo === 'domiciliario') return '/repartidor';
+  if (tipo === 'conductor')    return '/conductor';
   return '/tienda';
 };

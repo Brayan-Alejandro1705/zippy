@@ -10,6 +10,7 @@ const ETIQUETA_ROL = {
   cliente:      'Cliente',
   vendedor:     'Vendedor',
   domiciliario: 'Repartidor',
+  conductor:    'Conductor de moto',
   admin:        'Administrador',
 };
 
@@ -38,6 +39,7 @@ const LoginPage = () => {
     if (tipo === 'admin')       return navigate('/dashboard');
     if (tipo === 'vendedor')    return navigate('/vendor/productos');
     if (tipo === 'domiciliario') return navigate('/repartidor');
+    if (tipo === 'conductor')    return navigate('/conductor');
     return navigate('/tienda');
   };
 
@@ -149,6 +151,9 @@ const LoginPage = () => {
 
       <p className="m-0 mt-6 text-center text-[13px] text-white/35">
         ¿No tienes cuenta? <Link to={`/register${search}`} className={enlaceAuth}>Regístrate aquí</Link>
+      </p>
+      <p className="m-0 mt-2.5 text-center text-[13px] text-white/35">
+        ¿Tienes moto o carro? <Link to="/conductor/inscripcion" className={enlaceAuth}>Inscríbete como conductor</Link>
       </p>
 
       <p className="m-0 mt-5 text-center text-[11px] tracking-[0.5px] text-white/15">Garzón, Huila — Colombia</p>

@@ -40,6 +40,9 @@ const BienvenidaPage = () => {
         <button className="cursor-pointer border-0 bg-transparent p-2.5 font-[inherit] text-sm font-semibold text-white/90 underline" onClick={() => navigate('/tienda')}>
           Mirar sin cuenta
         </button>
+        <button className="cursor-pointer border-0 bg-transparent p-1 font-[inherit] text-[13px] font-semibold text-white/80" onClick={() => navigate('/conductor/inscripcion')}>
+          ¿Tienes moto o carro? Inscríbete como conductor
+        </button>
       </div>
     </div>
   );

@@ -183,7 +183,11 @@ async def registro(request: Request, usuario: UsuarioCreate, db: Session = Depen
     # duplicados depende del tipo, asi que no puede ir despues.
     # "domiciliario" ya no es un tipo auto-registrable: solo un super
     # admin puede crear cuentas de repartidor (ver /api/v1/usuarios/repartidor/).
-    tipos_validos = ["cliente", "vendedor", "admin"]
+    # "admin" tampoco: estaba en esta lista y cualquiera que conociera la API
+    # podia registrarse como administrador con su propio correo. Los admin los
+    # crea seed_super_admins.py, nunca el registro publico. Los conductores de
+    # moto los registra un super admin (routes_viajes.py).
+    tipos_validos = ["cliente", "vendedor"]
     if usuario.tipo_usuario not in tipos_validos:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
