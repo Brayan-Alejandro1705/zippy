@@ -612,3 +612,7 @@ button.us-stat {
 @media (max-width: 380px) {
   .us-stats { grid-template-columns: 1fr; }
 }
+
+/* Modo oscuro: botones Exportar CSV y Restablecer */
+.dark-theme .us-export-btn { background: #1e293b; border-color: #334155; color: #cbd5e1; }
+.dark-theme .us-export-btn:hover { border-color: #FF7A00; color: #FF7A00; }

@@ -827,3 +827,9 @@
   cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.3);
 }
 .rp-btn-recogi:disabled { opacity: 0.6; cursor: default; }
+
+/* Modo oscuro: de donde recoger y cuanto cobrar */
+.dark-theme .rp-especial-origen { background: #2e1065; border-color: #5b21b6; color: #ddd6fe; }
+.dark-theme .rp-especial-cobro { background: #052e16; border-color: #166534; color: #bbf7d0; }
+.dark-theme .rp-especial-cobro strong { color: #4ade80; }
+.dark-theme .rp-especial-cobro small { color: #86efac; }

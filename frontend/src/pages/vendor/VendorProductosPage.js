@@ -179,6 +179,11 @@ const OfertaModal = ({ producto, onClose, onCreada, onCancelada }) => {
 };
 
 const VendorProductosPage = () => {
+  // Botón de "Subir mi menú con una foto": solo si el servidor tiene la IA activada
+  const [menuIA, setMenuIA] = useState(false);
+  useEffect(() => {
+    productosService.menuIAEstado().then(({ data }) => setMenuIA(!!data.disponible)).catch(() => {});
+  }, []);
   const navigate  = useNavigate();
   const { addToast } = useToast();
   const [query, setQuery]         = useState('');
@@ -282,6 +287,21 @@ const VendorProductosPage = () => {
           + Nuevo<span className="hidden sm:inline">&nbsp;producto</span>
         </button>
       </div>
+
+      {menuIA && (
+        <button
+          type="button"
+          onClick={() => navigate('/vendor/productos/menu')}
+          className="mb-4 flex w-full cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-emerald-400 bg-emerald-50 p-3.5 text-left font-[inherit] dark:border-emerald-500/50 dark:bg-emerald-500/10"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white"><Icon name="camara" size={24} /></span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-[15px] text-slate-800 dark:text-slate-100">Subir mi menú con una foto</b>
+            <span className="text-[12.5px] text-emerald-700 dark:text-emerald-300">Tómale foto a tu carta y armamos los productos por ti</span>
+          </span>
+          <span className="text-lg text-emerald-600">→</span>
+        </button>
+      )}
 
       {stockBajoCount > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border-[1.5px] border-l-4 border-solid border-amber-200 border-l-amber-500 bg-amber-50 p-3 text-amber-800 dark:border-amber-500/30 dark:border-l-amber-500 dark:bg-amber-500/10 dark:text-amber-200">

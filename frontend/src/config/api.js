@@ -257,6 +257,14 @@ export const productosService = {
   eliminar:  (id) => api.delete(`/productos/${id}`),
   crearOferta:   (id, datos) => api.post(`/productos/${id}/oferta`, datos),
   cancelarOferta:(id) => api.delete(`/productos/${id}/oferta`),
+  // Subir el menú con una foto (oct 2026): Gemini lee la carta y devuelve un borrador
+  menuIAEstado: () => api.get('/productos/menu-ia/estado'),
+  leerMenu: (fotos, categorias) => {
+    const formData = new FormData();
+    fotos.forEach((f, i) => formData.append('fotos', f, `menu-${i + 1}.jpg`));
+    formData.append('categorias', JSON.stringify(categorias || []));
+    return api.post('/productos/leer-menu', formData, { timeout: 120000, headers: { 'Content-Type': 'multipart/form-data' } });
+  },
   subirImagen:(file) => {
     const formData = new FormData();
     formData.append('file', file);

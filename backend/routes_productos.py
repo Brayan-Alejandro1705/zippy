@@ -5,7 +5,9 @@
 import os
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import List
@@ -19,6 +21,8 @@ from routes_auth import get_current_user
 from storage_supabase import subir_archivo, SupabaseStorageError
 import imagenes
 from restricciones import es_tabaco, MENSAJE_TABACO
+import menu_ia
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/productos", tags=["Productos"])
 
@@ -98,6 +102,45 @@ async def subir_imagen_producto(
         )
 
     return {"url": url, "mini": url_mini}
+
+# ============================================================================
+# SUBIR EL MENÚ CON UNA FOTO (oct 2026)
+# Gemini lee la carta y devuelve un BORRADOR de productos. No se guarda nada
+# aquí: el negocio revisa la lista y la app crea cada producto con el POST de
+# siempre (así pasa por las mismas validaciones de precio y tabaco).
+# ============================================================================
+
+@router.get("/menu-ia/estado", summary="¿Está activada la lectura de menús?")
+async def estado_menu_ia():
+    return {"disponible": menu_ia.disponible()}
+
+
+@router.post("/leer-menu", summary="Lee la foto del menú y devuelve los productos para revisar")
+@limiter.limit("30/hour")
+async def leer_menu(
+    request: Request,
+    fotos: List[UploadFile] = File(...),
+    categorias: str = Form("[]"),
+    current_user: Usuario = Depends(get_current_user),
+):
+    if current_user.tipo_usuario != "vendedor":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los negocios pueden subir su menú")
+    try:
+        lista_categorias = [str(c) for c in json.loads(categorias or "[]")][:40]
+    except ValueError:
+        lista_categorias = []
+    contenidos = []
+    for f in fotos[:menu_ia.MAX_FOTOS]:
+        c = await f.read()
+        if len(c) > 15 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Una de las fotos pesa demasiado (máximo 15 MB)")
+        if c:
+            contenidos.append(c)
+    try:
+        productos = menu_ia.leer_menu(contenidos, lista_categorias)
+    except menu_ia.MenuIAError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+    return {"productos": productos}
 
 # ============================================================================
 # ENDPOINTS: CRUD DE PRODUCTOS
