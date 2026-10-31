@@ -38,6 +38,7 @@ import NegociosPage from './pages/NegociosPage';
 import VendorProductosPage from './pages/vendor/VendorProductosPage';
 import VendorNuevoProductoPage from './pages/vendor/VendorNuevoProductoPage';
 import VendorMenuFotoPage from './pages/vendor/VendorMenuFotoPage';
+import VendorFotosPage from './pages/vendor/VendorFotosPage';
 import VendorEditarProductoPage from './pages/vendor/VendorEditarProductoPage';
 import VendorVentasPage from './pages/vendor/VendorVentasPage';
 import VendorOrdenesPage from './pages/vendor/VendorOrdenesPage';
@@ -147,6 +148,7 @@ const App = () => (
           <Route path="/config" element={<Admin><ConfigPage /></Admin>} />
           <Route path="/vendor/productos/nuevo"       element={<Vendedor><VendorNuevoProductoPage /></Vendedor>} />
           <Route path="/vendor/productos/menu"        element={<Vendedor><VendorMenuFotoPage /></Vendedor>} />
+          <Route path="/vendor/productos/fotos"       element={<Vendedor><VendorFotosPage /></Vendedor>} />
           <Route path="/vendor/productos/:id/editar" element={<Vendedor><VendorEditarProductoPage /></Vendedor>} />
           <Route path="/vendor/productos"            element={<Vendedor><VendorProductosPage /></Vendedor>} />
           <Route path="/vendor/ventas"          element={<Vendedor><VendorVentasPage /></Vendedor>} />

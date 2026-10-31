@@ -26,6 +26,9 @@ URL = "https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generate
 # Una foto de menú se lee bien a 1600 px; más grande solo gasta datos
 LADO_MAXIMO = 1600
 MAX_FOTOS = 4
+# Recortes de los platos que salen en la carta: a este tamaño bastan para la
+# tarjeta del producto y la respuesta no se vuelve pesada
+LADO_RECORTE = 640
 
 
 class MenuIAError(Exception):
@@ -40,7 +43,8 @@ def disponible() -> bool:
     return bool(_clave())
 
 
-def _preparar(contenido: bytes) -> str:
+def _preparar(contenido: bytes):
+    """Devuelve (imagen PIL ya girada y achicada, la misma en base64 para Gemini)."""
     try:
         img = Image.open(io.BytesIO(contenido))
         img.load()
@@ -50,7 +54,38 @@ def _preparar(contenido: bytes) -> str:
     img.thumbnail((LADO_MAXIMO, LADO_MAXIMO), Image.LANCZOS)
     salida = io.BytesIO()
     img.save(salida, "JPEG", quality=85)
-    return base64.b64encode(salida.getvalue()).decode()
+    return img, base64.b64encode(salida.getvalue()).decode()
+
+
+def _recortar(img, caja):
+    """Recorta la foto de un plato. caja = [ymin, xmin, ymax, xmax] de 0 a 1000,
+    como las da Gemini. Devuelve un data URL JPEG o None si la caja no sirve."""
+    try:
+        y0, x0, y1, x1 = [max(0, min(1000, int(v))) for v in caja]
+    except (TypeError, ValueError):
+        return None
+    if y1 <= y0 or x1 <= x0:
+        return None
+    alto, ancho = (y1 - y0) / 1000, (x1 - x0) / 1000
+    # Muy chiquita (un ícono o una letra), casi toda la página (no es la foto
+    # de un plato) o demasiado alargada: mejor sin foto que con una mala
+    if alto < 0.05 or ancho < 0.05 or alto * ancho > 0.5:
+        return None
+    w, h = img.size
+    proporcion = (ancho * w) / (alto * h)
+    if proporcion < 0.4 or proporcion > 2.5:
+        return None
+    # Un poquito de margen: Gemini a veces corta el borde del plato
+    m = 0.02
+    caja_px = (
+        int(max(0, x0 / 1000 - m) * w), int(max(0, y0 / 1000 - m) * h),
+        int(min(1, x1 / 1000 + m) * w), int(min(1, y1 / 1000 + m) * h),
+    )
+    recorte = img.crop(caja_px)
+    recorte.thumbnail((LADO_RECORTE, LADO_RECORTE), Image.LANCZOS)
+    salida = io.BytesIO()
+    recorte.save(salida, "JPEG", quality=82)
+    return "data:image/jpeg;base64," + base64.b64encode(salida.getvalue()).decode()
 
 
 _ESQUEMA = {
@@ -66,6 +101,9 @@ _ESQUEMA = {
                     "descripcion": {"type": "STRING"},
                     "categoria": {"type": "STRING"},
                     "seguro": {"type": "BOOLEAN"},
+                    # Si la carta trae la foto del plato: en qué página y dónde
+                    "pagina": {"type": "INTEGER"},
+                    "foto": {"type": "ARRAY", "items": {"type": "INTEGER"}},
                 },
                 "required": ["nombre", "precio", "categoria", "seguro"],
             },
@@ -91,6 +129,10 @@ def _instrucciones(categorias: list) -> str:
         "- descripcion: corta (máximo 15 palabras) solo si el menú dice qué trae; si no, deja vacío.\n"
         f"- categoria: escoge EXACTAMENTE una de esta lista: {lista}.\n"
         "- seguro: false si no se leía bien el nombre o el precio (borroso, tapado, escrito raro); true si estás seguro.\n"
+        "- foto: SOLO si en la carta hay una fotografía o imagen de ESE producto, da su recuadro como "
+        "[ymin, xmin, ymax, xmax] con valores de 0 a 1000 sobre esa página, y en pagina el número de la foto "
+        "(la primera es 1). Si el producto no tiene su propia imagen, deja foto vacía. Nunca le pongas a un "
+        "producto la imagen de otro, ni un logo, ni un fondo decorativo.\n"
         "- No inventes productos ni precios. No incluyas títulos, horarios, teléfonos, direcciones ni promociones sin precio.\n"
         "- Si en las fotos no hay ningún menú o lista de precios, devuelve la lista vacía."
     )
@@ -105,8 +147,11 @@ def leer_menu(fotos: list, categorias: list) -> list:
         raise MenuIAError("Toma al menos una foto del menú")
 
     partes = [{"text": _instrucciones(categorias)}]
+    paginas = []
     for contenido in fotos[:MAX_FOTOS]:
-        partes.append({"inline_data": {"mime_type": "image/jpeg", "data": _preparar(contenido)}})
+        img, datos = _preparar(contenido)
+        paginas.append(img)
+        partes.append({"inline_data": {"mime_type": "image/jpeg", "data": datos}})
 
     cuerpo = {
         "contents": [{"role": "user", "parts": partes}],
@@ -166,7 +211,17 @@ def leer_menu(fotos: list, categorias: list) -> list:
         # Precios que no tienen sentido en pesos: se dejan pero marcados para revisar
         if precio < 100:
             seguro = False
+        foto = None
+        caja = p.get("foto")
+        if isinstance(caja, list) and len(caja) == 4:
+            try:
+                n = int(p.get("pagina") or 1)
+            except (TypeError, ValueError):
+                n = 1
+            if 1 <= n <= len(paginas):
+                foto = _recortar(paginas[n - 1], caja)
         productos.append({
+            "foto": foto,
             "nombre": nombre,
             "precio": precio,
             "descripcion": str(p.get("descripcion") or "").strip()[:300],

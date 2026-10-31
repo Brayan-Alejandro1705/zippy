@@ -18,10 +18,19 @@ import { cx, titulo, subtitulo, tarjeta } from '../../ui/tw';
 // 3. El negocio corrige, desmarca lo que no vende y toca "Publicar".
 // 4. Cada producto se crea con el POST de siempre (mismas validaciones).
 //
-// Las fotos de cada plato se ponen después, desde Mis productos.
+// Si la carta trae fotos de los platos, el servidor las recorta y llegan en
+// "foto" (data URL): se suben con el producto. Las que falten se ponen en
+// "Ponle foto a tus productos" (VendorFotosPage), a donde se va al publicar.
 // ============================================================================
 
 const MAX_PAGINAS = 4;
+
+// El recorte llega como data URL; para subirlo por el endpoint de siempre se
+// vuelve archivo
+const archivoDeDataUrl = async (dataUrl, nombre) => {
+  const blob = await (await fetch(dataUrl)).blob();
+  return new File([blob], nombre, { type: blob.type || 'image/jpeg' });
+};
 // Comida que se prepara al momento: la cantidad no se cuenta. Se puede cambiar después.
 const STOCK_INICIAL = 100;
 
@@ -100,7 +109,7 @@ const VendorMenuFotoPage = () => {
   };
 
   const cambiar = (id, campoNombre, valor) =>
-    setItems(lista => lista.map(it => (it.id === id ? { ...it, [campoNombre]: valor, ...(campoNombre !== 'incluir' ? { seguro: true } : {}) } : it)));
+    setItems(lista => lista.map(it => (it.id === id ? { ...it, [campoNombre]: valor, ...(['nombre', 'precio', 'categoria'].includes(campoNombre) ? { seguro: true } : {}) } : it)));
 
   const elegidos = (items || []).filter(it => it.incluir);
 
@@ -115,16 +124,26 @@ const VendorMenuFotoPage = () => {
     }
     setPublicando({ hechos: 0, total: elegidos.length });
     const fallidos = [];
+    let sinFoto = 0;
     for (let i = 0; i < elegidos.length; i++) {
       const it = elegidos[i];
       try {
+        // Si la foto no sube, el producto se crea igual y la foto se pone después
+        let imagenes = [];
+        if (it.foto) {
+          try {
+            const { data } = await productosService.subirImagen(await archivoDeDataUrl(it.foto, `plato-${i + 1}.jpg`));
+            imagenes = [data.url];
+          } catch { /* sin foto */ }
+        }
+        if (!imagenes.length) sinFoto++;
         await productosService.crear(negocio.id, {
           nombre: it.nombre.trim(),
           precio: Number(it.precio),
           categoria: it.categoria,
           descripcion: it.descripcion || '',
           stock: STOCK_INICIAL,
-          imagenes: [],
+          imagenes,
         });
       } catch (e) {
         fallidos.push({ ...it, error: e?.response?.data?.detail });
@@ -139,8 +158,13 @@ const VendorMenuFotoPage = () => {
       addToast(`${ok} publicados. ${fallidos.length} no se pudieron: revísalos.`, 'error');
       return;
     }
-    addToast(`${ok} productos publicados. Ponles foto desde Mis productos.`, 'success');
-    navigate('/vendor/productos');
+    if (sinFoto) {
+      addToast(`${ok} productos publicados. Ahora ponles foto a los que no tienen.`, 'success');
+      navigate('/vendor/productos/fotos');
+    } else {
+      addToast(`${ok} productos publicados con su foto.`, 'success');
+      navigate('/vendor/productos');
+    }
   };
 
   return (
@@ -187,7 +211,7 @@ const VendorMenuFotoPage = () => {
         <>
           <h1 className={titulo}>Revisa tus productos</h1>
           <p className={subtitulo}>
-            Encontramos <b>{items.length}</b>. Corrige lo que haga falta y quita la marca a lo que ya no vendes.
+            Encontramos <b>{items.length}</b>{items.some(it => it.foto) ? <>, y <b>{items.filter(it => it.foto).length}</b> traen la foto de tu carta</> : null}. Corrige lo que haga falta y quita la marca a lo que ya no vendes.
           </p>
 
           <div className="mt-3 flex flex-col gap-2 pb-28">
@@ -205,13 +229,30 @@ const VendorMenuFotoPage = () => {
                     aria-label={`Publicar ${it.nombre}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <input className={cx(campo, 'font-bold')} value={it.nombre} onChange={e => cambiar(it.id, 'nombre', e.target.value)} maxLength={255} />
+                    <div className="flex items-center gap-2">
+                      {it.foto && (
+                        <div className="relative h-[42px] w-[42px] shrink-0">
+                          <img src={it.foto} alt="" className="block h-full w-full rounded-lg object-cover" />
+                          <button type="button" onClick={() => cambiar(it.id, 'foto', null)} className="absolute -right-1.5 -top-1.5 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border-2 border-solid border-white bg-slate-700 p-0 text-white dark:border-noche-card" aria-label={`Quitar la foto de ${it.nombre}`}><Icon name="equis" size={11} /></button>
+                        </div>
+                      )}
+                      <input className={cx(campo, 'font-bold')} value={it.nombre} onChange={e => cambiar(it.id, 'nombre', e.target.value)} maxLength={255} />
+                    </div>
                     <div className="mt-1.5 grid grid-cols-[1fr_8.5rem] gap-1.5">
                       <select className={campo} value={it.categoria} onChange={e => cambiar(it.id, 'categoria', e.target.value)}>
                         {[it.categoria, ...categorias.filter(c => c !== it.categoria)].filter(Boolean).map(c => <option key={c}>{c}</option>)}
                       </select>
                       <CampoPesos name="precio" value={it.precio} onChange={e => cambiar(it.id, 'precio', e.target.value)} className={cx(campo, 'font-bold')} />
                     </div>
+                    <textarea
+                      className={cx(campo, 'mt-1.5 block resize-none text-[13px] leading-snug')}
+                      rows={2}
+                      maxLength={300}
+                      value={it.descripcion || ''}
+                      onChange={e => cambiar(it.id, 'descripcion', e.target.value)}
+                      placeholder="Qué trae (opcional). Ej: papa, salchicha y queso"
+                      aria-label={`Descripción de ${it.nombre}`}
+                    />
                     {it.incluir && !it.seguro && (
                       <span className="mt-1.5 inline-block rounded-md bg-amber-100 px-2 py-0.5 text-[11.5px] font-bold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
                         {it.error || 'No se leía bien: revisa el nombre y el precio'}
@@ -232,7 +273,9 @@ const VendorMenuFotoPage = () => {
               </button>
               {!publicando && elegidos.length > 0 && (
                 <p className="m-0 mt-1.5 text-center text-[11.5px] text-slate-500">
-                  Las fotos de cada plato se ponen después, desde Mis productos
+                  {elegidos.every(it => it.foto)
+                    ? 'Todos llevan la foto que venía en tu carta'
+                    : 'A los que no tengan foto se la pones en el siguiente paso'}
                 </p>
               )}
             </div>

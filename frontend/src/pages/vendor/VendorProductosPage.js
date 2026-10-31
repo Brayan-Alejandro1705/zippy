@@ -274,6 +274,7 @@ const VendorProductosPage = () => {
     });
 
   const stockBajoCount = counts['stock-bajo'];
+  const sinFotoCount = loading ? 0 : productos.filter(p => !p.foto).length;
 
   return (
     <VendorLayout searchPlaceholder="Buscar producto..." onSearch={setQuery}>
@@ -301,6 +302,16 @@ const VendorProductosPage = () => {
           </span>
           <span className="text-lg text-emerald-600">→</span>
         </button>
+      )}
+
+      {sinFotoCount > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border-[1.5px] border-l-4 border-solid border-sky-200 border-l-sky-500 bg-sky-50 p-3 text-sky-900 dark:border-sky-500/30 dark:border-l-sky-500 dark:bg-sky-500/10 dark:text-sky-200">
+          <span className="shrink-0 text-sky-600"><Icon name="camara" size={20} /></span>
+          <span className="min-w-0 flex-1 text-[13.5px] leading-snug">
+            Tienes <strong>{sinFotoCount}</strong> producto{sinFotoCount !== 1 ? 's' : ''} sin foto. Con foto se venden más.
+          </span>
+          <button className={cx(btn.principal, 'border-0 bg-sky-500 px-3 py-1.5 text-[13px] hover:bg-sky-600')} onClick={() => navigate('/vendor/productos/fotos')}>Ponerles foto</button>
+        </div>
       )}
 
       {stockBajoCount > 0 && (
