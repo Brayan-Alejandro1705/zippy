@@ -184,6 +184,7 @@ class NegocioResponse(NegocioBase):
     id: uuid.UUID
     vendedor_id: uuid.UUID
     logo: Optional[str]
+    fotos_carta: Optional[List[str]] = None
     imagen_portada: Optional[str]
     latitud: Optional[Decimal] = None
     longitud: Optional[Decimal] = None

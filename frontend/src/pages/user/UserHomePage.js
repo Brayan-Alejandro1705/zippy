@@ -6,6 +6,7 @@ import { useToast } from '../../context/ToastContext';
 import { productosService, negociosService, clienteService } from '../../config/api';
 import PantallaCarga from '../../components/PantallaCarga';
 import BannerMoto from '../../components/BannerMoto';
+import CartaTienda from '../../components/CartaTienda';
 import { cx } from '../../ui/tw';
 import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
@@ -108,6 +109,7 @@ const UserHomePage = () => {
             // que nadie lo mostrara: el cliente veia una cajita gris igual
             // para todos.
             logo: n.logo || null,
+            fotosCarta: n.fotos_carta || [],
             icon: getIcon(n.categoria),
             color: STORE_COLORS[i % STORE_COLORS.length].bg,
             text: STORE_COLORS[i % STORE_COLORS.length].text,
@@ -457,6 +459,19 @@ const UserHomePage = () => {
 
       {/* ── Productos ────────────────────────────────────── */}
       <div id="uh-productos" className={seccion}>
+        {/* Con una tienda escogida se muestra su carta (por categorías, con
+            descripción) en vez de la cuadrícula de tarjetas */}
+        {tiendaFiltro && tiendas.some(t => t.nombre === tiendaFiltro) ? (
+          <CartaTienda
+            tienda={tiendas.find(t => t.nombre === tiendaFiltro)}
+            productos={productos.filter(p => p.tienda === tiendaFiltro && coincide([p.nombre, p.descripcion, p.categoria], query))}
+            onCerrar={() => setTiendaFiltro('')}
+            onAbrir={setModalProd}
+            onAgregar={handleAdd}
+            inCart={inCart}
+            cartQty={cartQty}
+          />
+        ) : (
         <div className="flex flex-col items-start gap-0 md:flex-row md:gap-6">
 
           {/* Menu lateral de categorias (solo PC) */}
@@ -643,6 +658,7 @@ const UserHomePage = () => {
             )}
           </div>
         </div>
+        )}
       </div>
 
       <UserProductModal

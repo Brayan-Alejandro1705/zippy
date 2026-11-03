@@ -2,7 +2,8 @@
 # routes/negocios.py - Rutas de Negocios
 # ============================================================================
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+import uuid as _uuid
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import List
@@ -14,6 +15,9 @@ from models import Negocio, Usuario, Producto, Orden
 from pedidos_utils import cancelar_pedidos_de_negocio
 from schemas import NegocioCreate, NegocioUpdate, NegocioResponse
 from routes_auth import get_current_user
+from storage_supabase import subir_archivo, SupabaseStorageError
+import imagenes
+from rate_limit import limiter
 
 router = APIRouter(prefix="/api/v1/negocios", tags=["Negocios"])
 
@@ -156,6 +160,80 @@ async def mi_negocio(
         db.refresh(negocio)
     
     return NegocioResponse.from_orm(negocio)
+
+# ============================================================================
+# FOTOS DE LA CARTA (nov 2026)
+# El negocio guarda las fotos de su carta (las mismas que usa para "Subir mi
+# menú con una foto", o desde su perfil) y el cliente las ve en la tienda con
+# "Ver la carta". Hasta 4 páginas. Se guardan más grandes que las fotos de
+# producto para que se lean los precios.
+# ============================================================================
+
+MAX_PAGINAS_CARTA = 4
+TAMANO_MAXIMO_CARTA = 10 * 1024 * 1024
+
+
+def _negocio_del_vendedor(db: Session, usuario: Usuario) -> Negocio:
+    if usuario.tipo_usuario != "vendedor":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo los negocios tienen carta")
+    negocio = db.query(Negocio).filter(Negocio.vendedor_id == usuario.id).first()
+    if not negocio:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No encontramos tu negocio")
+    return negocio
+
+
+@router.post("/mi-negocio/carta", response_model=NegocioResponse, summary="Guardar fotos de la carta")
+@limiter.limit("20/hour")
+async def subir_carta(
+    request: Request,
+    fotos: List[UploadFile] = File(...),
+    reemplazar: bool = Form(False),
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """reemplazar=True deja solo las fotos nuevas (al subir el menú otra vez);
+    si no, se agregan a las que ya hay."""
+    negocio = _negocio_del_vendedor(db, current_user)
+    actuales = [] if reemplazar else list(negocio.fotos_carta or [])
+    if len(actuales) + len(fotos) > MAX_PAGINAS_CARTA:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"La carta puede tener hasta {MAX_PAGINAS_CARTA} fotos")
+    nuevas = []
+    for f in fotos:
+        contenido = await f.read()
+        if len(contenido) > TAMANO_MAXIMO_CARTA:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Una de las fotos pesa demasiado (máximo 10 MB)")
+        try:
+            webp = imagenes.documento(contenido)
+        except imagenes.ImagenInvalida:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Una de las fotos no es una imagen válida")
+        try:
+            nuevas.append(subir_archivo(webp, f"carta/{negocio.id}/{_uuid.uuid4()}.webp", "image/webp", cache=imagenes.CACHE))
+        except SupabaseStorageError as e:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+    negocio.fotos_carta = actuales + nuevas
+    db.commit()
+    db.refresh(negocio)
+    return NegocioResponse.from_orm(negocio)
+
+
+@router.delete("/mi-negocio/carta/{indice}", response_model=NegocioResponse, summary="Quitar una foto de la carta")
+async def quitar_foto_carta(
+    indice: int,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    negocio = _negocio_del_vendedor(db, current_user)
+    fotos = list(negocio.fotos_carta or [])
+    if not 0 <= indice < len(fotos):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Esa foto ya no está")
+    fotos.pop(indice)
+    # Lista nueva para que SQLAlchemy note el cambio en la columna JSON
+    negocio.fotos_carta = fotos
+    db.commit()
+    db.refresh(negocio)
+    return NegocioResponse.from_orm(negocio)
+
 
 @router.get(
     "/{negocio_id}",

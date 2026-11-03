@@ -4,7 +4,7 @@ import Icon from './Icons';
 import { viajesService } from '../config/api';
 
 // ============================================================================
-// BannerMoto — entrada a "Pide un viaje" (moto o carro) en el inicio del cliente (oct 2026).
+// BannerMoto — entrada a "Aventón" (viajes en moto o carro) en el inicio del cliente (oct 2026).
 // Solo aparece si el súper admin encendió el servicio. Si el cliente ya tiene
 // un viaje andando, en vez de invitar a pedir le dice cómo va.
 // ============================================================================
@@ -29,7 +29,8 @@ const BannerMoto = ({ className = '' }) => {
   const enCurso = viaje && VIVOS[viaje.estado];
   const moto = servicio.tipos?.moto?.activo;
   const carro = servicio.tipos?.carro?.activo;
-  const invitacion = moto && carro ? '¿Necesitas moverte? Pide moto o carro' : carro ? '¿Necesitas moverte? Pide un carro' : '¿Necesitas moverte? Pide una moto';
+  const invitacion = 'Pide un aventón';
+  const enQue = moto && carro ? 'En moto o carro' : carro ? 'En carro' : 'En moto';
   const icono = enCurso ? (viaje.tipo_vehiculo === 'carro' ? 'carro' : 'moto') : (carro && !moto ? 'carro' : 'moto');
 
   return (
@@ -45,8 +46,8 @@ const BannerMoto = ({ className = '' }) => {
           {enCurso
             ? 'Toca para ver tu viaje'
             : servicio.conductores_en_linea > 0
-              ? `${servicio.conductores_en_linea} conductor${servicio.conductores_en_linea === 1 ? '' : 'es'} en línea en Garzón`
-              : 'Conductores independientes de Garzón'}
+              ? `${enQue} · ${servicio.conductores_en_linea} conductor${servicio.conductores_en_linea === 1 ? '' : 'es'} en línea`
+              : `${enQue}, con conductores de Garzón`}
         </span>
       </span>
       <span className="text-xl text-zippy">→</span>

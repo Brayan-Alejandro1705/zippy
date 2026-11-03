@@ -228,6 +228,8 @@ def init_db():
                 # Oct 2026: los mandados ya se cobran y preguntan de donde traer
                 "ALTER TABLE pedidos_especiales ADD COLUMN IF NOT EXISTS origen VARCHAR(300)",
                 "ALTER TABLE pedidos_especiales ADD COLUMN IF NOT EXISTS costo_servicio NUMERIC(10,2)",
+                # Nov 2026: fotos de la carta del negocio para que el cliente la vea
+                "ALTER TABLE negocios ADD COLUMN IF NOT EXISTS fotos_carta JSON",
             ):
                 conn.execute(text(sql))
             conn.commit()

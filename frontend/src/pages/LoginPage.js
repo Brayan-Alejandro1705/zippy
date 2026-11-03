@@ -153,7 +153,7 @@ const LoginPage = () => {
         ¿No tienes cuenta? <Link to={`/register${search}`} className={enlaceAuth}>Regístrate aquí</Link>
       </p>
       <p className="m-0 mt-2.5 text-center text-[13px] text-white/35">
-        ¿Tienes moto o carro? <Link to="/conductor/inscripcion" className={enlaceAuth}>Inscríbete como conductor</Link>
+        ¿Tienes moto o carro? <Link to="/conductor/inscripcion" className={enlaceAuth}>Maneja en Aventón</Link>
       </p>
 
       <p className="m-0 mt-5 text-center text-[11px] tracking-[0.5px] text-white/15">Garzón, Huila — Colombia</p>

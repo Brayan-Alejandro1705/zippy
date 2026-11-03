@@ -41,7 +41,7 @@ const BienvenidaPage = () => {
           Mirar sin cuenta
         </button>
         <button className="cursor-pointer border-0 bg-transparent p-1 font-[inherit] text-[13px] font-semibold text-white/80" onClick={() => navigate('/conductor/inscripcion')}>
-          ¿Tienes moto o carro? Inscríbete como conductor
+          ¿Tienes moto o carro? Maneja en Aventón
         </button>
       </div>
     </div>

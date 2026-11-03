@@ -4,6 +4,7 @@ import Icon from '../../components/Icons';
 import { useToast } from '../../context/ToastContext';
 import { negociosService, productosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
+import FotosCarta from '../../components/vendor/FotosCarta';
 import '../../styles/VendorPerfil.css';
 import { opcionesCategoria } from '../../constants/categorias';
 
@@ -187,6 +188,9 @@ const VendorPerfilPage = () => {
             ))}
           </div>
         </div>
+
+        <div className="vpf-section-title">Foto de tu carta</div>
+        <FotosCarta negocio={negocio} onCambio={setNegocio} />
 
         <div className="vpf-footer">
           <button type="submit" className="vpf-btn-save" disabled={saving}>

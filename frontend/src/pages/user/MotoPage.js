@@ -168,11 +168,11 @@ const MotoPage = () => {
   const compartir = () => {
     const c = viaje?.conductor || {};
     const t = TIPOS[viaje.tipo_vehiculo] || TIPOS.moto;
-    const texto = `Voy en ${t.articulo} de ZIPPYGO. Conductor: ${c.nombre}, ${c.moto || t.nombre} placa ${c.placa}` +
+    const texto = `Voy en un aventón de ZIPPYGO, en ${t.articulo}. Conductor: ${c.nombre}, ${c.moto || t.nombre} placa ${c.placa}` +
       (c.numero_interno ? `, móvil ${c.numero_interno}` : '') + '. ' +
       `De ${viaje.origen} a ${viaje.destino}.`;
     if (navigator.share) {
-      navigator.share({ title: 'Mi viaje en ZIPPYGO', text: texto }).catch(() => {});
+      navigator.share({ title: 'Mi aventón en ZIPPYGO', text: texto }).catch(() => {});
     } else {
       window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
     }
@@ -186,7 +186,7 @@ const MotoPage = () => {
       return (
         <div className={cx(tarjeta, 'p-6 text-center')}>
           <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-zippy dark:bg-zippy/15"><Icon name="moto" size={34} /></span>
-          <h2 className="m-0 text-lg font-extrabold text-slate-800 dark:text-slate-100">Muy pronto: viajes en moto y carro</h2>
+          <h2 className="m-0 text-lg font-extrabold text-slate-800 dark:text-slate-100">Muy pronto: Aventón</h2>
           <p className="m-0 mt-1.5 text-[13.5px] leading-relaxed text-slate-500">Estamos preparando este servicio para Garzón.</p>
         </div>
       );
@@ -378,7 +378,7 @@ const MotoPage = () => {
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white"><Icon name="carro" size={22} /></span>
           <span className="min-w-0 flex-1">
             <b className="block text-[14px] text-slate-800 dark:text-slate-100">¿Tienes moto o carro?</b>
-            <span className="text-[12.5px] text-slate-500">Inscríbete como conductor y recibe viajes.</span>
+            <span className="text-[12.5px] text-slate-500">Inscríbete como conductor de Aventón y recibe viajes.</span>
           </span>
           <span className="text-lg text-zippy">→</span>
         </button>
@@ -389,8 +389,8 @@ const MotoPage = () => {
   return (
     <UserLayout>
       <div className="px-4 pb-6 pt-4 md:mx-auto md:max-w-[560px] md:px-0">
-        <h1 className="m-0 flex items-center gap-2 text-[22px] font-black text-slate-800 dark:text-slate-100"><Icon name={TIPOS[viaje?.tipo_vehiculo || tipo].icono} size={26} />Pide un viaje</h1>
-        <p className="m-0 mb-4 mt-0.5 text-[13px] text-slate-500">Moto o carro con conductores independientes de Garzón.</p>
+        <h1 className="m-0 flex items-center gap-2 text-[22px] font-black text-slate-800 dark:text-slate-100"><Icon name={TIPOS[viaje?.tipo_vehiculo || tipo].icono} size={26} />Aventón</h1>
+        <p className="m-0 mb-4 mt-0.5 text-[13px] text-slate-500">Pide un aventón en moto o carro, con conductores independientes de Garzón.</p>
         {Contenido()}
       </div>
     </UserLayout>

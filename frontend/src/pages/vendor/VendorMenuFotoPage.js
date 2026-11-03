@@ -85,6 +85,9 @@ const VendorMenuFotoPage = () => {
   const [leyendo, setLeyendo] = useState(false);
   const [items, setItems] = useState(null);         // borrador que devolvió la IA
   const [publicando, setPublicando] = useState(null); // { hechos, total }
+  // Guardar también las fotos de la carta para que el cliente la vea en la tienda
+  const [mostrarCarta, setMostrarCarta] = useState(true);
+  const [cartaGuardada, setCartaGuardada] = useState(false);
 
   const agregarPagina = (archivo) => {
     if (paginas.length >= MAX_PAGINAS) { addToast(`Máximo ${MAX_PAGINAS} fotos por vez`, 'info'); return; }
@@ -150,6 +153,14 @@ const VendorMenuFotoPage = () => {
       }
       setPublicando({ hechos: i + 1, total: elegidos.length });
     }
+    if (mostrarCarta && !cartaGuardada && paginas.length) {
+      try {
+        await negociosService.subirCarta(paginas.map(p => p.archivo), true);
+        setCartaGuardada(true);
+      } catch {
+        addToast('No se pudo guardar la foto de la carta. La puedes subir desde tu perfil.', 'error');
+      }
+    }
     setPublicando(null);
     const ok = elegidos.length - fallidos.length;
     if (fallidos.length) {
@@ -213,6 +224,17 @@ const VendorMenuFotoPage = () => {
           <p className={subtitulo}>
             Encontramos <b>{items.length}</b>{items.some(it => it.foto) ? <>, y <b>{items.filter(it => it.foto).length}</b> traen la foto de tu carta</> : null}. Corrige lo que haga falta y quita la marca a lo que ya no vendes.
           </p>
+
+          {paginas.length > 0 && !cartaGuardada && (
+            <label className={cx(tarjeta, 'mt-3 flex cursor-pointer items-center gap-3 p-3')}>
+              <input type="checkbox" checked={mostrarCarta} onChange={e => setMostrarCarta(e.target.checked)} className="h-5 w-5 shrink-0 accent-[#FF7A00]" />
+              <img src={paginas[0].vista} alt="" className="h-12 w-10 shrink-0 rounded-md object-cover" />
+              <span className="min-w-0 flex-1">
+                <b className="block text-[14px] text-slate-800 dark:text-slate-100">Mostrar también la foto de mi carta</b>
+                <span className="text-[12px] text-slate-500">Tus clientes la ven al tocar "Ver la carta" en tu tienda</span>
+              </span>
+            </label>
+          )}
 
           <div className="mt-3 flex flex-col gap-2 pb-28">
             {items.map(it => (

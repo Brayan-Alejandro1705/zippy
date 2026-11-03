@@ -150,6 +150,9 @@ class Negocio(Base):
     nombre_negocio = Column(String(255), nullable=False)
     descripcion = Column(Text)
     logo = Column(String(500))
+    # Nov 2026: fotos de la carta (hasta 4 páginas). El cliente las ve con
+    # "Ver la carta" en la tienda. Lista de URLs públicas (webp).
+    fotos_carta = Column(JSON, default=[])
     imagen_portada = Column(String(500))
     categoria = Column(String(100), nullable=False, index=True)
     es_servicio = Column(Boolean, default=False, nullable=False)

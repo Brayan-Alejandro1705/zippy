@@ -282,6 +282,14 @@ export const negociosService = {
   actualizar:  (id, datos) => api.put(`/negocios/${id}`, datos),
   estadisticas:(id) => api.get(`/negocios/${id}/estadisticas`),
   productos:   (id) => api.get(`/negocios/${id}/productos`),
+  // Fotos de la carta (nov 2026): el cliente las ve con "Ver la carta"
+  subirCarta: (fotos, reemplazar = false) => {
+    const formData = new FormData();
+    fotos.forEach((f, i) => formData.append('fotos', f, `carta-${i + 1}.jpg`));
+    formData.append('reemplazar', reemplazar ? 'true' : 'false');
+    return api.post('/negocios/mi-negocio/carta', formData, { timeout: 120000, headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  quitarFotoCarta: (indice) => api.delete(`/negocios/mi-negocio/carta/${indice}`),
 };
 
 export const ordenesService = {

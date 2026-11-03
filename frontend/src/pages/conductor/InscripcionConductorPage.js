@@ -105,7 +105,7 @@ const InscripcionConductorPage = () => {
       localStorage.setItem('refresh_token', data.refresh_token);
       localStorage.setItem('usuario', JSON.stringify(data.usuario));
       guardarCuentaActual();
-      addToast('¡Listo! Ya eres conductor de ZIPPYGO', 'success');
+      addToast('¡Listo! Ya eres conductor de Aventón', 'success');
       navigate('/conductor', { replace: true });
     } catch (err) {
       const d = err?.response?.data?.detail;
@@ -119,7 +119,7 @@ const InscripcionConductorPage = () => {
     <div className={contenedor}>
       <Encabezado>
         <Logo onClick={() => navigate('/')} />
-        <span className="flex-1 text-[15px] font-extrabold text-white">Inscripción de conductores</span>
+        <span className="flex-1 text-[15px] font-extrabold text-white">Conductores de Aventón</span>
       </Encabezado>
 
       <form onSubmit={enviar} autoComplete="off" className="box-border w-full max-w-[600px] self-center px-4 pb-12 pt-4">

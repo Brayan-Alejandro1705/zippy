@@ -180,8 +180,8 @@ const ConductoresPage = () => {
     <Layout>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="m-0 flex items-center gap-2 text-[22px] font-extrabold text-slate-800 dark:text-slate-100"><Icon name="moto" size={24} />Viajes en moto y carro</h1>
-          <p className="m-0 mt-0.5 text-[13px] text-slate-500">Conductores independientes: ZIPPYGO solo los conecta con los pasajeros.</p>
+          <h1 className="m-0 flex items-center gap-2 text-[22px] font-extrabold text-slate-800 dark:text-slate-100"><Icon name="moto" size={24} />Aventón</h1>
+          <p className="m-0 mt-0.5 text-[13px] text-slate-500">Viajes en moto y carro con conductores independientes: ZIPPYGO solo los conecta con los pasajeros.</p>
         </div>
         <button type="button" className={btnP} onClick={abrirNuevo}><Icon name="moto" size={16} />Nuevo conductor</button>
       </div>

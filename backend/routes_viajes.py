@@ -1114,7 +1114,7 @@ async def inscribirse(
         notificar_usuarios(
             db, admins, tipo="conductor_inscrito",
             titulo=f"Nuevo conductor de {NOMBRE[tipo]}",
-            mensaje=f"{u.nombre} se inscribió y ya puede recibir viajes. Sus papeles están en Moto y carro.",
+            mensaje=f"{u.nombre} se inscribió y ya puede recibir viajes. Sus papeles están en Aventón.",
             relacionado_tabla="usuarios", relacionado_id=u.id,
         )
         db.commit()
