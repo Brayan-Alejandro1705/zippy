@@ -16,6 +16,7 @@ import ConductorPage from './pages/conductor/ConductorPage';
 import InscripcionConductorPage from './pages/conductor/InscripcionConductorPage';
 import MotoPage from './pages/user/MotoPage';
 import ConductoresPage from './pages/ConductoresPage';
+import TransferenciasPage from './pages/TransferenciasPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import VerificarCuentaPage from './pages/VerificarCuentaPage';
@@ -143,6 +144,7 @@ const App = () => (
           <Route path="/repartidores/nuevo" element={<Admin><NuevoRepartidorPage /></Admin>} />
           <Route path="/repartidores/:id/domicilios" element={<Admin><RepartidorDomiciliosPage /></Admin>} />
           <Route path="/conductores" element={<Admin><ConductoresPage /></Admin>} />
+          <Route path="/transferencias" element={<Admin><TransferenciasPage /></Admin>} />
           <Route path="/roles" element={<Admin><RolesPermisosPage /></Admin>} />
           <Route path="/logs" element={<Admin><LogsActividadPage /></Admin>} />
           <Route path="/config" element={<Admin><ConfigPage /></Admin>} />

@@ -23,6 +23,7 @@ from schemas import OrdenCreate, OrdenUpdate, OrdenResponse, ConfirmarRecogidaRe
 from routes_auth import get_current_user
 from push import notificar_usuario, notificar_usuarios
 from restricciones import es_alcohol, es_tabaco, MENSAJE_EDAD, MENSAJE_TABACO
+import pago_qr
 
 router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 
@@ -175,6 +176,16 @@ async def crear_orden(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_TABACO)
     if any(es_alcohol(p, negocio) for p in productos_pedido) and not orden.confirma_mayor_edad:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_EDAD)
+
+    # Nov 2026: el cliente paga en efectivo o con transferencia por QR (si
+    # el súper admin la tiene encendida). Tarjeta no hay mientras no exista pasarela.
+    metodo = (orden.metodo_pago or "").strip().lower()
+    if metodo not in ("efectivo", "transferencia"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Escoge pagar en efectivo o con transferencia")
+    if metodo == "transferencia" and not pago_qr.disponible(db):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="El pago con transferencia no está disponible en este momento. Escoge efectivo.")
+    orden.metodo_pago = metodo
 
     # Calcular totales
     items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad} for item in orden.items]
@@ -540,6 +551,30 @@ async def actualizar_orden(
                 )
 
         orden.estado = orden_actualizada.estado
+
+        # Nov 2026: pedido de transferencia. Al entregar, el repartidor dice
+        # si el cliente le mostró el pago (queda por verificar en el banco de
+        # ZIPPYGO) o si al final le pagó en efectivo.
+        pago_actual = str(getattr(orden.metodo_pago, "value", orden.metodo_pago)).lower()
+        if orden_actualizada.estado == "entregada" and pago_actual == "transferencia":
+            if (orden_actualizada.cobro or "transferencia") == "efectivo":
+                orden.metodo_pago = "efectivo"
+                for t in orden.transacciones or []:
+                    t.metodo_pago = "efectivo"
+                orden.transferencia_estado = None
+            elif not orden.transferencia_estado:
+                orden.transferencia_estado = pago_qr.POR_VERIFICAR
+                try:
+                    notificar_usuarios(
+                        db, _admins_activos(db),
+                        tipo="transferencia_por_verificar",
+                        titulo="Transferencia por verificar",
+                        mensaje=f"${float(orden.total or 0):,.0f} · pedido #{str(orden.id)[:8]} · revisa el banco de ZIPPYGO".replace(",", "."),
+                        relacionado_tabla="ordenes",
+                        relacionado_id=orden.id,
+                    )
+                except Exception as e:
+                    print(f"[ordenes] no se pudo avisar de la transferencia: {e}")
 
         # La hora de entrega no se estaba guardando nunca. Por eso el contador
         # del repartidor ("Entregados", "Ganado hoy") tenia que guiarse por la
@@ -1123,6 +1158,7 @@ MOTIVOS_REPORTE = {
     "direccion_falsa": "La dirección no existe o es falsa",
     "rechazo_pedido": "Rechazó el pedido al llegar",
     "peligro": "El repartidor se sintió en peligro",
+    "transferencia_no_llego": "Dijo que pagó por transferencia y la plata no llegó",
 }
 REPORTES_PARA_SUSPENDER = 2
 
@@ -1278,6 +1314,106 @@ async def reportar_cliente(
                        relacionado_tabla="ordenes", relacionado_id=orden.id)
     db.commit()
     return {"ok": True, "cliente_suspendido": suspendido}
+
+
+# ============================================================================
+# PAGO CON TRANSFERENCIA POR QR (nov 2026) - ver pago_qr.py
+# ============================================================================
+
+@router.get("/pago-qr/info", summary="¿Se puede pagar con transferencia? y el QR de ZIPPYGO")
+async def info_pago_qr(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    datos = pago_qr.leer(db)
+    activo = bool(datos.get("activo") and datos.get("qr"))
+    tipo = str(getattr(current_user.tipo_usuario, "value", current_user.tipo_usuario)).lower()
+    # El cliente solo necesita saber si está encendido: el QR lo ve en el
+    # celular del repartidor al recibir el pedido
+    if tipo == "cliente":
+        return {"activo": activo}
+    return {"activo": activo, "qr": datos.get("qr"), "titular": datos.get("titular"),
+            "banco": datos.get("banco"), "llave": datos.get("llave")}
+
+
+class RevisarTransferenciaRequest(BaseModel):
+    llego: bool
+
+
+def _fila_transferencia(o: Orden) -> dict:
+    return {
+        "id": str(o.id),
+        "corto": str(o.id)[:8].upper(),
+        "total": float(o.total or 0),
+        "estado": o.transferencia_estado,
+        "cliente": f"{o.cliente.nombre} {(o.cliente.apellido or '')[:1]}.".strip() if o.cliente else "",
+        "cliente_telefono": o.cliente.telefono if o.cliente else None,
+        "repartidor": o.domiciliario.nombre if o.domiciliario else "",
+        "negocio": o.negocio.nombre_negocio if o.negocio else "",
+        "entregado": o.fecha_entrega.isoformat() if o.fecha_entrega else None,
+        "revisada": o.transferencia_revisada.isoformat() if o.transferencia_revisada else None,
+    }
+
+
+@router.get("/transferencias/lista", summary="Transferencias por verificar y las revisadas")
+async def lista_transferencias(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admin(current_user)
+    por_verificar = db.query(Orden).filter(
+        Orden.transferencia_estado == pago_qr.POR_VERIFICAR
+    ).order_by(Orden.fecha_entrega.asc()).all()
+    revisadas = db.query(Orden).filter(
+        Orden.transferencia_estado.in_([pago_qr.LLEGO, pago_qr.NO_LLEGO]),
+        Orden.transferencia_revisada >= datetime.utcnow() - timedelta(days=7),
+    ).order_by(Orden.transferencia_revisada.desc()).all()
+    return {
+        "por_verificar": [_fila_transferencia(o) for o in por_verificar],
+        "revisadas": [_fila_transferencia(o) for o in revisadas],
+    }
+
+
+@router.post("/transferencias/{orden_id}/revisar", summary="Súper admin: la transferencia llegó o no")
+async def revisar_transferencia(
+    orden_id: UUID,
+    datos: RevisarTransferenciaRequest,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admin(current_user)
+    orden = db.query(Orden).filter(Orden.id == orden_id).first()
+    if not orden:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    if orden.transferencia_estado != pago_qr.POR_VERIFICAR:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Esta transferencia ya fue revisada")
+
+    orden.transferencia_estado = pago_qr.LLEGO if datos.llego else pago_qr.NO_LLEGO
+    orden.transferencia_revisada = datetime.utcnow()
+    orden.transferencia_revisor_id = current_user.id
+    orden.estado_pago = "completado" if datos.llego else "rechazado"
+    for t in orden.transacciones or []:
+        t.estado = "completado" if datos.llego else "rechazado"
+
+    suspendido = False
+    if not datos.llego and orden.cliente:
+        # Igual que los reportes del repartidor: con 2 la cuenta se suspende
+        cliente = orden.cliente
+        cliente.reportes_cliente = (cliente.reportes_cliente or 0) + 1
+        orden.reporte_motivo = "transferencia_no_llego"
+        orden.fecha_reporte = datetime.utcnow()
+        if cliente.reportes_cliente >= REPORTES_PARA_SUSPENDER:
+            cliente.estado = EstadoUsuario.SUSPENDIDO
+            suspendido = True
+        notificar_usuario(
+            db, cliente, tipo="transferencia_no_llego", titulo="No nos llegó tu pago",
+            mensaje=(f"No recibimos la transferencia de ${float(orden.total or 0):,.0f} del pedido #{str(orden.id)[:8]}.".replace(",", ".")
+                     + (" Tu cuenta quedó suspendida." if suspendido else "")
+                     + " Escríbenos por WhatsApp si ya pagaste."),
+            relacionado_tabla="ordenes", relacionado_id=orden.id,
+        )
+    db.commit()
+    return {"ok": True, "estado": orden.transferencia_estado, "cliente_suspendido": suspendido}
 
 
 @router.get("/validacion/reportados", summary="Clientes reportados por repartidores")

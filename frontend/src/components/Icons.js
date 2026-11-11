@@ -523,6 +523,14 @@ const PATHS = {
       <circle cx="12" cy="13" r="3.5" />
     </>
   ),
+  qr: (
+    <>
+      <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1" />
+      <rect x="14" y="3.5" width="6.5" height="6.5" rx="1" />
+      <rect x="3.5" y="14" width="6.5" height="6.5" rx="1" />
+      <path d="M14 14h3v3h-3zM20.5 14v.01M14 20.5h.01M17 20.5h3.5V17" />
+    </>
+  ),
   galeria: (
     <>
       <rect x="3.5" y="4.5" width="17" height="15" rx="2" />

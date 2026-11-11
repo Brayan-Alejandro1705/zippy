@@ -157,6 +157,15 @@ export const adminService = {
   estadisticas: () => api.get('/admin/estadisticas/'),
   // Pedidos, ventas, lo mas vendido... con datos reales (ver ResumenNegocio)
   resumen:      () => api.get('/admin/resumen/'),
+  // Cuenta de ZIPPYGO para cobrar con QR (nov 2026)
+  pagoQR:          () => api.get('/admin/pago-qr/'),
+  guardarPagoQR:   (datos) => api.put('/admin/pago-qr/', datos),
+  subirImagenQR:   (archivo) => {
+    const formData = new FormData();
+    formData.append('file', archivo);
+    return api.post('/admin/pago-qr/imagen', formData, { timeout: 60000, headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  quitarImagenQR:  () => api.delete('/admin/pago-qr/imagen'),
   obtenerSoporte:    () => api.get('/admin/configuracion/soporte'),
   actualizarSoporte: (whatsapp) => api.put('/admin/configuracion/soporte', { whatsapp }),
   obtenerDomicilio:    () => api.get('/admin/configuracion/domicilio'),
@@ -313,6 +322,11 @@ export const ordenesService = {
   // Pedidos parados: sin confirmar, sin validar o listos sin repartidor
   atascados:          () => api.get('/ordenes/validacion/atascados'),
   reactivarCliente:   (usuarioId) => api.post(`/ordenes/validacion/reactivar/${usuarioId}`),
+  // Pago con transferencia por QR (nov 2026): el QR es de ZIPPYGO y lo
+  // muestra el repartidor al entregar; un súper admin confirma que llegó
+  pagoQRInfo:         () => api.get('/ordenes/pago-qr/info'),
+  transferencias:     () => api.get('/ordenes/transferencias/lista'),
+  revisarTransferencia: (id, llego) => api.post(`/ordenes/transferencias/${id}/revisar`, { llego }),
 };
 
 export const logsService = {

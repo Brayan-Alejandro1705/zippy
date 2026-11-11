@@ -330,6 +330,9 @@ class OrdenCreate(BaseModel):
 
 class OrdenUpdate(BaseModel):
     estado: Optional[str] = None
+    # Al entregar un pedido de transferencia: "transferencia" (el cliente le
+    # mostró el pago al repartidor) o "efectivo" (al final pagó en billetes)
+    cobro: Optional[str] = None
     notas_vendedor: Optional[str] = None
     domiciliario_id: Optional[uuid.UUID] = None
 
@@ -350,6 +353,7 @@ class OrdenResponse(BaseModel):
     total: Decimal
     metodo_pago: str
     estado_pago: str
+    transferencia_estado: Optional[str] = None
     direccion_entrega: str
     latitud_entrega: Optional[float] = None
     longitud_entrega: Optional[float] = None

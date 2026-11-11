@@ -345,6 +345,12 @@ class Orden(Base):
     requiere_validacion = Column(Boolean, default=False, nullable=False)
     fecha_validacion = Column(DateTime)
     reporte_motivo = Column(String(60))
+    # Nov 2026: pago con transferencia por QR (ver pago_qr.py). El repartidor
+    # marca que el cliente le mostró el pago -> "por_verificar"; un súper
+    # admin revisa el banco de ZIPPYGO -> "llego" o "no_llego".
+    transferencia_estado = Column(String(20), index=True)
+    transferencia_revisada = Column(DateTime)
+    transferencia_revisor_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
     # Cuando se le aviso al dueño que el negocio no habia aceptado el pedido.
     # Sirve para avisar una sola vez por pedido (ver vigilante_pedidos.py).
     alerta_sin_confirmar = Column(DateTime)

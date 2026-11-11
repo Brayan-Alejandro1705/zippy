@@ -12,6 +12,7 @@ import ZLoader from '../../components/ZLoader';
 import '../../styles/RepartidorPage.css';
 import Icon from '../../components/Icons';
 import AccountSwitcher from '../../components/AccountSwitcher';
+import CobroQR from '../../components/CobroQR';
 import { registrarPush, alTocarNotificacion, cerrarSesionAqui } from '../../utils/push';
 import { urlImagen } from '../../utils/media';
 import { esHoy, fechaServidor } from '../../utils/fechas';
@@ -1022,6 +1023,8 @@ const RepartidorPage = () => {
   // y avisar. Es un conjunto y no un solo id porque antes, con un pedido en
   // vuelo, el boton de los demas se tragaba el toque sin decir nada.
   const [ocupados, setOcupados] = useState(() => new Set());
+  // Pedido de "Transferencia con QR" que se está cobrando (ver CobroQR)
+  const [cobrando, setCobrando] = useState(null);
   const marcarOcupado = (id, si) => setOcupados(prev => {
     const siguiente = new Set(prev);
     if (si) siguiente.add(id); else siguiente.delete(id);
@@ -1468,15 +1471,18 @@ const RepartidorPage = () => {
     }
   };
 
-  const marcarEntregado = async (orden) => {
+  const marcarEntregado = async (orden, cobro) => {
     const id = orden.idCompleto;
     if (ocupados.has(id)) return;
+    // Transferencia: primero se le muestra el QR de ZIPPYGO al cliente
+    if (orden.pago === 'transferencia' && !cobro) { setCobrando(orden); return; }
+    setCobrando(null);
     marcarOcupado(id, true);
     const antes = orden.estado;
     marcarCambioLocal(id, 'entregada');
     setOrdenes(prev => prev.map(o => o.idCompleto === id ? { ...o, estado: 'entregada' } : o));
     try {
-      await ordenesService.actualizar(id, { estado: 'entregada' });
+      await ordenesService.actualizar(id, cobro ? { estado: 'entregada', cobro } : { estado: 'entregada' });
       await cargarOrdenes().catch(() => {});
     } catch (err) {
       olvidarCambioLocal(id);
@@ -1823,6 +1829,7 @@ const RepartidorPage = () => {
       >SOS</button>
       <SosModal open={showSos} onClose={() => setShowSos(false)} usuario={usuario} driverPos={driverPos} orden={enCamino[0] || null} />
       <ReportModal orden={reportTarget} onClose={() => setReportTarget(null)} onSubmit={handleReportSubmit} />
+      <CobroQR orden={cobrando} onCerrar={() => setCobrando(null)} onCobrado={(cobro) => marcarEntregado(cobrando, cobro)} />
       <CierreModal open={showCierre} onClose={() => setShowCierre(false)} entregadas={entregadasHoy} ganado={ganado} />
       <CuentaModal open={showCuenta} usuario={usuario} onClose={() => setShowCuenta(false)} onSave={handleCuentaSave} onLogout={handleLogout} />
       <ChatModal orden={chatOrden} onClose={() => setChatOrden(null)} />

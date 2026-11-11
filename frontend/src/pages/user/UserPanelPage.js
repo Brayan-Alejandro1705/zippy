@@ -242,6 +242,31 @@ const SeccionPedidos = ({ pedidos, loading, onTrack, onCalificar, onRepetir, rep
                 )}
               </div>
             )}
+            {/* Nov 2026: paga con transferencia al recibir. El QR lo tiene el
+                repartidor en su celular; aquí solo los pasos. */}
+            {p.metodoPago === 'transferencia' && !['Entregado', 'Cancelado', 'Rechazado'].includes(p.estado) && (
+              <div className="mt-2.5 rounded-xl bg-violet-50 p-3 text-[13px] text-slate-700 dark:bg-violet-500/10 dark:text-slate-200">
+                <b className="mb-1 flex items-center gap-1.5 text-violet-800 dark:text-violet-300"><Icon name="qr" size={16} />Pagas con transferencia al recibir</b>
+                <ol className="m-0 pl-5 leading-relaxed">
+                  <li>Recibe tu pedido</li>
+                  <li>El repartidor te muestra el QR de ZIPPYGO</li>
+                  <li>Escanéalo con la app de tu banco, paga <b>{fmt(p.total)}</b> y muéstrale el pago</li>
+                </ol>
+                <p className="m-0 mt-1.5 text-[12px] text-slate-500">Ten lista la app de tu banco. Si prefieres, también puedes pagarle en efectivo.</p>
+              </div>
+            )}
+            {p.metodoPago === 'transferencia' && p.transferencia === 'no_llego' && (
+              <div className={C.avisoEspera}>
+                <b>No nos llegó tu transferencia.</b> Si ya pagaste, escríbenos con el comprobante.
+                {wa && (
+                  <a
+                    href={`https://wa.me/${wa}?text=${encodeURIComponent(`Hola, pagué por transferencia el pedido ${p.id} y les envío el comprobante.`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className={C.avisoLink}
+                  ><Icon name="whatsapp" size={15} style={{ verticalAlign: '-3px', marginRight: 6 }} />Escribir a soporte</a>
+                )}
+              </div>
+            )}
             {/* El seguimiento con mapa es de los pedidos a negocios. Un mandado
                 no tiene tienda de donde salir, y abrir ese modal con el id de un
                 mandado no traia nada: salia un mapa vacio. */}
@@ -1045,6 +1070,8 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
             ? { lat: Number(o.latitud_entrega), lng: Number(o.longitud_entrega) } : null,
           negocioId: o.negocio_id,
           tieneRepartidor: !!o.domiciliario_id,
+          metodoPago: o.metodo_pago,
+          transferencia: o.transferencia_estado,
           // Se guarda el detalle crudo para poder repetir el pedido despues
           itemsRaw: (o.items || []).map(it => ({ producto_id: it.producto_id, cantidad: it.cantidad })),
         }));

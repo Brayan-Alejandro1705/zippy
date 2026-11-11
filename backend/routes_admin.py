@@ -7,7 +7,9 @@ import re
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import uuid as _uuid
+from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
@@ -17,6 +19,9 @@ from models import Usuario, ConfiguracionSistema, Orden, ItemOrden, Producto, Ne
 from routes_auth import get_current_user
 from logs_utils import registrar_log
 import calculos
+import pago_qr
+import imagenes
+from storage_supabase import subir_archivo, SupabaseStorageError
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
@@ -772,3 +777,83 @@ async def actualizar_costo_mandado(
     )
     db.commit()
     return {"costo_mandado": costo, "configurado": True}
+
+
+# ============================================================================
+# PAGO CON TRANSFERENCIA POR QR (nov 2026) - ver pago_qr.py
+# La cuenta de ZIPPYGO: el súper admin sube la imagen del QR y escribe el
+# titular, el banco y la llave. El repartidor muestra ese QR al entregar.
+# ============================================================================
+
+class PagoQRUpdate(BaseModel):
+    activo: Optional[bool] = None
+    titular: Optional[str] = None
+    banco: Optional[str] = None
+    llave: Optional[str] = None
+
+
+def _solo_admins(usuario: Usuario):
+    if not _es_admin(usuario):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo administradores")
+
+
+@router.get("/pago-qr/", summary="Cuenta de ZIPPYGO para cobrar con QR")
+async def ver_pago_qr(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    _solo_admins(current_user)
+    return pago_qr.leer(db)
+
+
+@router.put("/pago-qr/", summary="Cambiar los datos de la cuenta o encender/apagar")
+async def cambiar_pago_qr(
+    datos: PagoQRUpdate,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admins(current_user)
+    cambios = {}
+    for campo in ("titular", "banco", "llave"):
+        valor = getattr(datos, campo)
+        if valor is not None:
+            cambios[campo] = valor.strip()[:120]
+    if datos.activo is not None:
+        if datos.activo and not pago_qr.leer(db).get("qr"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Primero sube la imagen del QR")
+        cambios["activo"] = bool(datos.activo)
+    resultado = pago_qr.guardar(db, cambios)
+    registrar_log(db, usuario_id=current_user.id, accion="Configuración", tabla_afectada="configuracion_sistema",
+                  detalle="Pago con QR: " + ", ".join(f"{k}={v}" for k, v in cambios.items()))
+    return resultado
+
+
+@router.post("/pago-qr/imagen", summary="Subir la imagen del QR de ZIPPYGO")
+async def subir_qr(
+    file: UploadFile = File(...),
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _solo_admins(current_user)
+    contenido = await file.read()
+    if len(contenido) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La imagen pesa demasiado (máximo 10 MB)")
+    try:
+        # Tamaño de documento: un QR achicado de más no se deja escanear
+        webp = imagenes.documento(contenido)
+    except imagenes.ImagenInvalida:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No pudimos leer esa imagen. Prueba con otra")
+    try:
+        url = subir_archivo(webp, f"pago-qr/{_uuid.uuid4()}.webp", "image/webp", cache=imagenes.CACHE)
+    except SupabaseStorageError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+    resultado = pago_qr.guardar(db, {"qr": url})
+    registrar_log(db, usuario_id=current_user.id, accion="Configuración", tabla_afectada="configuracion_sistema",
+                  detalle="Pago con QR: imagen del QR cambiada")
+    return resultado
+
+
+@router.delete("/pago-qr/imagen", summary="Quitar el QR (apaga el pago con transferencia)")
+async def quitar_qr(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    _solo_admins(current_user)
+    resultado = pago_qr.guardar(db, {"qr": None, "activo": False})
+    registrar_log(db, usuario_id=current_user.id, accion="Configuración", tabla_afectada="configuracion_sistema",
+                  detalle="Pago con QR: QR quitado y cobro apagado")
+    return resultado

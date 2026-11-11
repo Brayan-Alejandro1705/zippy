@@ -230,6 +230,10 @@ def init_db():
                 "ALTER TABLE pedidos_especiales ADD COLUMN IF NOT EXISTS costo_servicio NUMERIC(10,2)",
                 # Nov 2026: fotos de la carta del negocio para que el cliente la vea
                 "ALTER TABLE negocios ADD COLUMN IF NOT EXISTS fotos_carta JSON",
+                # Nov 2026: pago con transferencia por QR y su revisión
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_estado VARCHAR(20)",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisada TIMESTAMP",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisor_id UUID REFERENCES usuarios(id)",
             ):
                 conn.execute(text(sql))
             conn.commit()

@@ -34,7 +34,13 @@ const UserCheckoutPage = () => {
       .catch(() => {});
   }, []);
 
-  const [pago]                = useState('efectivo');
+  const [pago, setPago]       = useState('efectivo');
+  // Nov 2026: pago con transferencia por QR, solo si el súper admin la encendió
+  const [qrActivo, setQrActivo] = useState(false);
+  useEffect(() => {
+    if (!localStorage.getItem('access_token')) return;
+    ordenesService.pagoQRInfo().then(({ data }) => setQrActivo(!!data?.activo)).catch(() => {});
+  }, []);
   const [nota, setNota]       = useState('');
   const [loading, setLoading] = useState(false);
   const [mayorEdad, setMayorEdad] = useState(false);
@@ -341,13 +347,46 @@ const UserCheckoutPage = () => {
           )}
         </div>
 
-        {/* Metodo de pago (por ahora solo efectivo) */}
+        {/* Metodo de pago: efectivo o, si está encendida, transferencia con el
+            QR de ZIPPYGO que el repartidor muestra al entregar */}
         <div className={seccion}>
           <p className={etiqueta}>Método de pago</p>
-          <div className="flex items-center gap-2 rounded-[10px] border-2 border-solid border-slate-200 bg-slate-50 px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-noche-borde dark:bg-noche-alt dark:text-slate-300">
-            <span className="text-green-600"><Icon name="billete" size={18} /></span>
-            Efectivo contra entrega
-          </div>
+          {!qrActivo ? (
+            <div className="flex items-center gap-2 rounded-[10px] border-2 border-solid border-slate-200 bg-slate-50 px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-noche-borde dark:bg-noche-alt dark:text-slate-300">
+              <span className="text-green-600"><Icon name="billete" size={18} /></span>
+              Efectivo contra entrega
+            </div>
+          ) : (
+            <>
+              {[
+                { id: 'efectivo', icono: 'billete', color: 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400', titulo: 'Efectivo', texto: 'Le pagas al repartidor cuando llegue' },
+                { id: 'transferencia', icono: 'qr', color: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', titulo: 'Transferencia con QR', texto: 'Cuando el repartidor te entregue, te muestra el QR de ZIPPYGO y lo escaneas con la app de tu banco: Nequi, Bancolombia, Daviplata… Sin efectivo.' },
+              ].map(op => {
+                const activo = pago === op.id;
+                return (
+                  <button
+                    key={op.id}
+                    type="button"
+                    onClick={() => setPago(op.id)}
+                    className={cx(
+                      'mb-2 flex w-full cursor-pointer items-start gap-2.5 rounded-xl border-2 border-solid p-3 text-left font-[inherit]',
+                      activo ? 'border-zippy bg-orange-50 dark:bg-zippy/10' : 'border-slate-200 bg-white dark:border-noche-borde dark:bg-noche-alt'
+                    )}
+                  >
+                    <span className={cx('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-solid', activo ? 'border-zippy' : 'border-slate-300 dark:border-slate-500')}>
+                      {activo && <span className="h-2.5 w-2.5 rounded-full bg-zippy" />}
+                    </span>
+                    <span className={cx('flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px]', op.color)}><Icon name={op.icono} size={18} /></span>
+                    <span className="min-w-0 flex-1">
+                      <b className="block text-[14.5px] text-slate-800 dark:text-slate-100">{op.titulo}</b>
+                      <span className="mt-0.5 block text-[12.5px] leading-snug text-slate-500">{op.texto}</span>
+                    </span>
+                  </button>
+                );
+              })}
+              <p className="m-0 mt-1 text-[12px] text-slate-500">Pagas solo cuando tengas tu pedido en la mano.</p>
+            </>
+          )}
         </div>
 
         {/* Notas para el negocio */}

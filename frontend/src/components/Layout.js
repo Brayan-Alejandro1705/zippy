@@ -63,6 +63,7 @@ const NAV = [
   { path: '/vendedores',   icon: 'vendedores',   label: 'Vendedores',   permId: 'vendedores'  },
   { path: '/repartidores', icon: 'repartidores', label: 'Repartidores', permId: 'repartidores'},
   { path: '/conductores',  icon: 'carro',         label: 'Aventón',        permId: 'repartidores'},
+  { path: '/transferencias', icon: 'qr',         label: 'Transferencias', permId: null          },
   { path: '/usuarios',     icon: 'usuarios',     label: 'Usuarios',     permId: 'usuarios'    },
   { path: '/roles',        icon: 'roles',        label: 'Roles',        permId: 'roles'       },
   { path: '/logs',         icon: 'logs',         label: 'Logs',         permId: 'logs'        },
@@ -121,6 +122,8 @@ const Layout = ({ children }) => {
   useEffect(() => alTocarNotificacion((datos) => {
     // Conductor nuevo inscrito desde la app: a ver quién es
     if (datos?.tipo === 'conductor_inscrito') { navigate('/conductores'); return true; }
+    // Transferencia por revisar en el banco de ZIPPYGO
+    if (datos?.tipo === 'transferencia_por_verificar') { navigate('/transferencias'); return true; }
     const pestana = PESTANA_AVISO[datos?.tipo];
     if (!pestana) return false;
     const q = new URLSearchParams({ tab: pestana, aviso: '1' });
