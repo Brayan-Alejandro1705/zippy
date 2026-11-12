@@ -14,7 +14,9 @@ export const contenedor = 'flex min-h-screen flex-col bg-[#f5f6f8] font-sans dar
 // En iPhone el encabezado se dibuja detras de la hora y la Dynamic Island:
 // el naranja llega hasta el borde pero el contenido baja lo necesario.
 export const Encabezado = ({ children }) => (
-  <header className="sticky top-0 z-[100] box-border flex h-[calc(58px+env(safe-area-inset-top))] items-center gap-2.5 bg-zippy px-3 pt-[env(safe-area-inset-top)] shadow-[0_2px_10px_rgba(255,122,0,0.25)] xs:gap-3 xs:px-4 md:h-[62px] md:px-8">
+  // Nov 2026: un tono más profundo que el naranja de los botones, para que
+  // la barra no encandile y los botones sigan resaltando
+  <header className="sticky top-0 z-[100] box-border flex h-[calc(58px+env(safe-area-inset-top))] items-center gap-2.5 bg-[#F26A00] px-3 pt-[env(safe-area-inset-top)] shadow-[0_2px_10px_rgba(242,106,0,0.18)] xs:gap-3 xs:px-4 md:h-[62px] md:px-8">
     {children}
   </header>
 );

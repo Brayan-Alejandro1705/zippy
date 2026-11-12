@@ -7,7 +7,7 @@ import uuid
 
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import List
@@ -155,6 +155,7 @@ async def leer_menu(
 )
 async def crear_producto(
     producto: ProductoCreate,
+    background_tasks: BackgroundTasks,
     negocio_id: UUID = Query(..., description="ID del negocio"),
     current_user: Usuario = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -216,8 +217,23 @@ async def crear_producto(
     db.add(nuevo_producto)
     db.commit()
     db.refresh(nuevo_producto)
-    
+
+    # Nov 2026: negocio nuevo con 3 productos -> "Nuevo en ZIPPYGO" a los
+    # clientes. Va después de responder para no demorar al negocio.
+    if negocio.anunciado_en is None:
+        background_tasks.add_task(_anunciar_negocio, negocio.id)
+
     return ProductoResponse.from_orm(nuevo_producto)
+
+
+def _anunciar_negocio(negocio_id):
+    from config import SessionLocal
+    from routes_avisos import anunciar_si_toca
+    db = SessionLocal()
+    try:
+        anunciar_si_toca(db, db.query(Negocio).filter(Negocio.id == negocio_id).first())
+    finally:
+        db.close()
 
 @router.get(
     "/",

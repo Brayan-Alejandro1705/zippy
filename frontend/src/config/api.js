@@ -256,6 +256,16 @@ export const vendedoresService = {
   cambiarEstado:(id, estado) => api.patch(`/usuarios/${id}/`, { estado: estado.toLowerCase() }),
 };
 
+// Avisos de novedades y promociones (nov 2026)
+export const avisosService = {
+  miPreferencia:     () => api.get('/avisos/mi-preferencia'),
+  cambiarPreferencia:(acepta) => api.put('/avisos/mi-preferencia', { acepta }),
+  abierto:           (id) => api.post(`/avisos/${id}/abierto`),
+  panel:             () => api.get('/avisos/'),
+  enviar:            (datos) => api.post('/avisos/', datos),
+  cambiarAuto:       (activo) => api.put('/avisos/auto', { activo }),
+};
+
 // Adicionales de los productos (nov 2026): gomas, shot, extra queso...
 export const adicionalesService = {
   mios:        () => api.get('/adicionales/mios'),

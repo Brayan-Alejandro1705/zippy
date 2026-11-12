@@ -234,6 +234,11 @@ def init_db():
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_estado VARCHAR(20)",
                 # Nov 2026: adicionales de cada producto (la tabla la crea create_all)
                 "ALTER TABLE productos ADD COLUMN IF NOT EXISTS adicionales JSON",
+                # Nov 2026: avisos de novedades (ver routes_avisos.py)
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS acepta_novedades BOOLEAN",
+                "ALTER TABLE negocios ADD COLUMN IF NOT EXISTS anunciado_en TIMESTAMP",
+                # Los negocios que ya existían no se anuncian como "nuevos"
+                "UPDATE negocios SET anunciado_en = COALESCE(fecha_creacion, now()) WHERE anunciado_en IS NULL AND (fecha_creacion IS NULL OR fecha_creacion < '2026-11-14')",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisada TIMESTAMP",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisor_id UUID REFERENCES usuarios(id)",
             ):

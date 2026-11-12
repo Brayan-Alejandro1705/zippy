@@ -64,6 +64,7 @@ const NAV = [
   { path: '/repartidores', icon: 'repartidores', label: 'Repartidores', permId: 'repartidores'},
   { path: '/conductores',  icon: 'carro',         label: 'Aventón',        permId: 'repartidores'},
   { path: '/transferencias', icon: 'qr',         label: 'Transferencias', permId: null          },
+  { path: '/avisos',       icon: 'notificaciones', label: 'Avisos',       permId: null          },
   { path: '/usuarios',     icon: 'usuarios',     label: 'Usuarios',     permId: 'usuarios'    },
   { path: '/roles',        icon: 'roles',        label: 'Roles',        permId: 'roles'       },
   { path: '/logs',         icon: 'logs',         label: 'Logs',         permId: 'logs'        },

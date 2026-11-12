@@ -7,7 +7,8 @@ import { registrarPush, alTocarNotificacion } from '../utils/push';
 import ChatBurbuja from './ChatBurbuja';
 import AvisoSinConexion from './AvisoSinConexion';
 import { contenedor, Encabezado, Logo, botonEncabezado, Buscador, contenido, BarraInferior, ItemBarra } from './layout/piezas';
-import { pedidosEspecialesService, ordenesService } from '../config/api';
+import { pedidosEspecialesService, ordenesService, avisosService } from '../config/api';
+import PermisoNovedades from './PermisoNovedades';
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 const hayCuenta = () => !!localStorage.getItem('access_token');
@@ -104,6 +105,13 @@ const UserLayout = ({ children, onSearch }) => {
     if (tipo === 'repartidor_asignado') { navigate('/tienda/pedidos'); return true; }
     // Avisos del viaje en moto: llevan a la pantalla del viaje
     if (tipo.startsWith('viaje_')) { navigate('/tienda/moto'); return true; }
+    // Nov 2026: aviso de novedades. Abre la tienda del aviso (o el inicio)
+    if (tipo === 'novedad') {
+      avisosService.abierto(id)
+        .then(({ data }) => navigate(data?.negocio_id ? `/tienda?tienda=${data.negocio_id}` : '/tienda'))
+        .catch(() => navigate('/tienda'));
+      return true;
+    }
     // Mensajes del chat: del mandado (desde antes) y, desde oct 2026, tambien
     // del pedido normal de una tienda
     if (!id || (tipo !== 'mensaje_mandado' && tipo !== 'mensaje_orden')) return false;
@@ -205,6 +213,8 @@ const UserLayout = ({ children, onSearch }) => {
           />
         ))}
       </BarraInferior>
+
+      <PermisoNovedades />
 
       {idChat && (
         <ChatBurbuja

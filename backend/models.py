@@ -122,6 +122,9 @@ class Usuario(Base):
 
     # Token de FCM para notificaciones push (se sobreescribe con el último dispositivo que inició sesión)
     fcm_token = Column(String(255))
+    # Nov 2026: avisos de novedades y promociones (ver routes_avisos.py).
+    # None = todavia no se le ha preguntado; Apple exige permiso explicito.
+    acepta_novedades = Column(Boolean)
 
     # Relaciones
     negocio = relationship("Negocio", back_populates="vendedor", uselist=False)
@@ -153,6 +156,9 @@ class Negocio(Base):
     # Nov 2026: fotos de la carta (hasta 4 páginas). El cliente las ve con
     # "Ver la carta" en la tienda. Lista de URLs públicas (webp).
     fotos_carta = Column(JSON, default=[])
+    # Nov 2026: cuando se les aviso a los clientes que este negocio llego
+    # (una sola vez por negocio, ver routes_avisos.anunciar_si_toca)
+    anunciado_en = Column(DateTime)
     imagen_portada = Column(String(500))
     categoria = Column(String(100), nullable=False, index=True)
     es_servicio = Column(Boolean, default=False, nullable=False)
@@ -992,3 +998,25 @@ class Adicional(Base):
 
     def __repr__(self):
         return f"<Adicional {self.nombre} ${self.precio}>"
+
+
+# ============================================================================
+# TABLA: AVISOS MASIVOS (nov 2026)
+# Avisos de novedades y promociones que se les mandan a los clientes que
+# aceptaron recibirlos: los que escribe un súper admin y los automáticos de
+# "Nuevo en ZIPPYGO". Sirve de historial y para no mandar más de uno al día.
+# ============================================================================
+
+class AvisoMasivo(Base):
+    __tablename__ = "avisos_masivos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    titulo = Column(String(120), nullable=False)
+    mensaje = Column(String(300), nullable=False)
+    # Tienda que se abre al tocarlo (vacío = el inicio)
+    negocio_id = Column(UUID(as_uuid=True), ForeignKey("negocios.id"))
+    tipo = Column(String(20), default="manual", nullable=False)   # manual | automatico
+    enviado_por = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
+    enviados = Column(Integer, default=0, nullable=False)
+    abiertos = Column(Integer, default=0, nullable=False)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow, index=True)

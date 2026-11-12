@@ -17,7 +17,7 @@ import { urlImagen } from '../../utils/media';
 import { conAdicionales, adicionalesDeItem } from '../../utils/adicionales';
 import { fechaCorta, fechaHoraLarga, fechaServidor, minutosDesde } from '../../utils/fechas';
 import Icon from '../../components/Icons';
-import { clienteService, soporteService } from '../../config/api';
+import { clienteService, soporteService, avisosService } from '../../config/api';
 import { cerrarSesionAqui } from '../../utils/push';
 
 // Clases de Tailwind de esta pantalla (antes en UserPanel.css)
@@ -903,7 +903,21 @@ const SeccionCuenta = ({ addToast }) => {
   const { isDark, toggle } = useTheme();
   const stored   = JSON.parse(localStorage.getItem('usuario') || '{}');
   const [form, setForm] = useState({ nombre: stored.nombre || '', telefono: stored.telefono || '' });
-  const [notifs, setNotifs] = useState({ pedidos: true, ofertas: true, guardados: false });
+  const [novedades, setNovedades] = useState(false);
+  useEffect(() => {
+    avisosService.miPreferencia().then(({ data }) => setNovedades(!!data?.acepta)).catch(() => {});
+  }, []);
+  const cambiarNovedades = async () => {
+    const nuevo = !novedades;
+    setNovedades(nuevo);
+    try {
+      await avisosService.cambiarPreferencia(nuevo);
+      addToast(nuevo ? 'Te avisaremos de lo nuevo' : 'Ya no te mandaremos novedades', 'info');
+    } catch {
+      setNovedades(!nuevo);
+      addToast('No se pudo guardar. Revisa tu señal.', 'error');
+    }
+  };
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (e) => {
@@ -951,26 +965,33 @@ const SeccionCuenta = ({ addToast }) => {
         </button>
       </form>
 
+      {/* Nov 2026: antes había tres interruptores que no guardaban nada.
+          Los avisos de los pedidos llegan siempre; las novedades se aceptan
+          o no (Apple pide permiso para la propaganda). */}
       <div className={C.cuentaCard}>
-        <p className={C.cuentaSection}>Notificaciones</p>
-        {[
-          { id: 'pedidos',   label: 'Estado de mis pedidos', desc: 'Cuando tu orden cambia de estado' },
-          { id: 'ofertas',   label: 'Ofertas y promociones', desc: 'Descuentos de tus tiendas favoritas' },
-          { id: 'guardados', label: 'Vuelven al stock',      desc: 'Cuando un guardado vuelve a estar disponible' },
-        ].map(n => (
-          <div key={n.id} className={C.notifRow}>
-            <div>
-              <p className={C.notifLabel}>{n.label}</p>
-              <p className={C.notifDesc}>{n.desc}</p>
-            </div>
-            <button
-              className={cx('relative h-[25px] w-11 shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors', notifs[n.id] ? 'bg-zippy' : 'bg-slate-200 dark:bg-noche-borde')}
-              onClick={() => setNotifs(p => ({ ...p, [n.id]: !p[n.id] }))}
-            >
-              <span className={cx('pointer-events-none absolute left-[3px] top-[3px] h-[19px] w-[19px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform', notifs[n.id] && 'translate-x-[19px]')} />
-            </button>
+        <p className={C.cuentaSection}>Avisos</p>
+        <div className={C.notifRow}>
+          <div>
+            <p className={C.notifLabel}>Mis pedidos</p>
+            <p className={C.notifDesc}>Cuando lo aceptan, va en camino o llega</p>
           </div>
-        ))}
+          <span className="shrink-0 text-[12.5px] font-bold text-slate-500">Siempre</span>
+        </div>
+        <div className={C.notifRow}>
+          <div>
+            <p className={C.notifLabel}>Novedades y promociones</p>
+            <p className={C.notifDesc}>Negocios nuevos y promociones de Garzón</p>
+          </div>
+          <button
+            className={cx('relative h-[25px] w-11 shrink-0 cursor-pointer rounded-full border-0 p-0 transition-colors', novedades ? 'bg-zippy' : 'bg-slate-200 dark:bg-noche-borde')}
+            onClick={cambiarNovedades}
+            role="switch"
+            aria-checked={!!novedades}
+            aria-label="Novedades y promociones"
+          >
+            <span className={cx('pointer-events-none absolute left-[3px] top-[3px] h-[19px] w-[19px] rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.2)] transition-transform', novedades && 'translate-x-[19px]')} />
+          </button>
+        </div>
       </div>
 
       <div className={C.cuentaCard}>

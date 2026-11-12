@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import UserLayout from '../../components/UserLayout';
 import UserProductModal from '../../components/UserProductModal';
 import { useCart } from '../../context/CartContext';
@@ -74,6 +75,9 @@ const UserHomePage = () => {
   const [orden,        setOrden]        = useState('relevancia');
   const [saved,        setSaved]        = useState(new Set());
   const [modalProd,    setModalProd]    = useState(null);
+  // Nov 2026: /tienda?tienda=<id> abre la carta de esa tienda (lo usan los
+  // avisos de novedades: "Nuevo en ZIPPYGO: ...")
+  const [params, setParams] = useSearchParams();
   const [precioMin,    setPrecioMin]    = useState('');
   const [precioMax,    setPrecioMax]    = useState('');
   const [showFilters,  setShowFilters]  = useState(false);
@@ -172,6 +176,17 @@ const UserHomePage = () => {
     return () => { activo = false; };
   }, []);
 
+  const tiendaPedida = params.get('tienda');
+  useEffect(() => {
+    if (!tiendaPedida || tiendas.length === 0) return;
+    const t = tiendas.find(x => String(x.id) === tiendaPedida);
+    if (t) {
+      setTiendaFiltro(t.nombre);
+      setTimeout(() => document.getElementById('uh-productos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    }
+    setParams({}, { replace: true });
+  }, [tiendaPedida, tiendas, setParams]);
+
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
   const hora    = new Date().getHours();
   const saludo  = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
@@ -255,61 +270,63 @@ const UserHomePage = () => {
     <UserLayout onSearch={setQuery}>
 
       {/* ── Hero ─────────────────────────────────────────── */}
-      <div className="relative mb-5 flex items-center justify-between gap-6 overflow-hidden bg-[linear-gradient(135deg,#FF7A00_0%,#ff9a3c_55%,#ffb84d_100%)] px-5 pb-6 pt-[22px] md:mb-8 md:min-h-[220px] md:rounded-[22px] md:px-10 md:py-9">
-        <span className="pointer-events-none absolute -right-[60px] -top-20 h-[280px] w-[280px] rounded-full bg-white/10" />
-        <span className="pointer-events-none absolute -bottom-[60px] left-[30%] h-[200px] w-[200px] rounded-full bg-white/[0.06]" />
+      {/* Nov 2026 (opción A): antes era un bloque naranja de media pantalla
+          con las categorías en 5 filas. Ahora es una tarjeta suave y las
+          categorías van en una sola fila que se desliza, para que los
+          productos se vean sin bajar. */}
+      <div className="px-4 pt-3 md:px-0 md:pt-0">
+        <div className="relative flex items-center justify-between gap-6 overflow-hidden rounded-[18px] bg-[#FFF1E4] px-4 py-3.5 dark:border dark:border-solid dark:border-[#3b3028] dark:bg-[linear-gradient(135deg,#1e293b,#2a2320)] md:min-h-[180px] md:rounded-[22px] md:px-10 md:py-8">
+          <div className="relative z-[1] min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-zippy px-3 py-1 text-[12.5px] font-bold text-white dark:bg-zippy/15 dark:text-orange-400">
+                <Icon name="ubicacion" size={13} />Garzón, Huila
+              </span>
+              {usuario.nombre && (
+                <span className="text-[13px] font-semibold text-orange-700 dark:text-orange-300">{saludo}, {usuario.nombre.split(' ')[0]}</span>
+              )}
+            </div>
+            <h1 className="m-0 text-[22px] font-black leading-tight tracking-[-0.4px] text-[#7c2d12] dark:text-slate-100 xs:text-[23px] md:text-[34px]">¿Qué quieres pedir hoy?</h1>
+            <p className="m-0 mt-2 hidden max-w-[360px] text-sm leading-normal text-orange-900/70 dark:text-slate-400 md:block">Productos frescos de tiendas locales directo a tu puerta</p>
+          </div>
 
-        <div className="relative z-[1] min-w-0 flex-1">
-          <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.22] px-3.5 py-1.5 text-[13px] font-semibold text-white backdrop-blur-[6px]">
-              <Icon name="ubicacion" size={14} />Garzón, Huila
-            </span>
-            {usuario.nombre && (
-              <span className="text-[13px] font-semibold text-white/90">{saludo}, {usuario.nombre.split(' ')[0]}</span>
-            )}
-          </div>
-          <h1 className="m-0 mb-2 text-[24px] font-black leading-[1.12] tracking-[-0.5px] text-white xs:text-[26px] md:text-[36px]">¿Qué quieres<br />pedir hoy?</h1>
-          <p className="m-0 mb-[22px] hidden max-w-[340px] text-sm leading-normal text-white/80 md:block">Productos frescos de tiendas locales directo a tu puerta</p>
-          <div className="flex flex-wrap gap-2 md:gap-2.5">
-            {[{ id: 'destacados', icon: 'destacado', label: 'Destacados' }, ...categorias].map(c => {
-              const activo = tab === c.id;
-              return (
-                <button
-                  key={c.id}
-                  className={cx(
-                    'flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] border-solid px-3.5 py-[7px] font-[inherit] text-xs font-bold transition-colors md:px-[18px] md:py-[9px] md:text-[13px]',
-                    activo ? 'border-white bg-white text-zippy' : 'border-white/35 bg-white/20 text-white hover:bg-white/30'
-                  )}
-                  onClick={() => { setTab(c.id); irAProductos(); }}
-                >
-                  <Icon name={c.icon} size={16} /><span>{c.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Lado derecho del hero, solo en PC */}
-        <div className="relative z-[1] hidden shrink-0 flex-col items-center gap-5 md:flex">
-          <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-white/[0.18] text-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]">
-            <Icon name="repartidores" size={54} strokeWidth={1.3} />
-          </div>
-          <div className="flex items-center gap-4 rounded-2xl bg-white/15 px-5 py-3 backdrop-blur-[6px]">
+          {/* Lado derecho, solo en PC */}
+          <div className="relative z-[1] hidden shrink-0 items-center gap-4 rounded-2xl bg-white/70 px-5 py-3 dark:bg-white/5 md:flex">
             {[
               [tiendas.length, 'Tiendas'],
               [productos.length, 'Productos'],
               [ratingPromedioTiendas > 0 ? ratingPromedioTiendas.toFixed(1) : '—', 'Rating'],
             ].map(([num, label], i) => (
               <React.Fragment key={label}>
-                {i > 0 && <span className="h-[30px] w-px bg-white/30" />}
+                {i > 0 && <span className="h-[30px] w-px bg-orange-200 dark:bg-white/15" />}
                 <span className="flex flex-col items-center gap-0.5">
-                  <span className="text-lg font-black leading-none text-white">{num}</span>
-                  <span className="text-[10px] font-semibold uppercase text-white/80">{label}</span>
+                  <span className="text-lg font-black leading-none text-[#7c2d12] dark:text-slate-100">{num}</span>
+                  <span className="text-[10px] font-semibold uppercase text-orange-700/80 dark:text-slate-400">{label}</span>
                 </span>
               </React.Fragment>
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Categorías: una sola fila que se desliza de lado */}
+      <div className="mb-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mb-6 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
+        {[{ id: 'destacados', icon: 'destacado', label: 'Destacados' }, ...categorias].map(c => {
+          const activo = tab === c.id;
+          return (
+            <button
+              key={c.id}
+              className={cx(
+                'flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full border-[1.5px] border-solid px-3.5 py-[7px] font-[inherit] text-[13px] font-bold transition-colors',
+                activo
+                  ? 'border-zippy bg-zippy text-white'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-zippy hover:text-zippy dark:border-noche-borde dark:bg-noche-card dark:text-slate-200'
+              )}
+              onClick={() => { setTab(c.id); irAProductos(); }}
+            >
+              <Icon name={c.icon} size={15} /><span>{c.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Viajes en moto (solo si el servicio está encendido) ── */}
