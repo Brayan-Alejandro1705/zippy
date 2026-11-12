@@ -258,6 +258,9 @@ class Producto(Base):
     
     # Imágenes
     imagenes = Column(JSON, default=[])
+    # Nov 2026: ids de los adicionales (tabla adicionales) que el cliente
+    # puede agregarle a este producto: gomas, shot, extra queso...
+    adicionales = Column(JSON, default=[])
     
     # Categorización
     categoria = Column(String(100), index=True)
@@ -963,3 +966,29 @@ class ViajeMoto(Base):
 
     def __repr__(self):
         return f"<ViajeMoto {self.id} - {self.estado}>"
+
+
+# ============================================================================
+# TABLA: ADICIONALES (nov 2026)
+# Lo que el negocio cobra aparte encima de un producto (gomas, shot, extra
+# queso). El negocio los crea una vez y escoge en qué productos salen
+# (Producto.adicionales). El cliente los marca al agregar el producto; en la
+# orden quedan copiados en ItemOrden.especificaciones["adicionales"] con el
+# nombre y precio de ese momento.
+# ============================================================================
+
+class Adicional(Base):
+    __tablename__ = "adicionales"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    negocio_id = Column(UUID(as_uuid=True), ForeignKey("negocios.id"), nullable=False, index=True)
+    nombre = Column(String(120), nullable=False)
+    precio = Column(DECIMAL(10, 2), nullable=False)
+    # Apagado: hoy no hay (se acabó el barquillo). Sigue en la lista del negocio.
+    disponible = Column(Boolean, default=True, nullable=False)
+    # Borrado por el negocio: ya no aparece en ninguna parte
+    eliminado = Column(Boolean, default=False, nullable=False)
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Adicional {self.nombre} ${self.precio}>"

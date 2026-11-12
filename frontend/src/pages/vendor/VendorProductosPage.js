@@ -304,6 +304,20 @@ const VendorProductosPage = () => {
         </button>
       )}
 
+      {/* Nov 2026: lo que se cobra aparte encima de un producto */}
+      <button
+        type="button"
+        onClick={() => navigate('/vendor/productos/adicionales')}
+        className="mb-4 flex w-full cursor-pointer items-center gap-3 rounded-2xl border-[1.5px] border-solid border-slate-200 bg-white p-3 text-left font-[inherit] dark:border-noche-borde dark:bg-noche-card"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-[20px] font-black text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">+</span>
+        <span className="min-w-0 flex-1">
+          <b className="block text-[14.5px] text-slate-800 dark:text-slate-100">Adicionales</b>
+          <span className="text-[12.5px] text-slate-500">Gomas, shot, extra queso… lo que cobras aparte</span>
+        </span>
+        <span className="text-lg text-slate-400">›</span>
+      </button>
+
       {sinFotoCount > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border-[1.5px] border-l-4 border-solid border-sky-200 border-l-sky-500 bg-sky-50 p-3 text-sky-900 dark:border-sky-500/30 dark:border-l-sky-500 dark:bg-sky-500/10 dark:text-sky-200">
           <span className="shrink-0 text-sky-600"><Icon name="camara" size={20} /></span>

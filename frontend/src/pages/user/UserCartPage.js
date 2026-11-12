@@ -90,7 +90,7 @@ const UserCartPage = () => {
 
                 {tiendaItems.map(item => (
                   // En celular: foto + nombre arriba; cantidad, total y quitar en una segunda fila
-                  <div key={item.id} className="flex flex-wrap items-center gap-2 gap-y-2.5 border-0 border-b border-solid border-slate-100 p-3 last:border-b-0 dark:border-noche-borde sm:flex-nowrap sm:gap-3 sm:px-4">
+                  <div key={item.linea || item.id} className="flex flex-wrap items-center gap-2 gap-y-2.5 border-0 border-b border-solid border-slate-100 p-3 last:border-b-0 dark:border-noche-borde sm:flex-nowrap sm:gap-3 sm:px-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-slate-100 text-slate-400 dark:bg-noche-alt dark:text-slate-500 sm:h-14 sm:w-14">
                       {item.foto
                         ? <img src={urlImagen(item.foto, true)} alt={item.nombre} loading="lazy" className="block h-full w-full object-cover" />
@@ -98,16 +98,19 @@ const UserCartPage = () => {
                     </div>
                     <div className="min-w-0 flex-1 basis-[calc(100%-64px)] sm:basis-auto">
                       <p className="m-0 mb-0.5 text-[13px] font-bold text-slate-800 dark:text-slate-100 sm:text-sm">{item.nombre}</p>
+                      {item.adicionales?.length > 0 && (
+                        <p className="m-0 mb-0.5 text-[11.5px] leading-snug text-slate-500 dark:text-slate-400">+ {item.adicionales.map(a => a.nombre).join(' · ')}</p>
+                      )}
                       <p className="m-0 mb-1 text-[11px] text-slate-400">{item.tienda}</p>
                       <p className="m-0 text-[13px] font-bold text-zippy">{fmt(item.precio)}</p>
                     </div>
                     <div className="ml-14 flex items-center gap-1.5 sm:ml-0">
-                      <button className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-md border-0 bg-[#f0f0f0] text-[15px] font-bold hover:bg-[#e0e0e0] dark:bg-noche-alt dark:text-slate-200 dark:hover:bg-noche-borde" onClick={() => updateQty(item.id, item.qty - 1)} aria-label="Quitar uno">−</button>
+                      <button className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-md border-0 bg-[#f0f0f0] text-[15px] font-bold hover:bg-[#e0e0e0] dark:bg-noche-alt dark:text-slate-200 dark:hover:bg-noche-borde" onClick={() => updateQty(item.linea, item.qty - 1)} aria-label="Quitar uno">−</button>
                       <span className="min-w-[20px] text-center text-[13px] font-bold text-slate-800 dark:text-slate-100">{item.qty}</span>
-                      <button className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-md border-0 bg-zippy text-[15px] font-bold text-white hover:bg-zippy-600" onClick={() => updateQty(item.id, item.qty + 1)} aria-label="Agregar uno">+</button>
+                      <button className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-md border-0 bg-zippy text-[15px] font-bold text-white hover:bg-zippy-600" onClick={() => updateQty(item.linea, item.qty + 1)} aria-label="Agregar uno">+</button>
                     </div>
                     <p className="m-0 ml-auto min-w-[56px] shrink-0 text-right text-[13px] font-extrabold text-slate-800 dark:text-slate-100 sm:ml-0 sm:min-w-[68px] sm:text-sm">{fmt(item.precio * item.qty)}</p>
-                    <button className="cursor-pointer border-0 bg-transparent p-1 text-base leading-none text-red-500 hover:text-red-600" onClick={() => removeItem(item.id)} aria-label="Quitar del carrito">✕</button>
+                    <button className="cursor-pointer border-0 bg-transparent p-1 text-base leading-none text-red-500 hover:text-red-600" onClick={() => removeItem(item.linea)} aria-label="Quitar del carrito">✕</button>
                   </div>
                 ))}
 

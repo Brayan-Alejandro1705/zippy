@@ -107,7 +107,21 @@ _ESQUEMA = {
                 },
                 "required": ["nombre", "precio", "categoria", "seguro"],
             },
-        }
+        },
+        # Nov 2026: lo que se cobra aparte encima de un producto
+        "adicionales": {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "nombre": {"type": "STRING"},
+                    "precio": {"type": "INTEGER"},
+                    # Nombres (como quedaron en productos) a los que aplica; vacío = a todos
+                    "para": {"type": "ARRAY", "items": {"type": "STRING"}},
+                },
+                "required": ["nombre", "precio"],
+            },
+        },
     },
     "required": ["productos"],
 }
@@ -133,13 +147,21 @@ def _instrucciones(categorias: list) -> str:
         "[ymin, xmin, ymax, xmax] con valores de 0 a 1000 sobre esa página, y en pagina el número de la foto "
         "(la primera es 1). Si el producto no tiene su propia imagen, deja foto vacía. Nunca le pongas a un "
         "producto la imagen de otro, ni un logo, ni un fondo decorativo.\n"
+        "- adicionales: lo que se cobra APARTE encima de otro producto y no se vende solo: secciones como "
+        "'Adicionales', 'Extras', 'Toppings', 'Combínalo con', 'Agrégale', o renglones como 'Adicional gomas', "
+        "'Extra queso', 'Shot'. Esos NO van en productos: van en adicionales con nombre corto (sin la palabra "
+        "'Adicional' ni 'Extra' al inicio: 'Gomas', 'Queso') y su precio. En para pon los nombres EXACTOS "
+        "(como quedaron en productos) de los productos a los que se les puede agregar; si sirven para todo el "
+        "menú, deja para vacío.\n"
         "- No inventes productos ni precios. No incluyas títulos, horarios, teléfonos, direcciones ni promociones sin precio.\n"
         "- Si en las fotos no hay ningún menú o lista de precios, devuelve la lista vacía."
     )
 
 
-def leer_menu(fotos: list, categorias: list) -> list:
-    """fotos: lista de bytes. Devuelve [{nombre, precio, descripcion, categoria, seguro}]."""
+def leer_menu(fotos: list, categorias: list) -> tuple:
+    """fotos: lista de bytes. Devuelve (productos, adicionales):
+    productos = [{nombre, precio, descripcion, categoria, seguro, foto}],
+    adicionales = [{nombre, precio, para: [nombres de productos]}]."""
     clave = _clave()
     if not clave:
         raise MenuIAError("La lectura de menús todavía no está activada")
@@ -184,7 +206,9 @@ def leer_menu(fotos: list, categorias: list) -> list:
 
     try:
         texto = respuesta["candidates"][0]["content"]["parts"][0]["text"]
-        crudos = json.loads(texto).get("productos", [])
+        leido = json.loads(texto)
+        crudos = leido.get("productos", [])
+        crudos_adicionales = leido.get("adicionales", []) or []
     except Exception:
         print(f"[menu_ia] respuesta rara de Gemini: {str(respuesta)[:300]}")
         raise MenuIAError("No pudimos entender el menú. Prueba con una foto más clara y de frente.")
@@ -228,4 +252,18 @@ def leer_menu(fotos: list, categorias: list) -> list:
             "categoria": categoria,
             "seguro": seguro,
         })
-    return productos
+
+    nombres = {p["nombre"].lower(): p["nombre"] for p in productos}
+    adicionales, vistos_ad = [], set()
+    for a in crudos_adicionales:
+        nombre = str(a.get("nombre") or "").strip()[:120]
+        try:
+            precio = int(a.get("precio") or 0)
+        except (TypeError, ValueError):
+            precio = 0
+        if not nombre or nombre.lower() in vistos_ad:
+            continue
+        vistos_ad.add(nombre.lower())
+        para = [nombres[str(x).strip().lower()] for x in (a.get("para") or []) if str(x).strip().lower() in nombres]
+        adicionales.append({"nombre": nombre, "precio": precio, "para": list(dict.fromkeys(para))})
+    return productos, adicionales

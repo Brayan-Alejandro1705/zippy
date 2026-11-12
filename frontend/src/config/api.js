@@ -256,6 +256,17 @@ export const vendedoresService = {
   cambiarEstado:(id, estado) => api.patch(`/usuarios/${id}/`, { estado: estado.toLowerCase() }),
 };
 
+// Adicionales de los productos (nov 2026): gomas, shot, extra queso...
+export const adicionalesService = {
+  mios:        () => api.get('/adicionales/mios'),
+  crear:       (datos) => api.post('/adicionales/', datos),
+  cambiar:     (id, datos) => api.put(`/adicionales/${id}`, datos),
+  borrar:      (id) => api.delete(`/adicionales/${id}`),
+  deProducto:  (productoId) => api.get(`/adicionales/producto/${productoId}`),
+  asignar:     (productoId, ids, aplicarACategoria = false) =>
+    api.put(`/adicionales/producto/${productoId}`, { ids, aplicar_a_categoria: aplicarACategoria }),
+};
+
 export const productosService = {
   listar:    (negocio_id, params = {}) => api.get('/productos/', { params: { negocio_id, ...params } }),
   // Panel del negocio: incluye los pausados (la lista publica no los trae)

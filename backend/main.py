@@ -267,6 +267,7 @@ from routes_pedidos_especiales import router as pedidos_especiales_router
 from routes_logs import router as logs_router
 from routes_actualizaciones import router as actualizaciones_router
 from routes_viajes import router as viajes_router
+from routes_adicionales import router as adicionales_router
 
 app.include_router(auth_router)
 app.include_router(usuarios_router)
@@ -283,6 +284,7 @@ app.include_router(logs_router)
 app.include_router(actualizaciones_router)
 # Viajes en moto con conductores independientes (oct 2026)
 app.include_router(viajes_router)
+app.include_router(adicionales_router)
 # ============================================================================
 # MAIN - Ejecutar servidor
 # ============================================================================

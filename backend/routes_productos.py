@@ -137,10 +137,10 @@ async def leer_menu(
         if c:
             contenidos.append(c)
     try:
-        productos = menu_ia.leer_menu(contenidos, lista_categorias)
+        productos, adicionales = menu_ia.leer_menu(contenidos, lista_categorias)
     except menu_ia.MenuIAError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
-    return {"productos": productos}
+    return {"productos": productos, "adicionales": adicionales}
 
 # ============================================================================
 # ENDPOINTS: CRUD DE PRODUCTOS

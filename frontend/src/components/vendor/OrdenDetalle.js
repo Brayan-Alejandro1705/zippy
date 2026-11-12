@@ -153,7 +153,12 @@ const OrdenDetalleModal = ({ orden, onClose, onAvanzar, onConfirmarRecogida }) =
             {orden.items.map((item, i) => (
               <div key={i} className="flex items-start justify-between gap-3 border-0 border-b border-solid border-slate-100 py-3 last:border-b-0 dark:border-noche-borde">
                 <div className="min-w-0">
-                  <p className="m-0 mb-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100">{item.nombre}</p>
+                  <p className="m-0 mb-0.5 text-sm font-semibold text-slate-800 dark:text-slate-100">{item.adicionales?.length ? item.base : item.nombre}</p>
+                  {item.adicionales?.length > 0 && (
+                    <div className="mb-1 ml-3 text-[13px] leading-relaxed text-slate-600 dark:text-slate-300">
+                      {item.adicionales.map(n => <div key={n}>+ {n}</div>)}
+                    </div>
+                  )}
                   <p className="m-0 text-xs text-slate-400">Cantidad {item.qty} · ${(item.precio / item.qty).toLocaleString('es-CO')} c/u</p>
                 </div>
                 <span className="whitespace-nowrap text-sm font-bold text-slate-800 dark:text-slate-100">{fmtFull(item.precio)}</span>

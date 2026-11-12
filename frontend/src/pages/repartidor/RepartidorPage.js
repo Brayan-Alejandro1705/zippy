@@ -15,6 +15,7 @@ import AccountSwitcher from '../../components/AccountSwitcher';
 import CobroQR from '../../components/CobroQR';
 import { registrarPush, alTocarNotificacion, cerrarSesionAqui } from '../../utils/push';
 import { urlImagen } from '../../utils/media';
+import { conAdicionales } from '../../utils/adicionales';
 import { esHoy, fechaServidor } from '../../utils/fechas';
 import { useCerrarConAtras } from '../../utils/atras';
 
@@ -1245,7 +1246,7 @@ const RepartidorPage = () => {
         direccion: o.direccion_entrega,
         cliente: o.cliente_nombre || cliente?.nombre,
         telefono: o.cliente_telefono || cliente?.telefono,
-        items: items.map(it => `${nombreItem(it)} x${it.cantidad}`).join(', '),
+        items: items.map(it => `${conAdicionales(nombreItem(it), it)} x${it.cantidad}`).join(', '),
         emoji: getIcon(primerItem?.producto_categoria || primerProducto?.categoria),
         // El negocio hace falta para dos cosas: el repartidor necesita saber
         // DONDE recoger, y el logo evita la cajita gris igual para todos.

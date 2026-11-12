@@ -6,6 +6,7 @@ import ZLoader from '../../components/ZLoader';
 import Icon from '../../components/Icons';
 import OrdenDetalleModal from '../../components/vendor/OrdenDetalle';
 import { fechaCorta, fechaServidor } from '../../utils/fechas';
+import { conAdicionales } from '../../utils/adicionales';
 import { cx, titulo, subtitulo, tarjeta, chip, chipsFila, badge, badgeBase } from '../../ui/tw';
 
 const ESTADO_UI = {
@@ -109,7 +110,7 @@ const VendorVentasPage = () => {
           clienteTelefono: clientesMap[o.cliente_id]?.telefono,
           negocio: negocioData.nombre_negocio,
           dir: o.direccion_entrega,
-          productos: o.items.map(it => `${productosMap[it.producto_id] || 'Producto'} (x${it.cantidad})`).join(', '),
+          productos: o.items.map(it => `${conAdicionales(productosMap[it.producto_id] || 'Producto', it)} (x${it.cantidad})`).join(', '),
           subtotal: Number(o.subtotal),
           impuesto: Number(o.impuesto),
           total: Number(o.total),
@@ -123,7 +124,7 @@ const VendorVentasPage = () => {
           fechaRaw: o.fecha_creacion,
           minutos: null,
           items: o.items.map(it => ({
-            nombre: productosMap[it.producto_id] || 'Producto',
+            nombre: conAdicionales(productosMap[it.producto_id] || 'Producto', it),
             precio: Number(it.subtotal),
             qty: it.cantidad,
           })),

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import Icon from './Icons';
@@ -6,6 +6,7 @@ import { urlImagen } from '../utils/media';
 import { estaAbierto, textoCerrado } from '../utils/horario';
 import { cx } from '../ui/tw';
 import { useCerrarConAtras } from '../utils/atras';
+import { adicionalesService } from '../config/api';
 
 const Stars = ({ n, size = 14 }) => (
   <span style={{ fontSize: size, letterSpacing: 1 }}>
@@ -22,8 +23,27 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
   const { addItem } = useCart();
   const { addToast } = useToast();
   const [qty, setQty] = useState(1);
+  // Nov 2026: adicionales que el negocio le puso a este producto
+  const [adicionales, setAdicionales] = useState([]);
+  const [marcados, setMarcados] = useState([]);
+  const productoId = producto?.id;
+  const tieneAdicionales = !!producto?.adicionales?.length;
+  useEffect(() => {
+    setQty(1);
+    setMarcados([]);
+    setAdicionales([]);
+    if (!productoId || !tieneAdicionales) return;
+    let activo = true;
+    adicionalesService.deProducto(productoId)
+      .then(({ data }) => { if (activo) setAdicionales(Array.isArray(data) ? data : []); })
+      .catch(() => {});
+    return () => { activo = false; };
+  }, [productoId, tieneAdicionales]);
 
   if (!producto) return null;
+  const elegidos = adicionales.filter(a => marcados.includes(a.id));
+  const precioUnidad = producto.precio + elegidos.reduce((s, a) => s + Number(a.precio || 0), 0);
+  const alternar = (id) => setMarcados(m => (m.includes(id) ? m.filter(x => x !== id) : [...m, id]));
 
   const abierto = estaAbierto(producto);
 
@@ -32,7 +52,7 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
       addToast(`${producto.tienda} está cerrada ahora · ${textoCerrado(producto)}`, 'error');
       return;
     }
-    for (let i = 0; i < qty; i++) addItem(producto);
+    for (let i = 0; i < qty; i++) addItem(producto, elegidos);
     addToast(`${producto.nombre} agregado al carrito`, 'success');
     onClose();
   };
@@ -89,12 +109,39 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
           )}
 
           <p className="m-0 mb-5 text-sm leading-[1.65] text-slate-600 dark:text-slate-400">{producto.descripcion || 'Este producto todavía no tiene descripción.'}</p>
+
+          {adicionales.length > 0 && (
+            <div className="mb-2">
+              <div className="mb-1 flex items-baseline justify-between gap-2">
+                <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.6px] text-slate-400">Adicionales</p>
+                <span className="text-[11.5px] text-slate-400">Opcional · escoge los que quieras</span>
+              </div>
+              {adicionales.map(a => {
+                const on = marcados.includes(a.id);
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => alternar(a.id)}
+                    className="flex w-full cursor-pointer items-center gap-2.5 border-0 border-t border-solid border-slate-100 bg-transparent px-0.5 py-[11px] text-left font-[inherit] text-[14px] text-slate-700 first-of-type:border-t-0 dark:border-noche-borde dark:text-slate-200"
+                    aria-pressed={on}
+                  >
+                    <span className={cx('flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px] border-2 border-solid', on ? 'border-zippy bg-zippy text-white' : 'border-slate-300 dark:border-slate-500')}>
+                      {on && <span className="text-[13px] font-black leading-none">✓</span>}
+                    </span>
+                    <span className="min-w-0 flex-1">{a.nombre}</span>
+                    <span className={cx('shrink-0 text-[13.5px] font-extrabold', on ? 'text-zippy' : 'text-slate-500')}>+{fmt(Number(a.precio))}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Pie fijo. En celular se quita el precio suelto: el boton ya lo dice
             y con precios de cinco cifras el boton se salia por el borde. */}
         <div className="fixed inset-x-0 bottom-0 z-10 mx-auto box-border flex max-w-[520px] items-center gap-2.5 border-0 border-t border-solid border-[#f0f0f0] bg-white px-3.5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-3.5 shadow-[0_-6px_24px_rgba(0,0,0,0.1)] dark:border-noche-borde dark:bg-noche-card sm:gap-3 sm:px-5">
-          <p className="m-0 hidden whitespace-nowrap text-lg font-black text-zippy sm:block">{fmt(producto.precio)}</p>
+          <p className="m-0 hidden whitespace-nowrap text-lg font-black text-zippy sm:block">{fmt(precioUnidad)}</p>
           <div className="flex shrink-0 items-center overflow-hidden rounded-[10px] border-[1.5px] border-solid border-slate-200 bg-slate-50 dark:border-noche-borde dark:bg-noche-alt">
             <button className="flex h-9 w-9 cursor-pointer items-center justify-center border-0 bg-transparent text-xl font-bold text-zippy hover:bg-[#fff3e6]" onClick={() => setQty(q => Math.max(1, q - 1))} aria-label="Menos">−</button>
             <span className="min-w-[28px] text-center text-[15px] font-extrabold text-slate-800 dark:text-slate-100">{qty}</span>
@@ -110,7 +157,7 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
             onClick={handleAdd}
             disabled={!abierto}
           >
-            {abierto ? `Agregar · ${fmt(producto.precio * qty)}` : 'Tienda cerrada'}
+            {abierto ? `Agregar · ${fmt(precioUnidad * qty)}` : 'Tienda cerrada'}
           </button>
         </div>
       </div>

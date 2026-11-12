@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
-import { productosService } from '../../config/api';
+import { productosService, adicionalesService } from '../../config/api';
+import ElegirAdicionales from '../../components/vendor/ElegirAdicionales';
 import ZLoader from '../../components/ZLoader';
 import Icon from '../../components/Icons';
 import '../../styles/VendorProductos.css';
@@ -33,6 +34,10 @@ const VendorEditarProductoPage = () => {
   const [foto, setFoto]       = useState(null);
   const [saving, setSaving]   = useState(false);
   const [tried, setTried]     = useState(false);
+  // Nov 2026: adicionales de este producto
+  const [adicionales, setAdicionales] = useState([]);
+  const [adicionalesAntes, setAdicionalesAntes] = useState([]);
+  const [aplicarCategoria, setAplicarCategoria] = useState(false);
 
   const [form, setForm] = useState({
     nombre: '', categoria: '', precio: '', stock: '', descripcion: '', disponible: true,
@@ -54,6 +59,8 @@ const VendorEditarProductoPage = () => {
           disponible:  data.es_visible ?? true,
         });
         if (data.imagenes?.[0]) setPreview(data.imagenes[0]);
+        setAdicionales(data.adicionales || []);
+        setAdicionalesAntes(data.adicionales || []);
       })
       .catch(() => { if (activo) setNotFound(true); })
       .finally(() => { if (activo) setLoading(false); });
@@ -110,6 +117,10 @@ const VendorEditarProductoPage = () => {
         es_visible:  form.disponible,
         ...(imagenes && { imagenes }),
       });
+      const cambiaron = [...adicionales].sort().join() !== [...adicionalesAntes].sort().join();
+      if (cambiaron || aplicarCategoria) {
+        await adicionalesService.asignar(id, adicionales, aplicarCategoria);
+      }
       addToast(`"${form.nombre}" actualizado correctamente`, 'success');
       navigate('/vendor/productos');
     } catch (err) {
@@ -280,6 +291,14 @@ const VendorEditarProductoPage = () => {
                     placeholder="Describe tu producto: ingredientes, presentación, uso..." rows={4}
                   />
                 </div>
+
+                <ElegirAdicionales
+                  seleccion={adicionales}
+                  onCambio={setAdicionales}
+                  categoria={form.categoria}
+                  aplicarCategoria={aplicarCategoria}
+                  onAplicarCategoria={setAplicarCategoria}
+                />
 
                 <div className="vnp-field vnp-toggle-row">
                   <div>

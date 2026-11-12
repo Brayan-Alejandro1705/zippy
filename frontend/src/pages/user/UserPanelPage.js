@@ -14,6 +14,7 @@ import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import SelectorUbicacion from '../../components/SelectorUbicacion';
 import { cx } from '../../ui/tw';
 import { urlImagen } from '../../utils/media';
+import { conAdicionales, adicionalesDeItem } from '../../utils/adicionales';
 import { fechaCorta, fechaHoraLarga, fechaServidor, minutosDesde } from '../../utils/fechas';
 import Icon from '../../components/Icons';
 import { clienteService, soporteService } from '../../config/api';
@@ -1062,7 +1063,7 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
           fechaRaw: o.fecha_creacion,
           estado: (o.requiere_validacion && !o.fecha_validacion && o.estado === 'pendiente')
             ? 'En validación' : (ESTADO_UI[o.estado] || 'Pendiente'),
-          items: o.items.map(it => `${productosMap[it.producto_id] || 'Producto'} x${it.cantidad}`).join(', '),
+          items: o.items.map(it => `${conAdicionales(productosMap[it.producto_id] || 'Producto', it)} x${it.cantidad}`).join(', '),
           total: Number(o.total),
           tienda: negociosMap[o.negocio_id] || 'Tienda',
           direccion: o.direccion_entrega,
@@ -1073,7 +1074,7 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
           metodoPago: o.metodo_pago,
           transferencia: o.transferencia_estado,
           // Se guarda el detalle crudo para poder repetir el pedido despues
-          itemsRaw: (o.items || []).map(it => ({ producto_id: it.producto_id, cantidad: it.cantidad })),
+          itemsRaw: (o.items || []).map(it => ({ producto_id: it.producto_id, cantidad: it.cantidad, adicionales: adicionalesDeItem(it) })),
         }));
 
         const especialesUI = especialesRaw.map(e => ({
@@ -1177,6 +1178,7 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
           descripcion: prod.descripcion,
           precio: Number(prod.precio),
           foto: prod.imagenes?.[0] || null,
+          adicionales: prod.adicionales || [],
           categoria: prod.categoria || 'Otros',
           stock: prod.stock,
           tienda: negocio?.nombre_negocio || pedido.tienda,
@@ -1188,7 +1190,10 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
         };
         // addItem suma de uno en uno; llamarlo n veces respeta lo que ya
         // hubiera en el carrito en lugar de pisarlo con una cantidad fija.
-        for (let i = 0; i < cantidad; i++) addItem(paraCarrito);
+        // Los mismos adicionales de la vez pasada, si el producto todavía los ofrece
+        const permitidos = new Set((prod.adicionales || []).map(String));
+        const extras = (it.adicionales || []).filter(a => permitidos.has(String(a.id)));
+        for (let i = 0; i < cantidad; i++) addItem(paraCarrito, extras);
         agregados++;
       });
 

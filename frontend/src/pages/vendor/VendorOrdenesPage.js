@@ -3,6 +3,7 @@ import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
 import ZLoader from '../../components/ZLoader';
 import { fechaCorta, minutosDesde } from '../../utils/fechas';
+import { conAdicionales, adicionalesDeItem } from '../../utils/adicionales';
 import Icon from '../../components/Icons';
 import { cx, titulo, tarjeta, btn, chip, chipsFila, badge, badgeBase } from '../../ui/tw';
 import OrdenDetalleModal, { VENDEDOR_NEXT, llamar } from '../../components/vendor/OrdenDetalle';
@@ -52,7 +53,11 @@ const ordenDeApi = (o, negocioNombre, productosMap, clienteNombre, clienteTelefo
   codigoRecogida: o.codigo_recogida || null,
   minutos: null,
   items: o.items.map(it => ({
-    nombre: productosMap[it.producto_id] || 'Producto',
+    // El nombre lleva los adicionales para la factura; base + adicionales
+    // para mostrarlos uno debajo del otro en el detalle
+    nombre: conAdicionales(productosMap[it.producto_id] || 'Producto', it),
+    base: productosMap[it.producto_id] || 'Producto',
+    adicionales: adicionalesDeItem(it).map(a => a.nombre),
     precio: Number(it.subtotal),
     qty: it.cantidad,
   })),

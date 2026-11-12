@@ -232,6 +232,8 @@ def init_db():
                 "ALTER TABLE negocios ADD COLUMN IF NOT EXISTS fotos_carta JSON",
                 # Nov 2026: pago con transferencia por QR y su revisión
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_estado VARCHAR(20)",
+                # Nov 2026: adicionales de cada producto (la tabla la crea create_all)
+                "ALTER TABLE productos ADD COLUMN IF NOT EXISTS adicionales JSON",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisada TIMESTAMP",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisor_id UUID REFERENCES usuarios(id)",
             ):

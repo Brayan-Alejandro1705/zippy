@@ -276,6 +276,13 @@ class ProductoResponse(ProductoBase):
     fecha_creacion: datetime
     oferta_expira: Optional[datetime] = None
     en_oferta: bool = False
+    # Ids de los adicionales que se le pueden poner (detalle en /adicionales/producto/{id})
+    adicionales: Optional[List[str]] = None
+
+    @field_validator('adicionales', mode='before')
+    @classmethod
+    def _ids_texto(cls, v):
+        return [str(x) for x in v] if v else []
 
     class Config:
         from_attributes = True
@@ -298,6 +305,8 @@ class ItemOrdenCreate(BaseModel):
     producto_id: uuid.UUID
     cantidad: int = Field(..., gt=0)
     especificaciones: Optional[Dict[str, Any]] = {}
+    # Nov 2026: ids de los adicionales que el cliente marcó para este producto
+    adicionales: Optional[List[uuid.UUID]] = []
 
 class ItemOrdenResponse(BaseModel):
     id: uuid.UUID

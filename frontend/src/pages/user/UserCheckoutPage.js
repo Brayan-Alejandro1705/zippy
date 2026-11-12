@@ -210,7 +210,7 @@ const UserCheckoutPage = () => {
         Object.entries(porNegocio).map(([negocio_id, itemsNegocio]) =>
           ordenesService.crear({
             negocio_id,
-            items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty })),
+            items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty, adicionales: (i.adicionales || []).map(a => a.id) })),
             metodo_pago: pago,
             direccion_entrega: dirElegida.referencia ? `${dirElegida.dir} · ${dirElegida.referencia}` : dirElegida.dir,
             latitud_entrega: dirElegida.lat ?? undefined,
@@ -273,7 +273,7 @@ const UserCheckoutPage = () => {
           {items.map(item => {
             const cerrado = !estaAbierto(item);
             return (
-              <div key={item.id} className="mb-2 flex items-start justify-between gap-3 rounded-lg bg-[#f5f3ff] p-3 last:mb-0 dark:bg-[#1a2030] sm:rounded-[10px] sm:px-3.5">
+              <div key={item.linea || item.id} className="mb-2 flex items-start justify-between gap-3 rounded-lg bg-[#f5f3ff] p-3 last:mb-0 dark:bg-[#1a2030] sm:rounded-[10px] sm:px-3.5">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-slate-100 text-slate-400 dark:bg-noche-alt">
                     {item.foto
@@ -282,6 +282,7 @@ const UserCheckoutPage = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="m-0 mb-1 text-[13px] font-bold text-slate-800 dark:text-slate-100 sm:text-sm">{item.nombre}</p>
+                    {item.adicionales?.length > 0 && <p className="m-0 mb-0.5 text-[11.5px] text-slate-500">+ {item.adicionales.map(a => a.nombre).join(' · ')}</p>}
                     <p className="m-0 text-xs text-slate-400">Cantidad: {item.qty} · Precio: {fmt(item.precio)} c/u</p>
                     {cerrado && (
                       <p className="m-0 mt-1 flex items-center gap-1 text-[11px] font-bold text-red-700 dark:text-red-300"><Icon name="reloj" size={13} />Producto no disponible · tienda cerrada · {textoCerrado(item)}</p>

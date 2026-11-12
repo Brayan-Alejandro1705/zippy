@@ -138,6 +138,7 @@ const UserHomePage = () => {
           rating: Number(p.calificacion_promedio) || 0,
           stock: p.stock,
           foto: p.imagenes?.[0] || null,
+          adicionales: p.adicionales || [],
           totalVendidos: p.total_vendidos || 0,
           gradIdx: i,
           hora_apertura: negociosMap[p.negocio_id]?.hora_apertura,
@@ -206,6 +207,8 @@ const UserHomePage = () => {
       addToast(`${p.tienda} está cerrada ahora · ${textoCerrado(p)}`, 'error');
       return;
     }
+    // Con adicionales se abre el detalle para que los escoja (gomas, shot...)
+    if (p.adicionales?.length) { setModalProd(p); return; }
     addItem(p);
     addToast(`${p.nombre} agregado al carrito`, 'success');
   };

@@ -24,6 +24,7 @@ from routes_auth import get_current_user
 from push import notificar_usuario, notificar_usuarios
 from restricciones import es_alcohol, es_tabaco, MENSAJE_EDAD, MENSAJE_TABACO
 import pago_qr
+from routes_adicionales import precio_de_adicionales
 
 router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 
@@ -63,7 +64,9 @@ def calcular_total_orden(items_data: List[dict], db: Session, lat=None, lng=None
                 detail=f"Stock insuficiente de {producto.nombre}"
             )
         
-        subtotal += producto.precio * item['cantidad']
+        # Nov 2026: los adicionales que marcó el cliente, con el precio de la base
+        _, extra = precio_de_adicionales(db, producto, item.get('adicionales'))
+        subtotal += (producto.precio + extra) * item['cantidad']
     
     impuesto = subtotal * (Decimal(settings.IMPUESTO_IVA) / 100)
 
@@ -188,7 +191,8 @@ async def crear_orden(
     orden.metodo_pago = metodo
 
     # Calcular totales
-    items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad} for item in orden.items]
+    items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad, "adicionales": item.adicionales}
+                  for item in orden.items]
     subtotal, impuesto, costo_domicilio, total, cotizacion = calcular_total_orden(
         items_list, db, orden.latitud_entrega, orden.longitud_entrega
     )
@@ -226,13 +230,19 @@ async def crear_orden(
             Producto.id == item_data.producto_id
         ).first()
         
+        # Precio unitario = producto + sus adicionales; la copia de los
+        # adicionales (nombre y precio de hoy) queda en especificaciones
+        copia_adicionales, extra = precio_de_adicionales(db, producto, item_data.adicionales)
+        especificaciones = dict(item_data.especificaciones or {})
+        if copia_adicionales:
+            especificaciones["adicionales"] = copia_adicionales
         item_orden = ItemOrden(
             orden_id=nueva_orden.id,
             producto_id=item_data.producto_id,
             cantidad=item_data.cantidad,
-            precio_unitario=producto.precio,
-            subtotal=producto.precio * item_data.cantidad,
-            especificaciones=item_data.especificaciones,
+            precio_unitario=producto.precio + extra,
+            subtotal=(producto.precio + extra) * item_data.cantidad,
+            especificaciones=especificaciones,
             fecha_creacion=datetime.utcnow()
         )
         

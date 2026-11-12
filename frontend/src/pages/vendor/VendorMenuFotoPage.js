@@ -5,7 +5,7 @@ import BotonesFoto from '../../components/BotonesFoto';
 import CampoPesos from '../../components/CampoPesos';
 import Icon from '../../components/Icons';
 import { useToast } from '../../context/ToastContext';
-import { productosService, negociosService } from '../../config/api';
+import { productosService, negociosService, adicionalesService } from '../../config/api';
 import useCategoriasProducto from '../../hooks/useCategoriasProducto';
 import { cx, titulo, subtitulo, tarjeta } from '../../ui/tw';
 
@@ -84,6 +84,8 @@ const VendorMenuFotoPage = () => {
   const [paginas, setPaginas] = useState([]);       // [{ archivo, vista }]
   const [leyendo, setLeyendo] = useState(false);
   const [items, setItems] = useState(null);         // borrador que devolvió la IA
+  // Nov 2026: adicionales que la IA encontró en la carta (gomas, extra queso...)
+  const [extras, setExtras] = useState([]);
   const [publicando, setPublicando] = useState(null); // { hechos, total }
   // Guardar también las fotos de la carta para que el cliente la vea en la tienda
   const [mostrarCarta, setMostrarCarta] = useState(true);
@@ -103,7 +105,8 @@ const VendorMenuFotoPage = () => {
         addToast('No encontramos productos con precio en esa foto. Prueba con una más clara y de frente.', 'error');
         return;
       }
-      setItems(data.productos.map((p, i) => ({ ...p, id: i, incluir: true, precio: String(p.precio || '') })));
+      setItems(data.productos.map((p, i) => ({ ...p, nombreIA: p.nombre, id: i, incluir: true, precio: String(p.precio || '') })));
+      setExtras((data.adicionales || []).map((a, i) => ({ ...a, id: i, incluir: true, precio: String(a.precio || '') })));
     } catch (e) {
       addToast(e?.response?.data?.detail || 'No pudimos leer el menú. Intenta de nuevo.', 'error');
     } finally {
@@ -127,6 +130,7 @@ const VendorMenuFotoPage = () => {
     }
     setPublicando({ hechos: 0, total: elegidos.length });
     const fallidos = [];
+    const creados = [];   // { id, nombre } de los productos que sí quedaron
     let sinFoto = 0;
     for (let i = 0; i < elegidos.length; i++) {
       const it = elegidos[i];
@@ -140,7 +144,7 @@ const VendorMenuFotoPage = () => {
           } catch { /* sin foto */ }
         }
         if (!imagenes.length) sinFoto++;
-        await productosService.crear(negocio.id, {
+        const { data: creado } = await productosService.crear(negocio.id, {
           nombre: it.nombre.trim(),
           precio: Number(it.precio),
           categoria: it.categoria,
@@ -148,10 +152,37 @@ const VendorMenuFotoPage = () => {
           stock: STOCK_INICIAL,
           imagenes,
         });
+        if (creado?.id) creados.push({ id: creado.id, nombre: it.nombre.trim(), original: it.nombreIA || it.nombre });
       } catch (e) {
         fallidos.push({ ...it, error: e?.response?.data?.detail });
       }
       setPublicando({ hechos: i + 1, total: elegidos.length });
+    }
+    // Adicionales: se crean (o se reusan si ya existía uno con ese nombre) y
+    // se le ponen a los productos que la carta decía; sin productos = a todos
+    const extrasElegidos = extras.filter(a => a.incluir && a.nombre.trim() && Number(a.precio) >= 100);
+    if (extrasElegidos.length && creados.length) {
+      try {
+        const { data: yaTengo } = await adicionalesService.mios();
+        const porNombre = Object.fromEntries((yaTengo || []).map(a => [a.nombre.trim().toLowerCase(), a.id]));
+        const idsExtra = [];
+        for (const a of extrasElegidos) {
+          let idAd = porNombre[a.nombre.trim().toLowerCase()];
+          if (!idAd) {
+            const { data } = await adicionalesService.crear({ nombre: a.nombre.trim(), precio: Number(a.precio) });
+            idAd = data.id;
+          }
+          idsExtra.push({ id: idAd, para: (a.para || []).map(n => n.toLowerCase()) });
+        }
+        for (const p of creados) {
+          const nombres = [p.nombre.toLowerCase(), String(p.original || '').toLowerCase()];
+          const ids = idsExtra.filter(x => !x.para.length || x.para.some(n => nombres.includes(n))).map(x => x.id);
+          if (ids.length) await adicionalesService.asignar(p.id, ids);
+        }
+        setExtras([]);
+      } catch (e) {
+        addToast(e?.response?.data?.detail || 'Los productos quedaron, pero no se pudieron guardar los adicionales. Créalos en Mis productos → Adicionales.', 'error');
+      }
     }
     if (mostrarCarta && !cartaGuardada && paginas.length) {
       try {
@@ -285,6 +316,25 @@ const VendorMenuFotoPage = () => {
               </div>
             ))}
           </div>
+
+          {extras.length > 0 && (
+            <div className="-mt-24 mb-28">
+              <p className="m-0 mb-1 mt-2 text-[11px] font-extrabold uppercase tracking-[0.6px] text-slate-400">Adicionales encontrados</p>
+              <p className="m-0 mb-2 text-[12.5px] text-slate-500">Se cobran aparte encima del producto; no salen como productos sueltos.</p>
+              <div className={cx(tarjeta, 'px-3 py-1')}>
+                {extras.map((a, i) => (
+                  <div key={a.id} className={cx('grid grid-cols-[auto_minmax(0,1fr)_6.5rem] items-start gap-2.5 py-2.5', i > 0 && 'border-0 border-t border-solid border-slate-100 dark:border-noche-borde', !a.incluir && 'opacity-50')}>
+                    <input type="checkbox" checked={a.incluir} onChange={e => setExtras(l => l.map(x => (x.id === a.id ? { ...x, incluir: e.target.checked } : x)))} className="mt-2 h-5 w-5 shrink-0 accent-[#FF7A00]" aria-label={`Guardar ${a.nombre}`} />
+                    <div className="min-w-0 flex-1">
+                      <input className={cx(campo, 'py-1.5 font-bold')} value={a.nombre} onChange={e => setExtras(l => l.map(x => (x.id === a.id ? { ...x, nombre: e.target.value } : x)))} maxLength={120} />
+                      <span className="mt-0.5 block text-[11.5px] text-slate-500">{a.para?.length ? `Para: ${a.para.join(', ')}` : 'Para todos los productos'}</span>
+                    </div>
+                    <CampoPesos name="precio" value={a.precio} onChange={e => setExtras(l => l.map(x => (x.id === a.id ? { ...x, precio: e.target.value } : x)))} className={cx(campo, 'py-1.5 font-bold')} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="fixed inset-x-0 bottom-[calc(62px+env(safe-area-inset-bottom))] z-[250] border-0 border-t border-solid border-slate-100 bg-white/95 px-4 py-3 backdrop-blur dark:border-noche-borde dark:bg-noche-card/95 md:bottom-[calc(62px+env(safe-area-inset-bottom))]">
             <div className="mx-auto max-w-[600px]">
