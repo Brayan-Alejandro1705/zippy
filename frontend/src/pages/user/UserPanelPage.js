@@ -1099,8 +1099,12 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
         }));
 
         const especialesUI = especialesRaw.map(e => ({
-          id: `#${e.id.slice(0, 8)}`,
-          idCompleto: e.id,
+          // El servidor manda "id" corto ("#PE6756") e "idCompleto" (el UUID).
+          // Antes se usaba el corto para cancelar: el "#" cortaba la dirección
+          // y el servidor recibía un POST vacío (422), así que no se podía
+          // cancelar ningún mandado.
+          id: e.id || `#${String(e.idCompleto || '').slice(0, 8)}`,
+          idCompleto: e.idCompleto || e.id,
           fecha: fmtFecha(e.fecha_creacion),
           fechaRaw: e.fecha_creacion,
           estado: ESTADO_UI[e.estado] || 'Pendiente',

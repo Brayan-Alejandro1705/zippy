@@ -111,6 +111,21 @@ const ConductoresPage = () => {
     }
   };
 
+  // Nov 2026: los repartidores también toman aventones en moto, sin inscribirse
+  const cambiarRepartidores = async () => {
+    const activo = !datos.repartidores?.activo;
+    if (!window.confirm(activo
+      ? '¿Dejar que los repartidores tomen aventones en moto? No tienen que inscribirse: usan su cuenta y la moto que ya registraron.'
+      : '¿Quitarles los aventones a los repartidores? Los que lleven un viaje lo pueden terminar.')) return;
+    try {
+      await viajesService.repartidoresAventon(activo);
+      addToast(activo ? 'Los repartidores ya pueden tomar aventones' : 'Aventones apagados para repartidores', 'success');
+      cargar();
+    } catch (e) {
+      addToast(e?.response?.data?.detail || 'No se pudo cambiar', 'error');
+    }
+  };
+
   const editar = async (c, cambios, msg) => {
     try {
       await viajesService.editarConductor(c.id, cambios);
@@ -210,6 +225,36 @@ const ConductoresPage = () => {
             </div>
           );
         })}
+        {(() => {
+          const on = !!datos.repartidores?.activo;
+          return (
+            <div className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className={cx('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', on ? 'bg-zippy text-white' : 'bg-slate-100 text-slate-500 dark:bg-noche-alt')}><Icon name="repartidores" size={22} /></span>
+                <div className="min-w-0 flex-1">
+                  <b className="block text-[15px] text-slate-800 dark:text-slate-100">Los repartidores también toman aventones</b>
+                  <span className="text-[12.5px] leading-snug text-slate-500">Mientras conseguimos más conductores. No tienen que inscribirse: usan su cuenta de repartidor y la moto que ya registraron. Solo moto.</span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
+                  aria-label="Los repartidores también toman aventones"
+                  onClick={cambiarRepartidores}
+                  className={cx('relative h-8 w-14 shrink-0 cursor-pointer rounded-full border-0 transition-colors', on ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600')}
+                >
+                  <span className={cx('absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all', on ? 'left-7' : 'left-1')} />
+                </button>
+              </div>
+              {on && (
+                <p className="m-0 mt-2.5 text-[12.5px] text-slate-500">
+                  Pueden tomar aventones en moto: <b>{datos.repartidores.habilitados} {datos.repartidores.habilitados === 1 ? 'repartidor' : 'repartidores'}</b> + <b>{conductores.length} {conductores.length === 1 ? 'conductor' : 'conductores'}</b>
+                  {!datos.servicios?.moto && ' (falta encender los viajes en moto)'}
+                </p>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="mb-3.5 grid grid-cols-2 gap-2.5 md:grid-cols-4">

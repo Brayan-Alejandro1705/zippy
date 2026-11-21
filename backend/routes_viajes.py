@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, Fi
 from sqlalchemy.orm import Session
 
 from config import get_db
-from models import Usuario, EstadoUsuario, ConfiguracionSistema, ConductorMoto, ViajeMoto
+from models import Usuario, EstadoUsuario, ConfiguracionSistema, ConductorMoto, ViajeMoto, Orden, PedidoEspecial
 from routes_auth import get_current_user, hash_password, create_access_token, create_refresh_token
 from schemas import UsuarioResponse
 from validators import validar_correo
@@ -56,6 +56,12 @@ HORAS_EN_LINEA = 12
 
 PRECIO_MINIMO = 2000
 PRECIO_MAXIMO = 100000
+
+# Nov 2026: mientras llegan más conductores, los repartidores también pueden
+# tomar aventones en MOTO, sin inscribirse: usan su cuenta de repartidor y la
+# moto que ya registraron. Lo enciende o apaga un súper admin.
+CLAVE_REPARTIDORES = "aventon_repartidores"
+NOTA_REPARTIDOR = "Repartidor (toma aventones sin inscripción)"
 
 # Colombia va cinco horas atrás de la hora universal y no cambia en el año
 HORAS_COLOMBIA = 5
@@ -108,10 +114,70 @@ def _perfil(db: Session, usuario_id) -> Optional[ConductorMoto]:
     return db.query(ConductorMoto).filter(ConductorMoto.usuario_id == usuario_id).first()
 
 
+def _es_repartidor(usuario: Usuario) -> bool:
+    return _tipo(usuario) == "domiciliario"
+
+
+def _repartidores_activo(db: Session) -> bool:
+    fila = db.query(ConfiguracionSistema).filter(ConfiguracionSistema.clave == CLAVE_REPARTIDORES).first()
+    return bool(fila and str(fila.valor).lower() == "true")
+
+
+def _perfil_de(db: Session, usuario: Usuario) -> Optional[ConductorMoto]:
+    """El perfil de quien maneja. Al repartidor se le arma solo la primera vez
+    (siempre moto, aprobado, con la placa de su cuenta): no se inscribe."""
+    p = _perfil(db, usuario.id)
+    if not _es_repartidor(usuario):
+        return p
+    if not p:
+        p = ConductorMoto(
+            usuario_id=usuario.id,
+            tipo_vehiculo="moto",
+            estado_inscripcion="aprobado",
+            notas_admin=NOTA_REPARTIDOR,
+            en_linea=False,
+        )
+        db.add(p)
+    # La placa y la moto salen de su cuenta de repartidor, siempre al día
+    p.tipo_vehiculo = "moto"
+    p.placa = (usuario.placa or p.placa or "")[:10] or None
+    p.moto = p.moto or "Moto"
+    db.commit()
+    db.refresh(p)
+    return p
+
+
+def _ocupado_con_pedidos(db: Session, usuario_id) -> bool:
+    """El repartidor tiene un pedido o un mandado sin entregar."""
+    pedido = db.query(Orden.id).filter(
+        Orden.domiciliario_id == usuario_id,
+        Orden.estado.notin_(("entregada", "cancelada", "rechazada")),
+    ).first()
+    if pedido:
+        return True
+    mandado = db.query(PedidoEspecial.id).filter(
+        PedidoEspecial.domiciliario_id == usuario_id,
+        PedidoEspecial.estado.in_(("aceptada", "en_camino")),
+    ).first()
+    return bool(mandado)
+
+
+def tiene_aventon_en_curso(db: Session, usuario_id) -> bool:
+    """Lo usan pedidos y mandados: con un pasajero encima no se toma otra cosa."""
+    return db.query(ViajeMoto.id).filter(
+        ViajeMoto.conductor_id == usuario_id,
+        ViajeMoto.estado.in_(("aceptado", "llego", "en_viaje")),
+    ).first() is not None
+
+
 def _problemas(perfil: Optional[ConductorMoto], usuario: Usuario) -> list:
     """Lo que le impide al conductor recibir viajes. Vacío = puede trabajar."""
     if not perfil:
         return ["Falta registrar los datos del vehículo"]
+    if _es_repartidor(usuario):
+        # El repartidor no se inscribe ni paga mensualidad: solo cuenta que
+        # su cuenta esté activa (lo de encendido/apagado se mira aparte)
+        return ["La cuenta está suspendida"] if _estado_usuario(usuario) != "activo" else []
     # Inscrito desde la app y todavía sin revisar: eso es lo único que se le dice
     if perfil.estado_inscripcion == "pendiente":
         return ["Tu inscripción está en revisión. Te avisamos apenas la aprueben."]
@@ -152,16 +218,23 @@ def _en_linea_de_verdad(perfil: ConductorMoto) -> bool:
 
 
 def _conductores_disponibles(db: Session, tipo: str) -> list:
-    """Conductores de ese tipo en línea, activos y con todo al día."""
+    """Conductores de ese tipo en línea, activos y con todo al día. En moto
+    también cuentan los repartidores, si el súper admin lo tiene encendido."""
+    tipos_usuario = ["conductor"]
+    if tipo == "moto" and _repartidores_activo(db):
+        tipos_usuario.append("domiciliario")
     filas = db.query(Usuario, ConductorMoto).join(
         ConductorMoto, ConductorMoto.usuario_id == Usuario.id
     ).filter(
-        Usuario.tipo_usuario == "conductor",
+        Usuario.tipo_usuario.in_(tipos_usuario),
         Usuario.estado == EstadoUsuario.ACTIVO,
         ConductorMoto.en_linea == True,  # noqa: E712
         ConductorMoto.tipo_vehiculo == tipo,
     ).all()
-    return [u for u, p in filas if _en_linea_de_verdad(p) and not _problemas(p, u)]
+    return [u for u, p in filas
+            if _en_linea_de_verdad(p) and not _problemas(p, u)
+            # Un repartidor con un pedido encima no puede ir por nadie ahora
+            and not (_es_repartidor(u) and _ocupado_con_pedidos(db, u.id))]
 
 
 def _expirar_busquedas(db: Session) -> None:
@@ -265,8 +338,19 @@ def _a_dict(v: ViajeMoto, db: Session, para: str) -> dict:
 
 
 def _requiere_conductor(usuario: Usuario):
-    if _tipo(usuario) != "conductor":
+    # El repartidor entra siempre: si los aventones para repartidores se
+    # apagan a mitad de un viaje, igual tiene que poder terminarlo.
+    if _tipo(usuario) not in ("conductor", "domiciliario"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Solo para conductores")
+
+
+def _bloqueo_repartidor(db: Session, usuario: Usuario) -> Optional[str]:
+    """Por qué un repartidor no puede tomar aventones nuevos ahora (None = puede)."""
+    if not _es_repartidor(usuario):
+        return None
+    if not _repartidores_activo(db):
+        return "Los aventones para repartidores están apagados"
+    return None
 
 
 def _requiere_super_admin(usuario: Usuario):
@@ -534,8 +618,11 @@ async def estado_conductor(
 ):
     _requiere_conductor(current_user)
     _expirar_busquedas(db)
-    p = _perfil(db, current_user.id)
+    p = _perfil_de(db, current_user)
     problemas = _problemas(p, current_user)
+    bloqueo = _bloqueo_repartidor(db, current_user)
+    if bloqueo:
+        problemas = problemas + [bloqueo]
 
     if p:
         p.ultima_conexion = datetime.utcnow()
@@ -557,6 +644,7 @@ async def estado_conductor(
 
     tipo = _tipo_de(p.tipo_vehiculo) if p else "moto"
     return {
+        "es_repartidor": _es_repartidor(current_user),
         "servicio_activo": _servicio_activo(db, tipo),
         "tipo_vehiculo": tipo,
         "en_linea": _en_linea_de_verdad(p),
@@ -590,10 +678,13 @@ async def cambiar_en_linea(
     db: Session = Depends(get_db),
 ):
     _requiere_conductor(current_user)
-    p = _perfil(db, current_user.id)
+    p = _perfil_de(db, current_user)
     quiere = bool(datos.get("en_linea"))
     if quiere:
         problemas = _problemas(p, current_user)
+        bloqueo = _bloqueo_repartidor(db, current_user)
+        if bloqueo:
+            problemas = problemas + [bloqueo]
         if problemas:
             raise HTTPException(status_code=409, detail="No puedes ponerte en línea: " + "; ".join(problemas))
         tipo = _tipo_de(p.tipo_vehiculo) if p else "moto"
@@ -615,8 +706,8 @@ async def disponibles(
 ):
     _requiere_conductor(current_user)
     _expirar_busquedas(db)
-    p = _perfil(db, current_user.id)
-    if _problemas(p, current_user):
+    p = _perfil_de(db, current_user)
+    if _problemas(p, current_user) or _bloqueo_repartidor(db, current_user):
         return []
     viajes = db.query(ViajeMoto).filter(
         ViajeMoto.estado == "buscando",
@@ -643,10 +734,16 @@ async def aceptar(
     db: Session = Depends(get_db),
 ):
     _requiere_conductor(current_user)
-    p = _perfil(db, current_user.id)
+    p = _perfil_de(db, current_user)
     problemas = _problemas(p, current_user)
+    bloqueo = _bloqueo_repartidor(db, current_user)
+    if bloqueo:
+        problemas = problemas + [bloqueo]
     if problemas:
         raise HTTPException(status_code=409, detail="No puedes tomar viajes: " + "; ".join(problemas))
+    # Uno a la vez: con un pedido o un mandado encima no se lleva pasajero
+    if _es_repartidor(current_user) and _ocupado_con_pedidos(db, current_user.id):
+        raise HTTPException(status_code=409, detail="Entrega primero el pedido que llevas y después tomas el aventón")
 
     try:
         precio = float(str(datos.get("precio", "")).replace(".", "").replace(",", ""))
@@ -762,6 +859,28 @@ async def soltar(
     return {"ok": True}
 
 
+@router.get("/repartidor/resumen/", summary="Lo que ve el repartidor en su pantalla de pedidos")
+async def resumen_repartidor(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not _es_repartidor(current_user):
+        return {"activo": False}
+    _expirar_busquedas(db)
+    en_curso = tiene_aventon_en_curso(db, current_user.id)
+    activo = (_repartidores_activo(db) and _servicio_activo(db, "moto")) or en_curso
+    if not activo:
+        return {"activo": False}
+    p = _perfil(db, current_user.id)
+    return {
+        "activo": True,
+        "en_curso": en_curso,
+        "recibiendo": _en_linea_de_verdad(p),
+        "buscando": db.query(ViajeMoto).filter(ViajeMoto.estado == "buscando",
+                                               ViajeMoto.tipo_vehiculo == "moto").count(),
+    }
+
+
 # ============================================================================
 # SÚPER ADMIN
 # ============================================================================
@@ -824,6 +943,11 @@ async def admin_resumen(
         "servicios": {t: _servicio_activo(db, t) for t in TIPOS},
         "conductores": [_conductor_admin(u, p, db) for u, p in filas],
         "viajes": [_a_dict(v, db, "admin") for v in viajes],
+        "repartidores": {
+            "activo": _repartidores_activo(db),
+            "habilitados": db.query(Usuario).filter(Usuario.tipo_usuario == "domiciliario",
+                                                    Usuario.estado == EstadoUsuario.ACTIVO).count(),
+        },
         "hoy": {
             "pedidos": len(hoy),
             "terminados": sum(1 for v in hoy if v.estado == "terminado"),
@@ -855,6 +979,33 @@ async def admin_servicio(
                   detalle=f"Viajes en {NOMBRE[tipo]} {'encendidos' if activo else 'apagados'}")
     db.commit()
     return {"tipo_vehiculo": tipo, "activo": activo}
+
+
+@router.put("/admin/repartidores/", summary="Dejar o no que los repartidores tomen aventones en moto")
+async def admin_repartidores(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _requiere_super_admin(current_user)
+    activo = bool(datos.get("activo"))
+    fila = db.query(ConfiguracionSistema).filter(ConfiguracionSistema.clave == CLAVE_REPARTIDORES).first()
+    if not fila:
+        fila = ConfiguracionSistema(clave=CLAVE_REPARTIDORES, tipo_dato="bool",
+                                    descripcion="Los repartidores también toman aventones en moto")
+        db.add(fila)
+    fila.valor = "true" if activo else "false"
+    if not activo:
+        # Ningún repartidor queda recibiendo avisos de aventón
+        ids = [u.id for u in db.query(Usuario.id).filter(Usuario.tipo_usuario == "domiciliario").all()]
+        if ids:
+            db.query(ConductorMoto).filter(ConductorMoto.usuario_id.in_(ids)).update(
+                {ConductorMoto.en_linea: False}, synchronize_session=False)
+    registrar_log(db, usuario_id=current_user.id, accion="Configuración",
+                  tabla_afectada="configuracion_sistema",
+                  detalle=f"Aventones para repartidores {'encendidos' if activo else 'apagados'}")
+    db.commit()
+    return {"activo": activo}
 
 
 def _aplicar_perfil(p: ConductorMoto, datos: dict):

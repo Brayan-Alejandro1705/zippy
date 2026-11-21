@@ -234,9 +234,12 @@ export const viajesService = {
   iniciar:      (id) => api.post(`/viajes/${id}/iniciar/`),
   terminar:     (id) => api.post(`/viajes/${id}/terminar/`),
   soltar:       (id, motivo) => api.post(`/viajes/${id}/soltar/`, { motivo }),
+  // repartidor: la tarjeta de aventones en su pantalla de pedidos
+  repartidor:   () => api.get('/viajes/repartidor/resumen/'),
   // súper admin
   resumen:          () => api.get('/viajes/admin/resumen/'),
   encender:         (tipo_vehiculo, activo) => api.put('/viajes/admin/servicio/', { tipo_vehiculo, activo }),
+  repartidoresAventon: (activo) => api.put('/viajes/admin/repartidores/', { activo }),
   crearConductor:   (datos) => api.post('/viajes/admin/conductores/', datos),
   editarConductor:  (id, datos) => api.put(`/viajes/admin/conductores/${id}/`, datos),
   documentos:       (id) => api.get(`/viajes/admin/conductores/${id}/documentos/`),

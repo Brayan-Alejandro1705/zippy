@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLoadScript, GoogleMap, Marker, InfoWindow, Polyline } from '@react-google-maps/api';
 import { useTheme } from '../../context/ThemeContext';
-import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService, negociosService } from '../../config/api';
+import { ordenesService, usuariosService, productosService, pedidosEspecialesService, soporteService, authService, negociosService, viajesService } from '../../config/api';
 import { MAPS_KEY, MAPS_LIBRARIES, GARZON } from '../../config/googleMaps';
 import OrdenChat from '../../components/OrdenChat';
 import ChatBurbuja from '../../components/ChatBurbuja';
@@ -1007,6 +1007,8 @@ const RepartidorPage = () => {
   const [online,    setOnline]    = useState(true);
   // Las estrellas que le han puesto los clientes a este repartidor
   const [calificacion, setCalificacion] = useState(null);
+  // Nov 2026: aventones en moto que el repartidor también puede tomar
+  const [aventon, setAventon] = useState(null);
   const [driverPos, setDriverPos] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
   const [reportedMap,  setReportedMap]  = useState({});
@@ -1081,6 +1083,11 @@ const RepartidorPage = () => {
    */
   useEffect(() => alTocarNotificacion((datos) => {
     const tipoAviso = String(datos?.tipo || '');
+    // Aviso de aventón (viaje nuevo, el pasajero canceló...): a la pantalla de aventones
+    if (tipoAviso.startsWith('viaje_')) {
+      navigate('/conductor');
+      return true;
+    }
     // Oct 2026: mensaje del cliente en el chat de un pedido normal
     if (tipoAviso === 'mensaje_orden') {
       const idOrden = String(datos?.relacionado_id || '');
@@ -1098,7 +1105,19 @@ const RepartidorPage = () => {
     // refresco, el efecto de abajo le pone el numero y el nombre del cliente.
     setChatMandado(enLista || { idCompleto: id, id: null, cliente: '' });
     return true;
-  }), []);
+  }), [navigate]);
+
+  // Tarjeta de aventones: solo sale si el súper admin los encendió para
+  // repartidores (o si ya lleva uno). Se refresca sola cada 15 segundos.
+  useEffect(() => {
+    let activo = true;
+    const cargar = () => viajesService.repartidor()
+      .then(({ data }) => { if (activo) setAventon(data?.activo ? data : null); })
+      .catch(() => {});
+    cargar();
+    const t = setInterval(cargar, 15000);
+    return () => { activo = false; clearInterval(t); };
+  }, []);
 
   // Mi calificacion como repartidor. Se pide al servidor y no al localStorage
   // porque el dato cambia cada vez que un cliente califica.
@@ -1761,6 +1780,24 @@ const RepartidorPage = () => {
               <span><Icon name="moto" size={16} style={{ verticalAlign: '-3px', marginRight: 6 }} />{activeOrden.id} · {activeOrden.direccion}</span>
               {activeOrden.eta != null && <span className="rp-active-eta">⏱ {activeOrden.eta} min</span>}
             </div>
+          )}
+
+          {aventon && (
+            <button type="button" onClick={() => navigate('/conductor')}
+              className="mx-3 mb-3 mt-1 flex w-[calc(100%-24px)] cursor-pointer items-center gap-3 rounded-2xl border-0 bg-slate-800 px-3 py-3 text-left font-[inherit] text-white dark:bg-noche-card">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zippy"><Icon name="moto" size={24} /></span>
+              <span className="min-w-0 flex-1">
+                <b className="block text-[15px]">{aventon.en_curso ? 'Tienes un aventón en curso' : 'Aventones'}</b>
+                <span className="block text-[12.5px] text-slate-300">
+                  {aventon.en_curso
+                    ? 'Toca para seguir con el viaje'
+                    : aventon.buscando > 0
+                      ? `${aventon.buscando} ${aventon.buscando === 1 ? 'persona pide' : 'personas piden'} moto ahora`
+                      : (aventon.recibiendo ? 'Sin viajes por ahora · te suena si piden' : 'Toca para ver y recibir aventones')}
+                </span>
+              </span>
+              <span className="shrink-0 rounded-full bg-zippy px-3 py-1.5 text-[13px] font-extrabold">{aventon.en_curso ? 'Abrir' : 'Ver'} →</span>
+            </button>
           )}
 
           <div className="rp-orders-header">

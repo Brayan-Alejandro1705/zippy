@@ -89,7 +89,12 @@ const VendorPerfilPage = () => {
       setFotoFile(null);
       addToast('Perfil de la tienda actualizado', 'success');
     } catch (err) {
-      addToast(err.response?.data?.detail || 'No se pudo guardar el perfil', 'error');
+      // Los errores de validación llegan como lista: se dice qué campo falló
+      const d = err.response?.data?.detail;
+      const texto = typeof d === 'string' ? d
+        : Array.isArray(d) ? d.map(x => String(x.msg || '').replace(/^Value error, /, '')).join('. ')
+        : '';
+      addToast(texto || 'No se pudo guardar el perfil', 'error');
     } finally {
       setSaving(false);
     }

@@ -17,6 +17,7 @@ from config import get_db
 from models import Usuario, PedidoEspecial, EstadoUsuario, ConfiguracionSistema, MensajeMandado
 from routes_auth import get_current_user
 from push import notificar_usuario, notificar_usuarios
+from routes_viajes import tiene_aventon_en_curso
 
 
 # Lo que cobra ZIPPYGO por el mandado, aparte de lo que valga la compra.
@@ -275,6 +276,13 @@ async def aceptar_pedido(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Otro domiciliario ya tomó este pedido",
+        )
+
+    # Nov 2026: con un pasajero encima (aventón) no se toma un mandado
+    if not pedido.domiciliario_id and tiene_aventon_en_curso(db, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Termina primero el aventón que llevas y después tomas el mandado",
         )
 
     pedido.domiciliario_id = current_user.id

@@ -72,7 +72,8 @@ const SoloRol = ({ roles, children }) => {
 const Admin = ({ children }) => <SoloRol roles={['admin']}>{children}</SoloRol>;
 const Vendedor = ({ children }) => <SoloRol roles={['vendedor']}>{children}</SoloRol>;
 const Repartidor = ({ children }) => <SoloRol roles={['domiciliario']}>{children}</SoloRol>;
-const Conductor = ({ children }) => <SoloRol roles={['conductor']}>{children}</SoloRol>;
+// Nov 2026: el repartidor también entra a /conductor a tomar aventones
+const Conductor = ({ children }) => <SoloRol roles={['conductor', 'domiciliario']}>{children}</SoloRol>;
 
 // ── Persistencia de sesión ───────────────────────────────────────────────────
 // Si ya hay un token guardado (login previo), la persona no debe ver el login

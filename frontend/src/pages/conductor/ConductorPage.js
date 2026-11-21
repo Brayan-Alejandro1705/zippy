@@ -22,6 +22,10 @@ import { cx, tarjeta } from '../../ui/tw';
 //
 // Si un documento o la mensualidad se vencen, el servidor no lo deja ponerse
 // en línea y aquí se le dice exactamente qué falta.
+//
+// Nov 2026: el repartidor también entra aquí (desde su pantalla de pedidos) a
+// tomar aventones en moto sin inscribirse. Para él el botón de en línea es
+// "Recibir avisos de aventón" y la lista de viajes se ve siempre.
 // ============================================================================
 
 const plata = n => `$${Math.round(Number(n) || 0).toLocaleString('es-CO')}`;
@@ -95,7 +99,11 @@ const ConductorPage = () => {
     return () => clearInterval(t);
   }, [cargarEstado]);
 
-  const buscando = estado?.en_linea && !estado?.viaje_actual;
+  const esRepartidor = !!estado?.es_repartidor;
+  // El repartidor ve la lista aunque no reciba avisos: llegó tocando "Ver"
+  const buscando = !estado?.viaje_actual && (esRepartidor
+    ? (estado?.puede_trabajar && estado?.servicio_activo)
+    : estado?.en_linea);
   useEffect(() => {
     if (!buscando) { setDisponibles([]); return undefined; }
     cargarDisponibles();
@@ -151,14 +159,25 @@ const ConductorPage = () => {
 
   return (
     <div className={contenedor}>
-      <Encabezado>
-        <Logo onClick={() => {}} />
-        <span className="rounded-md bg-white/25 px-2 py-1 text-[11px] font-black tracking-[0.5px] text-white">{esCarro ? 'CARRO' : 'MOTO'}</span>
-        <span className="flex-1" />
-        <button className={botonEncabezado} onClick={toggle} aria-label="Cambiar tema"><Icon name={isDark ? 'sol' : 'luna'} size={19} /></button>
-        <AccountSwitcher variant="icon" />
-        <button className={botonEncabezado} onClick={salir} aria-label="Cerrar sesión"><Icon name="salir" size={19} /></button>
-      </Encabezado>
+      {esRepartidor ? (
+        <Encabezado>
+          <button type="button" onClick={() => navigate('/repartidor')}
+            className="flex cursor-pointer items-center gap-1 rounded-[10px] border-0 bg-white/20 px-3 py-2 font-[inherit] text-[13.5px] font-extrabold text-white">
+            <span aria-hidden="true">←</span> Pedidos
+          </button>
+          <b className="flex-1 text-center text-[16px] text-white">Aventones</b>
+          <span className="rounded-md bg-white/25 px-2 py-1 text-[11px] font-black tracking-[0.5px] text-white">MOTO</span>
+        </Encabezado>
+      ) : (
+        <Encabezado>
+          <Logo onClick={() => {}} />
+          <span className="rounded-md bg-white/25 px-2 py-1 text-[11px] font-black tracking-[0.5px] text-white">{esCarro ? 'CARRO' : 'MOTO'}</span>
+          <span className="flex-1" />
+          <button className={botonEncabezado} onClick={toggle} aria-label="Cambiar tema"><Icon name={isDark ? 'sol' : 'luna'} size={19} /></button>
+          <AccountSwitcher variant="icon" />
+          <button className={botonEncabezado} onClick={salir} aria-label="Cerrar sesión"><Icon name="salir" size={19} /></button>
+        </Encabezado>
+      )}
       <AvisoSinConexion />
 
       <main className={cx(contenido, 'px-4 pb-10 pt-4 md:max-w-[620px]')}>
@@ -170,14 +189,18 @@ const ConductorPage = () => {
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zippy text-lg font-black text-white">{(usuario.nombre || 'C').charAt(0).toUpperCase()}</span>
                 <div className="min-w-0 flex-1">
                   <b className="block truncate text-[16px] text-slate-800 dark:text-slate-100">{usuario.nombre || 'Conductor'}</b>
-                  <span className="block text-[12.5px] text-slate-500">{[estado.perfil.moto, estado.perfil.placa].filter(Boolean).join(' · ')}</span>
+                  <span className="block text-[12.5px] text-slate-500">
+                    {esRepartidor
+                      ? ['Repartidor', 'Moto', estado.perfil.placa].filter(Boolean).join(' · ')
+                      : [estado.perfil.moto, estado.perfil.placa].filter(Boolean).join(' · ')}
+                  </span>
                   {esCarro && (estado.perfil.empresa || estado.perfil.numero_interno) && (
                     <span className="block text-[12px] text-slate-500">{[estado.perfil.empresa, estado.perfil.numero_interno && `Móvil ${estado.perfil.numero_interno}`].filter(Boolean).join(' · ')}</span>
                   )}
                 </div>
               </div>
               {/* Con un viaje andando no se puede desconectar: se oculta el botón */}
-              {!v && estado.estado_inscripcion === 'aprobado' && <button
+              {!v && !esRepartidor && estado.estado_inscripcion === 'aprobado' && <button
                 type="button"
                 onClick={cambiarEnLinea}
                 disabled={ocupado || (!estado.en_linea && (!estado.puede_trabajar || !estado.servicio_activo))}
@@ -191,9 +214,26 @@ const ConductorPage = () => {
               </button>}
             </div>
 
+            {/* Repartidor: un interruptor solo para los avisos de aventón */}
+            {esRepartidor && !v && estado.puede_trabajar && estado.servicio_activo && (
+              <div className={cx(tarjeta, 'mb-3 flex items-center gap-3 p-4')}>
+                <div className="min-w-0 flex-1">
+                  <b className="block text-[14.5px] text-slate-800 dark:text-slate-100">Recibir avisos de aventón</b>
+                  <p className="m-0 mt-0.5 text-[12.5px] leading-snug text-slate-500">Te suena cuando alguien pide moto. Lo apagas cuando quieras.</p>
+                </div>
+                <button type="button" role="switch" aria-checked={estado.en_linea} aria-label="Recibir avisos de aventón"
+                  disabled={ocupado} onClick={cambiarEnLinea}
+                  className={cx('relative h-[26px] w-[46px] shrink-0 cursor-pointer rounded-full border-0 transition-colors disabled:opacity-60', estado.en_linea ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600')}>
+                  <span className={cx('absolute top-[3px] h-5 w-5 rounded-full bg-white transition-all', estado.en_linea ? 'left-[23px]' : 'left-[3px]')} />
+                </button>
+              </div>
+            )}
+
             {!estado.servicio_activo && (
               <p className="m-0 mb-3 rounded-2xl bg-slate-100 px-4 py-3 text-[13px] text-slate-600 dark:bg-noche-alt dark:text-slate-300">
-                El servicio de {esCarro ? 'carro' : 'moto'} todavía no está encendido. Te avisamos cuando arranque.
+                {esRepartidor
+                  ? 'Los aventones en moto están apagados en este momento.'
+                  : <>El servicio de {esCarro ? 'carro' : 'moto'} todavía no está encendido. Te avisamos cuando arranque.</>}
               </p>
             )}
 
@@ -216,7 +256,7 @@ const ConductorPage = () => {
               <div className="mb-3 rounded-2xl bg-red-50 px-4 py-3 text-[13px] text-red-700 dark:bg-red-500/10 dark:text-red-300">
                 <b className="mb-1 flex items-center gap-1.5"><Icon name="alerta" size={16} />No puedes recibir viajes todavía</b>
                 <ul className="m-0 pl-5">{estado.problemas.map(p => <li key={p}>{p}</li>)}</ul>
-                <span className="mt-1.5 block text-[12px]">Comunícate con ZIPPYGO para ponerte al día.</span>
+                {!esRepartidor && <span className="mt-1.5 block text-[12px]">Comunícate con ZIPPYGO para ponerte al día.</span>}
               </div>
             )}
 
@@ -277,7 +317,9 @@ const ConductorPage = () => {
                 {disponibles.length === 0 ? (
                   <div className={cx(tarjeta, 'p-6 text-center text-[13.5px] text-slate-500')}>
                     <Icon name={esCarro ? 'carro' : 'moto'} size={30} style={{ opacity: 0.4 }} />
-                    <p className="m-0 mt-2">Todavía no hay viajes. Te avisamos con una notificación apenas alguien pida.</p>
+                    <p className="m-0 mt-2">{esRepartidor && !estado.en_linea
+                      ? 'Todavía no hay viajes. Prende "Recibir avisos de aventón" y te suena apenas alguien pida.'
+                      : 'Todavía no hay viajes. Te avisamos con una notificación apenas alguien pida.'}</p>
                   </div>
                 ) : disponibles.map(d => (
                   <div key={d.id} className={cx(tarjeta, 'mb-3 p-4')}>

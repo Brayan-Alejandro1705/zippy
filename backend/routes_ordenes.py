@@ -25,6 +25,7 @@ from push import notificar_usuario, notificar_usuarios
 from restricciones import es_alcohol, es_tabaco, MENSAJE_EDAD, MENSAJE_TABACO
 import pago_qr
 from routes_adicionales import precio_de_adicionales
+from routes_viajes import tiene_aventon_en_curso
 
 router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 
@@ -499,6 +500,13 @@ async def actualizar_orden(
                 detail="Este pedido ya fue tomado por otro domiciliario"
             )
         recien_tomado = orden.domiciliario_id is None
+        # Nov 2026: el repartidor también lleva aventones; con un pasajero
+        # encima no puede tomar un pedido
+        if recien_tomado and tiene_aventon_en_curso(db, current_user.id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Termina primero el aventón que llevas y después tomas el pedido"
+            )
         orden.domiciliario_id = current_user.id
 
         # Oct 2026: el cliente se entera de quien va por su pedido
