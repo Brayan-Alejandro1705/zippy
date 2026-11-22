@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import VendorLayout from '../../components/VendorLayout';
 import { ordenesService, negociosService, productosService, usuariosService } from '../../config/api';
+import CerrarHoy from '../../components/vendor/CerrarHoy';
 import ZLoader from '../../components/ZLoader';
 import Icon from '../../components/Icons';
 import OrdenDetalleModal from '../../components/vendor/OrdenDetalle';
@@ -186,6 +187,9 @@ const VendorVentasPage = () => {
     <VendorLayout searchPlaceholder="Buscar orden...">
       <h1 className={titulo}>Mi Tienda</h1>
       <p className={cx(subtitulo, 'mb-4')}>Resumen de tus ventas</p>
+
+      {/* Nov 2026: hoy no abro */}
+      <CerrarHoy negocio={negocio} onCambio={setNegocio} />
 
       {/* 2 columnas en celular, 4 en PC */}
       <div className="mb-5 grid grid-cols-2 gap-2.5 xs:gap-3 md:grid-cols-4">

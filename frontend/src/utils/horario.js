@@ -19,6 +19,8 @@ const horaColombia = (ahora) =>
   new Date(ahora.getTime() + ahora.getTimezoneOffset() * 60000 - 5 * 3600000);
 
 export const estaAbierto = (negocio, ahoraReal = new Date()) => {
+  // Nov 2026: "Cerrar por hoy" o datos incompletos (lo decide el servidor)
+  if (negocio?.cerrado_aviso) return false;
   if (!negocio || !negocio.hora_apertura || !negocio.hora_cierre) return true;
   const ahora = horaColombia(ahoraReal);
 
@@ -45,6 +47,7 @@ export const horaBonita = (hhmm) => {
 };
 
 export const textoCerrado = (negocio) => {
+  if (negocio?.cerrado_aviso) return negocio.cerrado_aviso;
   if (!negocio?.hora_apertura) return 'Tienda cerrada';
   return `Cerrado · Abre a las ${horaBonita(negocio.hora_apertura)}`;
 };

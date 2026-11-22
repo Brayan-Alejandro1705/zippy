@@ -7,6 +7,7 @@ import Icon from '../components/Icons';
 import CentroAyuda from '../components/CentroAyuda';
 import ZonasDomicilio from '../components/ZonasDomicilio';
 import PagoQRConfig from '../components/admin/PagoQRConfig';
+import ReglasConfig from '../components/admin/ReglasConfig';
 import { getPrefs, savePrefs, requestPermission, checkPermission, sendNotification, scheduleReporteSemanal } from '../utils/notifications';
 import '../styles/Config.css';
 
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'soporte',         icon: 'soporte',         label: 'Soporte', soloSuperAdmin: true },
   { id: 'precios',         icon: 'vendedores',      label: 'Precios', soloSuperAdmin: true },
   { id: 'pagos',           icon: 'qr',              label: 'Pagos', soloSuperAdmin: true },
+  { id: 'reglas',          icon: 'regalo',          label: 'Reglas', soloSuperAdmin: true },
   { id: 'actualizacion',   icon: 'descargar',       label: 'Actualización', soloSuperAdmin: true },
   { id: 'ayuda',           icon: 'interrogacion',   label: 'Ayuda' },
 ];
@@ -800,6 +802,7 @@ const SECTION_MAP = {
   soporte:        <SeccionSoporte />,
   precios:        <SeccionPrecios />,
   pagos:          <PagoQRConfig />,
+  reglas:         <ReglasConfig />,
   actualizacion:  <SeccionActualizacion />,
   ayuda:          <CentroAyuda perfil="admin" />,
 };

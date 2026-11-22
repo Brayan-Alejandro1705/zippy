@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../context/ToastContext';
-import { ordenesService, clienteService, domicilioService } from '../../config/api';
+import { ordenesService, clienteService, domicilioService, invitacionesService } from '../../config/api';
 import { cx } from '../../ui/tw';
 import { ENVIO_POR_TIENDA } from '../../constants/envio';
 import { estaAbierto, textoCerrado } from '../../utils/horario';
@@ -35,6 +35,11 @@ const UserCheckoutPage = () => {
   }, []);
 
   const [pago, setPago]       = useState('efectivo');
+  // Nov 2026: domicilios gratis ganados con "Invita a un amigo"
+  const [gratis, setGratis] = useState(0);
+  useEffect(() => {
+    invitacionesService.mia().then(({ data }) => setGratis(data?.activo ? (data.domicilios_gratis || 0) : 0)).catch(() => {});
+  }, []);
   // Nov 2026: pago con transferencia por QR, solo si el súper admin la encendió
   const [qrActivo, setQrActivo] = useState(false);
   useEffect(() => {
@@ -151,7 +156,9 @@ const UserCheckoutPage = () => {
   const tiendas    = [...new Set(items.map(i => i.tienda))];
   const envioPorTienda = typeof cot?.costo_domicilio === 'number' ? cot.costo_domicilio : envioUnitario;
   const envioTotal = tiendas.length * envioPorTienda;
-  const total      = subtotal + envioTotal;
+  // Un domicilio gratis por compra (en el primer negocio del carrito)
+  const descuentoGratis = gratis > 0 && envioPorTienda > 0 ? envioPorTienda : 0;
+  const total      = subtotal + envioTotal - descuentoGratis;
   const itemsCerrados = items.filter(i => !estaAbierto(i));
   // Bebidas alcoholicas: el backend es quien decide (tambien mira la categoria
   // del negocio). Si responde que falta la confirmacion, se muestra la casilla.
@@ -207,8 +214,9 @@ const UserCheckoutPage = () => {
 
     try {
       const respuestas = await Promise.all(
-        Object.entries(porNegocio).map(([negocio_id, itemsNegocio]) =>
+        Object.entries(porNegocio).map(([negocio_id, itemsNegocio], indice) =>
           ordenesService.crear({
+            usar_domicilio_gratis: descuentoGratis > 0 && indice === 0,
             negocio_id,
             items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty, adicionales: (i.adicionales || []).map(a => a.id) })),
             metodo_pago: pago,
@@ -433,6 +441,11 @@ const UserCheckoutPage = () => {
               </span>
               <strong className="text-slate-800 dark:text-slate-100">{fmt(envioTotal)}</strong>
             </div>
+            {descuentoGratis > 0 && (
+              <div className="flex justify-between py-1 text-[13.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="flex items-center gap-1"><Icon name="regalo" size={15} />Domicilio gratis por invitar</span><span>−{fmt(descuentoGratis)}</span>
+              </div>
+            )}
           </div>
         )}
 

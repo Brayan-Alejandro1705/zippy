@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from config import get_db, settings
 from models import Negocio, Usuario, Producto, Orden
@@ -230,6 +230,22 @@ async def quitar_foto_carta(
     fotos.pop(indice)
     # Lista nueva para que SQLAlchemy note el cambio en la columna JSON
     negocio.fotos_carta = fotos
+    db.commit()
+    db.refresh(negocio)
+    return NegocioResponse.from_orm(negocio)
+
+
+@router.put("/mi-negocio/cerrar-hoy", response_model=NegocioResponse, summary="Cerrar la tienda por hoy o volver a abrirla")
+async def cerrar_hoy(
+    datos: dict,
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Nov 2026: el negocio que no abre un día no tiene que tocar su horario.
+    Queda cerrado hasta el final de hoy (hora Colombia) y mañana abre solo."""
+    negocio = _negocio_del_vendedor(db, current_user)
+    hoy = (datetime.utcnow() - timedelta(hours=5)).date()
+    negocio.cerrado_hasta = hoy if datos.get("cerrado") else None
     db.commit()
     db.refresh(negocio)
     return NegocioResponse.from_orm(negocio)

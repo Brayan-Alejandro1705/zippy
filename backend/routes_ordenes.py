@@ -26,6 +26,7 @@ from restricciones import es_alcohol, es_tabaco, MENSAJE_EDAD, MENSAJE_TABACO
 import pago_qr
 from routes_adicionales import precio_de_adicionales
 from routes_viajes import tiene_aventon_en_curso
+from routes_invitaciones import aplicar_domicilio_gratis, devolver_domicilio_gratis, premiar_si_toca
 
 router = APIRouter(prefix="/api/v1/ordenes", tags=["Órdenes"])
 
@@ -144,8 +145,11 @@ async def crear_orden(
     # No dejar crear ordenes si la tienda esta fuera de su horario configurado
     if not negocio.esta_abierto():
         detalle = f"{negocio.nombre_negocio} esta cerrado en este momento."
+        aviso = negocio.cerrado_aviso
         apertura = negocio.proxima_apertura_texto()
-        if apertura:
+        if aviso:
+            detalle = f"{negocio.nombre_negocio}: {aviso}."
+        elif apertura:
             detalle += f" {apertura}."
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -197,6 +201,14 @@ async def crear_orden(
     subtotal, impuesto, costo_domicilio, total, cotizacion = calcular_total_orden(
         items_list, db, orden.latitud_entrega, orden.longitud_entrega
     )
+
+    # Nov 2026: domicilio gratis ganado con "Invita a un amigo". El cliente
+    # no paga el domicilio; ZIPPYGO se lo paga al repartidor (domicilio_regalo).
+    domicilio_regalo = None
+    if orden.usar_domicilio_gratis and aplicar_domicilio_gratis(db, current_user, costo_domicilio):
+        domicilio_regalo = costo_domicilio
+        total = total - costo_domicilio
+        costo_domicilio = Decimal(0)
     
     # Crear orden
     nueva_orden = Orden(
@@ -208,6 +220,8 @@ async def crear_orden(
         impuesto=impuesto,
         costo_domicilio=costo_domicilio,
         total=total,
+        domicilio_gratis=domicilio_regalo is not None,
+        domicilio_regalo=domicilio_regalo,
         metodo_pago=orden.metodo_pago,
         estado_pago="pendiente",
         direccion_entrega=orden.direccion_entrega,
@@ -600,6 +614,12 @@ async def actualizar_orden(
         # le contaba, y uno pedido a las 11:50 p.m. le contaba al dia anterior.
         if orden_actualizada.estado == "entregada" and not orden.fecha_entrega:
             orden.fecha_entrega = datetime.utcnow()
+        # Nov 2026: invita a un amigo (premio al primer pedido entregado) y
+        # devolver el domicilio gratis si el pedido se cancela
+        if orden_actualizada.estado == "entregada":
+            premiar_si_toca(db, orden)
+        if orden_actualizada.estado in ("cancelada", "rechazada"):
+            devolver_domicilio_gratis(db, orden)
         
         # Registrar seguimiento
         seguimiento = SeguimientoOrden(
@@ -853,6 +873,7 @@ async def cancelar_orden(
     # Marcar como cancelada
     orden.estado = "cancelada"
     orden.fecha_ultima_actualizacion = datetime.utcnow()
+    devolver_domicilio_gratis(db, orden)
     
     # Revertir transacción
     transaccion = db.query(Transaccion).filter(
@@ -1270,6 +1291,7 @@ async def validar_orden(
                               relacionado_tabla="ordenes", relacionado_id=orden.id)
     else:
         orden.estado = "rechazada"
+        devolver_domicilio_gratis(db, orden)
         # Devolver el stock que se descontó al crear la orden
         for it in orden.items:
             if it.producto:

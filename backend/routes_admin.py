@@ -857,3 +857,82 @@ async def quitar_qr(current_user: Usuario = Depends(get_current_user), db: Sessi
     registrar_log(db, usuario_id=current_user.id, accion="Configuración", tabla_afectada="configuracion_sistema",
                   detalle="Pago con QR: QR quitado y cobro apagado")
     return resultado
+
+
+# ============================================================================
+# REGLAS (nov 2026): interruptores de "Invita a un amigo" y de exigir
+# ubicación y horario a los negocios (ver reglas.py)
+# ============================================================================
+
+@router.get("/reglas/", summary="Interruptores de invitaciones y datos de negocios")
+async def ver_reglas(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    _solo_admins(current_user)
+    import reglas
+    valores = reglas.todas(db, fresco=True)
+    incompletos = [{"nombre": n.nombre_negocio, "faltan": n.faltan_datos()}
+                   for n in db.query(Negocio).filter(Negocio.estado == "activo").all() if n.faltan_datos()]
+    con_regalo = db.query(func.coalesce(func.sum(Usuario.domicilios_gratis), 0)).scalar() or 0
+    usados = db.query(Orden).filter(Orden.domicilio_gratis == True).count()  # noqa: E712
+    return {**valores, "negocios_incompletos": incompletos,
+            "domicilios_gratis_pendientes": int(con_regalo), "domicilios_gratis_usados": usados}
+
+
+@router.put("/reglas/", summary="Encender o apagar las reglas")
+async def cambiar_reglas(datos: dict, current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    _solo_admins(current_user)
+    import reglas
+    cambios = {k: bool(v) for k, v in datos.items() if k in reglas.CLAVES}
+    valores = reglas.guardar(db, cambios)
+    for k, v in cambios.items():
+        registrar_log(db, usuario_id=current_user.id, accion="Configuración", tabla_afectada="configuracion_sistema",
+                      detalle=f"Regla {k} {'encendida' if v else 'apagada'}")
+    db.commit()
+    return valores
+
+
+# ============================================================================
+# ESPERANDO REPARTIDOR (nov 2026): pedidos listos y mandados que nadie toma
+# ============================================================================
+
+def _esperando(db: Session) -> list:
+    ahora = datetime.utcnow()
+    desde = ahora - timedelta(hours=12)
+    salida = []
+    for o in db.query(Orden).filter(Orden.estado == "lista_para_retirar", Orden.domiciliario_id.is_(None),
+                                    Orden.fecha_creacion >= desde).all():
+        listo = o.fecha_ultima_actualizacion or o.fecha_creacion
+        salida.append({"id": str(o.id), "corto": "#" + str(o.id)[:8], "tipo": "pedido",
+                       "donde": o.negocio.nombre_negocio if o.negocio else "Negocio",
+                       "direccion": o.direccion_entrega or "", "minutos": int((ahora - listo).total_seconds() // 60)})
+    for m in db.query(PedidoEspecial).filter(PedidoEspecial.estado == "pendiente", PedidoEspecial.domiciliario_id.is_(None),
+                                             PedidoEspecial.fecha_creacion >= desde).all():
+        salida.append({"id": str(m.id), "corto": "#PE" + str(m.id).replace("-", "")[-4:].upper(), "tipo": "mandado",
+                       "donde": "Mandado", "direccion": m.barrio or m.direccion or "",
+                       "minutos": int((ahora - m.fecha_creacion).total_seconds() // 60)})
+    return sorted(salida, key=lambda x: -x["minutos"])
+
+
+@router.get("/esperando-repartidor/", summary="Pedidos listos y mandados sin repartidor")
+async def esperando_repartidor(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    _solo_admins(current_user)
+    from models import EstadoUsuario
+    en_linea = db.query(Usuario).filter(Usuario.tipo_usuario == "domiciliario", Usuario.estado == EstadoUsuario.ACTIVO,
+                                        Usuario.fcm_token.isnot(None)).count()
+    return {"esperando": _esperando(db), "repartidores_con_app": en_linea}
+
+
+@router.post("/esperando-repartidor/avisar", summary="Volver a avisarles a los repartidores")
+async def avisar_repartidores(current_user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    _solo_admins(current_user)
+    from models import EstadoUsuario
+    from push import notificar_usuarios
+    lista = _esperando(db)
+    if not lista:
+        return {"avisados": 0}
+    repartidores = db.query(Usuario).filter(Usuario.tipo_usuario == "domiciliario", Usuario.estado == EstadoUsuario.ACTIVO,
+                                            Usuario.fcm_token.isnot(None)).all()
+    texto = f"Hay {len(lista)} {'pedido esperando' if len(lista) == 1 else 'pedidos esperando'} repartidor. El más viejo lleva {lista[0]['minutos']} min."
+    notificar_usuarios(db, repartidores, guardar=False, tipo="recordatorio_tomar", titulo="¡Pedidos sin repartidor!",
+                       mensaje=texto, relacionado_tabla="ordenes", relacionado_id=None)
+    db.commit()
+    return {"avisados": len(repartidores)}

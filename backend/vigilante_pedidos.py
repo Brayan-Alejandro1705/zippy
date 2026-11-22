@@ -17,7 +17,7 @@ import urllib.request
 from datetime import datetime, timedelta
 
 from config import SessionLocal, settings
-from models import EstadoUsuario, Orden, Usuario
+from models import EstadoUsuario, Orden, PedidoEspecial, Usuario
 from push import notificar_usuarios
 
 # Decision del dueño (oct 2026): a los 5 minutos ya quiere enterarse. Va igual
@@ -45,6 +45,9 @@ SEGUNDOS_VUELTA_RAPIDA = 15
 # lleva el pedido (no se repiten de golpe los que ya sonaron).
 _recordatorios = {}
 _admin_sin_repartidor = set()
+# Nov 2026: mandados que pasan 10 minutos sin repartidor (aviso al súper admin)
+MINUTOS_MANDADO_SIN_REPARTIDOR = 10
+_admin_mandado = set()
 
 
 def _hora_colombia(momento: datetime) -> str:
@@ -248,8 +251,8 @@ def recordatorios() -> int:
                     notificar_usuarios(
                         db, _admins(db),
                         tipo="pedido_sin_repartidor",
-                        titulo="Pedido sin repartidor",
-                        mensaje=f"El pedido de {negocio} lleva {minutos} min listo y ningún repartidor lo ha tomado.",
+                        titulo=f"Pedido sin repartidor hace {minutos} min",
+                        mensaje=f"#{str(o.id)[:8]} de {negocio} está listo y nadie lo ha tomado.",
                         relacionado_tabla="ordenes", relacionado_id=o.id,
                     )
 
@@ -266,6 +269,24 @@ def recordatorios() -> int:
                         relacionado_tabla="ordenes", relacionado_id=o.id,
                     )
                     mandados += 1
+
+        # Nov 2026: mandados que nadie toma en 10 minutos -> un aviso al súper admin
+        vivos_mandados = set()
+        for m in db.query(PedidoEspecial).filter(PedidoEspecial.estado == "pendiente",
+                                                 PedidoEspecial.domiciliario_id.is_(None),
+                                                 PedidoEspecial.fecha_creacion >= recientes).all():
+            vivos_mandados.add(str(m.id))
+            minutos = int((ahora - m.fecha_creacion).total_seconds() // 60)
+            if minutos >= MINUTOS_MANDADO_SIN_REPARTIDOR and str(m.id) not in _admin_mandado:
+                _admin_mandado.add(str(m.id))
+                notificar_usuarios(
+                    db, _admins(db),
+                    tipo="mandado_sin_repartidor",
+                    titulo=f"Mandado sin repartidor hace {minutos} min",
+                    mensaje=f"Nadie ha tomado el mandado de {_nombre_cliente(m)} para {m.barrio or m.direccion}.",
+                    relacionado_tabla="pedidos_especiales", relacionado_id=m.id,
+                )
+        _admin_mandado.intersection_update(vivos_mandados)
 
         # Se olvidan los pedidos que ya se movieron, para no crecer sin fin
         for clave in list(_recordatorios):

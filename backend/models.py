@@ -125,6 +125,11 @@ class Usuario(Base):
     # Nov 2026: avisos de novedades y promociones (ver routes_avisos.py).
     # None = todavia no se le ha preguntado; Apple exige permiso explicito.
     acepta_novedades = Column(Boolean)
+    # Nov 2026: "Invita a un amigo" (ver routes_invitaciones.py)
+    codigo_invitacion = Column(String(20), unique=True, index=True)
+    invitado_por = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True)
+    domicilios_gratis = Column(Integer, default=0)
+    invitacion_premiada = Column(Boolean, default=False)
 
     # Relaciones
     negocio = relationship("Negocio", back_populates="vendedor", uselist=False)
@@ -159,6 +164,9 @@ class Negocio(Base):
     # Nov 2026: cuando se les aviso a los clientes que este negocio llego
     # (una sola vez por negocio, ver routes_avisos.anunciar_si_toca)
     anunciado_en = Column(DateTime)
+    # Nov 2026: "Cerrar por hoy". Mientras esta fecha sea hoy (hora Colombia)
+    # o después, la tienda sale cerrada aunque esté dentro de su horario.
+    cerrado_hasta = Column(Date)
     imagen_portada = Column(String(500))
     categoria = Column(String(100), nullable=False, index=True)
     es_servicio = Column(Boolean, default=False, nullable=False)
@@ -203,6 +211,32 @@ class Negocio(Base):
 
     _DIAS_SEMANA_ES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']  # weekday(): 0=Lunes
 
+    def faltan_datos(self):
+        """Lo que le falta al negocio para salir abierto cuando el súper admin
+        exige datos completos (nov 2026)."""
+        faltan = []
+        if self.latitud is None or self.longitud is None:
+            faltan.append("ubicacion")
+        if not self.hora_apertura or not self.hora_cierre or not (self.dias_operacion or "").strip():
+            faltan.append("horario")
+        return faltan
+
+    @property
+    def cerrado_aviso(self):
+        """Texto para el cliente si la tienda está cerrada por una razón que no
+        es su horario normal (cerrada por hoy o datos incompletos). None si no."""
+        hoy = (datetime.utcnow() - timedelta(hours=5)).date()
+        if self.cerrado_hasta and self.cerrado_hasta >= hoy:
+            apertura = self.proxima_apertura_texto()
+            return "Cerrado por hoy · " + (apertura.replace("Abre", "abre mañana") if apertura else "abre mañana")
+        try:
+            import reglas
+            if reglas.activa("exigir_datos_negocio") and self.faltan_datos():
+                return "Tienda cerrada por ahora"
+        except Exception:
+            pass
+        return None
+
     def esta_abierto(self, ahora_utc=None):
         """
         True si el negocio esta dentro de su horario configurado
@@ -213,6 +247,8 @@ class Negocio(Base):
         verano) porque hora_apertura/hora_cierre se guardan como el vendedor
         las ve en su pantalla (hora local), pero el servidor trabaja en UTC.
         """
+        if self.cerrado_aviso:
+            return False
         if not self.hora_apertura or not self.hora_cierre:
             return True
 
@@ -360,6 +396,10 @@ class Orden(Base):
     transferencia_estado = Column(String(20), index=True)
     transferencia_revisada = Column(DateTime)
     transferencia_revisor_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
+    # Nov 2026: domicilio gratis por "Invita a un amigo". costo_domicilio queda
+    # en 0 para el cliente y aquí se guarda lo que ZIPPYGO le paga al repartidor.
+    domicilio_gratis = Column(Boolean, default=False)
+    domicilio_regalo = Column(DECIMAL(10, 2))
     # Cuando se le aviso al dueño que el negocio no habia aceptado el pedido.
     # Sirve para avisar una sola vez por pedido (ver vigilante_pedidos.py).
     alerta_sin_confirmar = Column(DateTime)

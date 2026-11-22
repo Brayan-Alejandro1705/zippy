@@ -40,6 +40,11 @@ def cancelar_pedidos_de_negocio(db: Session, negocio, motivo: str = "El negocio 
         anterior = getattr(orden.estado, "value", orden.estado)
         orden.estado = "cancelada"
         orden.fecha_ultima_actualizacion = datetime.utcnow()
+        try:
+            from routes_invitaciones import devolver_domicilio_gratis
+            devolver_domicilio_gratis(db, orden)
+        except Exception as e:
+            print(f"[pedidos] no se pudo devolver el domicilio gratis: {e}")
         db.add(SeguimientoOrden(
             orden_id=orden.id,
             estado_anterior=anterior,

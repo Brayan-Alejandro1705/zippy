@@ -260,6 +260,20 @@ export const vendedoresService = {
 };
 
 // Avisos de novedades y promociones (nov 2026)
+// Nov 2026: "Invita a un amigo" (domicilio gratis para los dos)
+export const invitacionesService = {
+  mia:     () => api.get('/invitaciones/mia'),
+  canjear: (codigo) => api.post('/invitaciones/canjear', { codigo }),
+};
+
+// Nov 2026: interruptores del súper admin y pedidos que nadie toma
+export const reglasService = {
+  ver:       () => api.get('/admin/reglas/'),
+  cambiar:   (datos) => api.put('/admin/reglas/', datos),
+  esperando: () => api.get('/admin/esperando-repartidor/'),
+  avisarRepartidores: () => api.post('/admin/esperando-repartidor/avisar'),
+};
+
 export const avisosService = {
   miPreferencia:     () => api.get('/avisos/mi-preferencia'),
   cambiarPreferencia:(acepta) => api.put('/avisos/mi-preferencia', { acepta }),
@@ -311,6 +325,8 @@ export const negociosService = {
   listarServicios: () => api.get('/negocios/', { params: { es_servicio: true, limit: 100 } }),
   listar:      (params) => api.get('/negocios/', { params }),
   miNegocio:   () => api.get('/negocios/mi-negocio'),
+  // Nov 2026: cerrar la tienda solo por hoy (mañana abre sola)
+  cerrarHoy:   (cerrado) => api.put('/negocios/mi-negocio/cerrar-hoy', { cerrado }),
   obtener:     (id) => api.get(`/negocios/${id}`),
   actualizar:  (id, datos) => api.put(`/negocios/${id}`, datos),
   estadisticas:(id) => api.get(`/negocios/${id}/estadisticas`),

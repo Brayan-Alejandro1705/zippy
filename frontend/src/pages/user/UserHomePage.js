@@ -13,6 +13,7 @@ import { urlImagen } from '../../utils/media';
 import Icon from '../../components/Icons';
 import { estaAbierto, textoCerrado } from '../../utils/horario';
 import { coincide } from '../../utils/buscar';
+import { hora as horaServidor } from '../../utils/fechas';
 
 /* ── Countdown ──────────────────────────────────────────── */
 const useCountdown = () => {
@@ -122,6 +123,7 @@ const UserHomePage = () => {
             hora_apertura: n.hora_apertura,
             hora_cierre: n.hora_cierre,
             dias_operacion: n.dias_operacion,
+            cerrado_aviso: n.cerrado_aviso || null,
           }));
 
         const categoriasReales = [...new Set(productosRaw.map(p => p.categoria).filter(Boolean))]
@@ -148,6 +150,8 @@ const UserHomePage = () => {
           hora_apertura: negociosMap[p.negocio_id]?.hora_apertura,
           hora_cierre: negociosMap[p.negocio_id]?.hora_cierre,
           dias_operacion: negociosMap[p.negocio_id]?.dias_operacion,
+          cerrado_aviso: negociosMap[p.negocio_id]?.cerrado_aviso || null,
+          ofertaExpira: p.oferta_expira || null,
         }));
 
         setProductos(productosMapeados);
@@ -192,7 +196,11 @@ const UserHomePage = () => {
   const saludo  = hora < 12 ? 'Buenos días' : hora < 18 ? 'Buenas tardes' : 'Buenas noches';
 
   const populares = [...productos].sort((a, b) => b.totalVendidos - a.totalVendidos).slice(0, 5);
-  const oferta = [...productos].filter(p => p.descuento > 0).sort((a, b) => b.descuento - a.descuento)[0] || null;
+  // Nov 2026: "Ofertas de hoy": todos los productos con oferta, el mayor descuento primero
+  const ofertasHoy = productos.filter(p => p.descuento > 0 && (p.precioOriginal || 0) > p.precio).sort((a, b) => b.descuento - a.descuento).slice(0, 10);
+  const terminanOfertas = ofertasHoy.map(p => p.ofertaExpira).filter(Boolean).sort()[0] || null;
+  // La tarjeta grande de "Oferta del día" solo cuando hay una sola oferta
+  const oferta = ofertasHoy.length === 1 ? ofertasHoy[0] : null;
 
   const ratingPromedioTiendas = tiendas.length
     ? (tiendas.reduce((s, t) => s + (Number(t.rating) || 0), 0) / tiendas.length)
@@ -331,6 +339,51 @@ const UserHomePage = () => {
 
       {/* ── Viajes en moto (solo si el servicio está encendido) ── */}
       <div className="mb-5 px-4 md:mb-7 md:px-0"><BannerMoto /></div>
+
+      {/* ── Ofertas de hoy (nov 2026) ───────────────────── */}
+      {ofertasHoy.length > 1 && (
+        <div className={seccion}>
+          <div className={seccionHdr}>
+            <h2 className={cx(seccionTitulo, 'text-red-600 dark:text-red-400')}><Icon name="rayo" size={19} />Ofertas de hoy</h2>
+            {terminanOfertas && <span className="text-xs font-semibold text-slate-500">Terminan a las {horaServidor(terminanOfertas)}</span>}
+          </div>
+          <div className="flex gap-3.5 overflow-x-auto pb-2 [scrollbar-color:#FF7A00_#f0f0f0] [scrollbar-width:thin]">
+            {ofertasHoy.map(p => (
+              <button
+                key={p.id}
+                className="w-[148px] shrink-0 cursor-pointer overflow-hidden rounded-[18px] border-[1.5px] border-solid border-transparent bg-white p-0 text-left font-[inherit] shadow-[0_2px_12px_rgba(0,0,0,0.08)] transition hover:-translate-y-1 hover:border-zippy dark:border-noche-borde dark:bg-noche-card md:w-[170px]"
+                onClick={() => setModalProd(p)}
+              >
+                <div className="relative flex h-24 items-center justify-center overflow-hidden md:h-[110px]" style={{ background: getGradient(p.categoria, p.gradIdx) }}>
+                  {p.foto
+                    ? <img src={urlImagen(p.foto, true)} alt={p.nombre} loading="lazy" className="h-full w-full object-cover" />
+                    : <Icon name={getIcon(p.categoria)} size={30} strokeWidth={1.4} />}
+                  <span className="absolute left-2 top-2 rounded-lg bg-red-600 px-2 py-0.5 text-[11px] font-black text-white">-{p.descuento}%</span>
+                </div>
+                <div className="px-3.5 pb-3.5 pt-3">
+                  <p className="m-0 mb-[3px] line-clamp-2 text-[13px] font-bold leading-[1.3] text-slate-800 dark:text-slate-100">{p.nombre}</p>
+                  <p className="m-0 mb-2 text-[11px] text-slate-400">{p.tienda}</p>
+                  <div className="flex items-end justify-between gap-1">
+                    <span className="flex flex-col">
+                      <span className="text-[11px] text-slate-400 line-through">{fmt(p.precioOriginal)}</span>
+                      <span className="text-sm font-black text-zippy md:text-base">{fmt(p.precio)}</span>
+                    </span>
+                    <span
+                      className={cx(
+                        'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-xl font-bold leading-none text-white',
+                        inCart(p.id) ? 'bg-emerald-500' : 'bg-zippy'
+                      )}
+                      onClick={e => { e.stopPropagation(); handleAdd(p); }}
+                    >
+                      {inCart(p.id) ? '✓' : '+'}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Más pedidos hoy ─────────────────────────────── */}
       {populares.length > 0 && (

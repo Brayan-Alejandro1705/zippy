@@ -7,6 +7,7 @@ import Layout from '../components/Layout';
 import Icon from '../components/Icons';
 import ConfirmModal from '../components/ConfirmModal';
 import ResumenNegocio from '../components/ResumenNegocio';
+import EsperandoRepartidor from '../components/admin/EsperandoRepartidor';
 import '../styles/Usuarios.css';
 
 const MOCK_STATS = {
@@ -74,6 +75,7 @@ const DashboardPage = () => {
 
   return (
     <Layout>
+      <EsperandoRepartidor />
       <ResumenNegocio />
 
       {/* Stats */}

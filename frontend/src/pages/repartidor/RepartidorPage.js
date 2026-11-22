@@ -700,6 +700,13 @@ const OrdenCard = ({ ocupado, orden, onAvanzar, onSelect, selected, onReport, re
         </div>
       </div>
 
+      {orden.domicilioRegalo != null && (
+        <p className="rp-order-zona" style={{ color: '#047857', fontWeight: 700 }}>
+          <Icon name="regalo" size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+          Domicilio gratis para el cliente: no le cobres el domicilio. ZIPPYGO te paga {fmt(orden.domicilioRegalo)}.
+        </p>
+      )}
+
       {orden.zona && orden.domicilio != null && (
         <p className="rp-order-zona">
           Domicilio <strong>{fmt(orden.domicilio)}</strong> · {orden.zona}
@@ -1280,6 +1287,8 @@ const RepartidorPage = () => {
         total: Number(o.total),
         // Domicilio por zonas: cuanto se cobro y en que zona cayo la casa
         domicilio: o.costo_domicilio != null ? Number(o.costo_domicilio) : null,
+        // Nov 2026: domicilio gratis por invitación: lo paga ZIPPYGO, no el cliente
+        domicilioRegalo: o.domicilio_gratis && o.domicilio_regalo != null ? Number(o.domicilio_regalo) : null,
         zona: o.zona_domicilio || null,
         kmCentro: o.distancia_km != null ? Number(o.distancia_km) : null,
         pago: o.metodo_pago,

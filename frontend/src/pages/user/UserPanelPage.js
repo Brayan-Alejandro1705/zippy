@@ -17,6 +17,7 @@ import { urlImagen } from '../../utils/media';
 import { conAdicionales, adicionalesDeItem } from '../../utils/adicionales';
 import { fechaCorta, fechaHoraLarga, fechaServidor, minutosDesde } from '../../utils/fechas';
 import Icon from '../../components/Icons';
+import InvitaAmigo from '../../components/InvitaAmigo';
 import { clienteService, soporteService, avisosService } from '../../config/api';
 import { cerrarSesionAqui } from '../../utils/push';
 
@@ -1212,6 +1213,7 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
           hora_apertura: negocio?.hora_apertura,
           hora_cierre: negocio?.hora_cierre,
           dias_operacion: negocio?.dias_operacion,
+          cerrado_aviso: negocio?.cerrado_aviso || null,
         };
         // addItem suma de uno en uno; llamarlo n veces respeta lo que ya
         // hubiera en el carrito en lugar de pisarlo con una cantidad fija.
@@ -1333,6 +1335,9 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
           <button className={C.profileLogout} onClick={handleLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="salir" size={17} /></button>
         </div>
       </div>
+
+      {/* Nov 2026: invita a un amigo */}
+      <InvitaAmigo />
 
       {/* Tabs */}
       <div className={C.tabs}>

@@ -4,7 +4,7 @@
 
 from pydantic import BaseModel, EmailStr, Field, validator, field_validator
 from typing import Optional, List, Dict, Any
-from datetime import datetime, time
+from datetime import datetime, time, date
 from decimal import Decimal
 import uuid
 
@@ -193,6 +193,9 @@ class NegocioResponse(NegocioBase):
     es_verificado: bool
     estado: str
     fecha_creacion: datetime
+    # Nov 2026: cerrada por hoy o por datos incompletos (texto para el cliente)
+    cerrado_hasta: Optional[date] = None
+    cerrado_aviso: Optional[str] = None
 
     # hora_apertura / hora_cierre son Column(Time) en models.py, asi que el ORM
     # las devuelve como datetime.time y pydantic las rechaza contra Optional[str].
@@ -336,6 +339,8 @@ class OrdenCreate(BaseModel):
     # Punto exacto que el cliente marco en el mapa (si la direccion lo tiene)
     latitud_entrega: Optional[float] = None
     longitud_entrega: Optional[float] = None
+    # Nov 2026: usar un domicilio gratis ganado con "Invita a un amigo"
+    usar_domicilio_gratis: Optional[bool] = False
 
 class OrdenUpdate(BaseModel):
     estado: Optional[str] = None
@@ -363,6 +368,8 @@ class OrdenResponse(BaseModel):
     metodo_pago: str
     estado_pago: str
     transferencia_estado: Optional[str] = None
+    domicilio_gratis: Optional[bool] = False
+    domicilio_regalo: Optional[Decimal] = None
     direccion_entrega: str
     latitud_entrega: Optional[float] = None
     longitud_entrega: Optional[float] = None

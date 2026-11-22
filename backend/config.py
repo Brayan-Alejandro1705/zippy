@@ -241,6 +241,15 @@ def init_db():
                 "UPDATE negocios SET anunciado_en = COALESCE(fecha_creacion, now()) WHERE anunciado_en IS NULL AND (fecha_creacion IS NULL OR fecha_creacion < '2026-11-14')",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisada TIMESTAMP",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS transferencia_revisor_id UUID REFERENCES usuarios(id)",
+                # Nov 2026: invita a un amigo, cerrar por hoy
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS codigo_invitacion VARCHAR(20)",
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_usuarios_codigo_invitacion ON usuarios (codigo_invitacion)",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS invitado_por UUID REFERENCES usuarios(id)",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS domicilios_gratis INTEGER DEFAULT 0",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS invitacion_premiada BOOLEAN DEFAULT FALSE",
+                "ALTER TABLE negocios ADD COLUMN IF NOT EXISTS cerrado_hasta DATE",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS domicilio_gratis BOOLEAN DEFAULT FALSE",
+                "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS domicilio_regalo NUMERIC(10,2)",
             ):
                 conn.execute(text(sql))
             conn.commit()

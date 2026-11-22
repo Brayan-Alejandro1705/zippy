@@ -7,6 +7,7 @@ import ZLoader from '../../components/ZLoader';
 import ConfirmModal from '../../components/ConfirmModal';
 import '../../styles/VendorProductos.css';
 import Icon from '../../components/Icons';
+import InicioNegocio from '../../components/vendor/InicioNegocio';
 import { cx, titulo, subtitulo, btn, chip, chipsFila } from '../../ui/tw';
 import { urlImagen } from '../../utils/media';
 import CampoPesos from '../../components/CampoPesos';
@@ -288,6 +289,9 @@ const VendorProductosPage = () => {
           + Nuevo<span className="hidden sm:inline">&nbsp;producto</span>
         </button>
       </div>
+
+      {/* Nov 2026: datos incompletos, primeros pasos y compartir la tienda */}
+      <InicioNegocio productos={productos} cargando={loading} />
 
       {menuIA && (
         <button

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { soporteService } from '../config/api';
 import Icon from './Icons';
 import { cx } from '../ui/tw';
+import { VideoGuia } from './vendor/InicioNegocio';
 
 // ============================================================================
 // CentroAyuda.js - Pestaña de ayuda con contenido distinto según el perfil.
@@ -128,6 +129,7 @@ const CentroAyuda = ({ perfil = 'cliente' }) => {
   const [whatsapp, setWhatsapp] = useState('');
   const [cargando, setCargando] = useState(true);
   const [abierto, setAbierto]   = useState(null);
+  const [video, setVideo]       = useState(false);
 
   const cfg = CONTENIDO[perfil] || CONTENIDO.cliente;
 
@@ -151,6 +153,18 @@ const CentroAyuda = ({ perfil = 'cliente' }) => {
 
   return (
     <div className="flex flex-col gap-3.5">
+      {/* Nov 2026: video de 2 minutos para los negocios */}
+      {perfil === 'vendedor' && (
+        <button type="button" onClick={() => { try { localStorage.setItem('zippy_video_visto', '1'); } catch { /* */ } setVideo(true); }}
+          className={cx(tarjeta, 'flex cursor-pointer items-center gap-3 text-left font-[inherit]')}>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zippy text-[18px] text-white">▶</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-[#222] dark:text-slate-100">Video: cómo vender en ZIPPYGO</span>
+            <span className="block text-[12.5px] text-slate-400">2 minutos: perfil, productos y pedidos</span>
+          </span>
+        </button>
+      )}
+      {video && <VideoGuia onCerrar={() => setVideo(false)} />}
       <div className={tarjeta}>
         <div className={titulo}>Preguntas frecuentes</div>
         <p className={desc}>{cfg.intro}</p>

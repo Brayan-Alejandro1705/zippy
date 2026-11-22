@@ -7,6 +7,9 @@ import { conAdicionales, adicionalesDeItem } from '../../utils/adicionales';
 import Icon from '../../components/Icons';
 import { cx, titulo, tarjeta, btn, chip, chipsFila, badge, badgeBase } from '../../ui/tw';
 import OrdenDetalleModal, { VENDEDOR_NEXT, llamar } from '../../components/vendor/OrdenDetalle';
+import PedidoPrueba from '../../components/vendor/PedidoPrueba';
+import { useSearchParams } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 const TABS = [
   { label: 'Todos',      value: 'Todos'     },
@@ -85,10 +88,21 @@ const VendorOrdenesPage = () => {
   const [detalle, setDetalle] = useState(null);
   const [ordenes, setOrdenes] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Nov 2026: pedido de prueba para practicar (desde "Primeros pasos")
+  const [params, setParams] = useSearchParams();
+  const [prueba, setPrueba] = useState(params.get('prueba') === '1');
+  const [negocioId, setNegocioId] = useState(null);
+  const { addToast } = useToast();
+  const cerrarPrueba = (terminada) => {
+    setPrueba(false);
+    if (params.get('prueba')) setParams({}, { replace: true });
+    if (terminada) addToast('¡Listo! Así se atiende un pedido. Cuando llegue uno de verdad, te suena el celular.', 'success');
+  };
 
   const cargar = useCallback(async () => {
     try {
       const { data: negocio } = await negociosService.miNegocio();
+      setNegocioId(negocio.id);
       const [{ data: ordenesRaw }, { data: productos }] = await Promise.all([
         ordenesService.listar(),
         productosService.listar(negocio.id, { limit: 100 }),
@@ -163,6 +177,13 @@ const VendorOrdenesPage = () => {
             </p>
           </div>
         </div>
+      )}
+
+      {prueba && <PedidoPrueba negocioId={negocioId} onCerrar={cerrarPrueba} />}
+      {!prueba && (
+        <button type="button" onClick={() => setPrueba(true)} className="mb-3 cursor-pointer border-0 bg-transparent p-0 font-[inherit] text-[13px] font-bold text-violet-600 dark:text-violet-300">
+          <Icon name="repetir" size={14} style={{ verticalAlign: '-2px', marginRight: 4 }} />Hacer un pedido de prueba
+        </button>
       )}
 
       {/* Pestañas: en celular se desplazan de lado en vez de partirse en dos filas */}
