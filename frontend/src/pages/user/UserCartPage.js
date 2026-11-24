@@ -98,6 +98,7 @@ const UserCartPage = () => {
                     </div>
                     <div className="min-w-0 flex-1 basis-[calc(100%-64px)] sm:basis-auto">
                       <p className="m-0 mb-0.5 text-[13px] font-bold text-slate-800 dark:text-slate-100 sm:text-sm">{item.nombre}</p>
+                      {item.opcionesTexto && <p className="m-0 mb-0.5 text-[11.5px] font-bold leading-snug text-slate-600 dark:text-slate-300">{item.opcionesTexto}</p>}
                       {item.adicionales?.length > 0 && (
                         <p className="m-0 mb-0.5 text-[11.5px] leading-snug text-slate-500 dark:text-slate-400">+ {item.adicionales.map(a => a.nombre).join(' · ')}</p>
                       )}

@@ -145,6 +145,7 @@ const UserHomePage = () => {
           stock: p.stock,
           foto: p.imagenes?.[0] || null,
           adicionales: p.adicionales || [],
+          opciones: p.opciones || null,
           totalVendidos: p.total_vendidos || 0,
           gradIdx: i,
           hora_apertura: negociosMap[p.negocio_id]?.hora_apertura,
@@ -231,7 +232,7 @@ const UserHomePage = () => {
       return;
     }
     // Con adicionales se abre el detalle para que los escoja (gomas, shot...)
-    if (p.adicionales?.length) { setModalProd(p); return; }
+    if (p.adicionales?.length || p.opciones?.tamanos?.length) { setModalProd(p); return; }
     addItem(p);
     addToast(`${p.nombre} agregado al carrito`, 'success');
   };
@@ -366,7 +367,7 @@ const UserHomePage = () => {
                   <div className="flex items-end justify-between gap-1">
                     <span className="flex flex-col">
                       <span className="text-[11px] text-slate-400 line-through">{fmt(p.precioOriginal)}</span>
-                      <span className="text-sm font-black text-zippy md:text-base">{fmt(p.precio)}</span>
+                      <span className="text-sm font-black text-zippy md:text-base">{p.opciones?.tamanos?.length > 1 ? `desde ${fmt(p.precio)}` : fmt(p.precio)}</span>
                     </span>
                     <span
                       className={cx(
@@ -414,7 +415,7 @@ const UserHomePage = () => {
                   <p className="m-0 mb-[3px] text-[13px] font-bold leading-[1.3] text-slate-800 dark:text-slate-100">{p.nombre}</p>
                   <p className="m-0 mb-2.5 text-[11px] text-slate-400">{p.tienda}</p>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-black text-zippy md:text-base">{fmt(p.precio)}</span>
+                    <span className="text-sm font-black text-zippy md:text-base">{p.opciones?.tamanos?.length > 1 ? `desde ${fmt(p.precio)}` : fmt(p.precio)}</span>
                     <span
                       className={cx(
                         'flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-xl font-bold leading-none text-white transition-transform hover:scale-110',
@@ -693,7 +694,7 @@ const UserHomePage = () => {
                           en una tarjeta de ~150 px no caben precio + corazon + "Agregar" en una fila */}
                       <div className="mt-2 flex flex-col items-stretch justify-between gap-2 md:flex-row md:items-center">
                         <div className="min-w-0">
-                          <p className="m-0 text-[15px] font-black text-zippy md:text-lg">{fmt(p.precio)}</p>
+                          <p className="m-0 text-[15px] font-black text-zippy md:text-lg">{p.opciones?.tamanos?.length > 1 ? `desde ${fmt(p.precio)}` : fmt(p.precio)}</p>
                           {p.enOferta && p.precioOriginal && (
                             <p className="-mt-0.5 mb-0 text-xs text-slate-400 line-through">{fmt(p.precioOriginal)}</p>
                           )}

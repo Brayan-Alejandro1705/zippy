@@ -14,7 +14,8 @@ const fmt = n => `$${Number(n || 0).toLocaleString('es-CO')}`;
 
 const CAT_ALCOHOL = ['cerveza', 'aguardiente y ron', 'whisky y otros licores', 'vinos', 'licores'];
 const sinTildes = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const esAlcohol = i => CAT_ALCOHOL.includes(sinTildes(i.categoria)) || sinTildes(i.categoriaNegocio || i.negocio_categoria) === 'licorera';
+// Nov 2026: en Granizados manda lo que escogió el cliente (con o sin licor)
+const esAlcohol = i => i.conLicor === true || (i.conLicor !== false && (CAT_ALCOHOL.includes(sinTildes(i.categoria)) || sinTildes(i.categoriaNegocio || i.negocio_categoria) === 'licorera'));
 
 const UserCheckoutPage = () => {
   const navigate = useNavigate();
@@ -218,7 +219,7 @@ const UserCheckoutPage = () => {
           ordenesService.crear({
             usar_domicilio_gratis: descuentoGratis > 0 && indice === 0,
             negocio_id,
-            items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty, adicionales: (i.adicionales || []).map(a => a.id) })),
+            items: itemsNegocio.map(i => ({ producto_id: i.id, cantidad: i.qty, adicionales: (i.adicionales || []).map(a => a.id), opciones: i.opcionesElegidas || undefined })),
             metodo_pago: pago,
             direccion_entrega: dirElegida.referencia ? `${dirElegida.dir} · ${dirElegida.referencia}` : dirElegida.dir,
             latitud_entrega: dirElegida.lat ?? undefined,
@@ -290,6 +291,7 @@ const UserCheckoutPage = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="m-0 mb-1 text-[13px] font-bold text-slate-800 dark:text-slate-100 sm:text-sm">{item.nombre}</p>
+                    {item.opcionesTexto && <p className="m-0 mb-0.5 text-[11.5px] font-bold text-slate-600 dark:text-slate-300">{item.opcionesTexto}</p>}
                     {item.adicionales?.length > 0 && <p className="m-0 mb-0.5 text-[11.5px] text-slate-500">+ {item.adicionales.map(a => a.nombre).join(' · ')}</p>}
                     <p className="m-0 text-xs text-slate-400">Cantidad: {item.qty} · Precio: {fmt(item.precio)} c/u</p>
                     {cerrado && (

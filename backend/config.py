@@ -248,6 +248,7 @@ def init_db():
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS domicilios_gratis INTEGER DEFAULT 0",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS invitacion_premiada BOOLEAN DEFAULT FALSE",
                 "ALTER TABLE negocios ADD COLUMN IF NOT EXISTS cerrado_hasta DATE",
+                "ALTER TABLE productos ADD COLUMN IF NOT EXISTS opciones JSON",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS domicilio_gratis BOOLEAN DEFAULT FALSE",
                 "ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS domicilio_regalo NUMERIC(10,2)",
             ):

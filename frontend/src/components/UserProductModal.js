@@ -7,6 +7,7 @@ import { estaAbierto, textoCerrado } from '../utils/horario';
 import { cx } from '../ui/tw';
 import { useCerrarConAtras } from '../utils/atras';
 import { adicionalesService } from '../config/api';
+import { tieneOpciones, opcionesIniciales, precioConOpciones } from '../utils/opciones';
 
 const Stars = ({ n, size = 14 }) => (
   <span style={{ fontSize: size, letterSpacing: 1 }}>
@@ -18,6 +19,52 @@ const Stars = ({ n, size = 14 }) => (
 
 const fmt = n => `$${n.toLocaleString('es-CO')}`;
 
+// Nov 2026 (Granizados): botones grandes para escoger una opción
+const Segmentos = ({ titulo, opciones, valor, onCambio }) => (
+  <div className="mb-4">
+    <div className="mb-1.5 flex items-center justify-between">
+      <b className="text-[15px] text-slate-800 dark:text-slate-100">{titulo}</b>
+      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10.5px] font-extrabold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">Obligatorio</span>
+    </div>
+    <div className="flex gap-2">
+      {opciones.map(o => {
+        const on = o.valor === valor;
+        return (
+          <button key={String(o.valor)} type="button" onClick={() => onCambio(o.valor)} aria-pressed={on}
+            className={cx('flex-1 cursor-pointer rounded-xl border-[1.5px] border-solid px-2 py-2.5 text-center font-[inherit]',
+              on ? 'border-zippy bg-orange-50 dark:bg-zippy/10' : 'border-slate-200 bg-white dark:border-noche-borde dark:bg-noche-alt')}>
+            <b className={cx('block text-[14.5px]', on ? 'text-orange-700 dark:text-orange-300' : 'text-slate-800 dark:text-slate-100')}>{o.texto}</b>
+            {o.sub && <span className="text-[12px] text-slate-500">{o.sub}</span>}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
+// Adicionales como botoncitos, en grupos (Toppings / Shot extra)
+const Chips = ({ titulo, lista, marcados, alternar }) => (
+  <div className="mb-4">
+    <div className="mb-1.5 flex items-center justify-between">
+      <b className="text-[15px] text-slate-800 dark:text-slate-100">{titulo}</b>
+      <span className="text-[11.5px] text-slate-400">Opcional · toca los que quieras</span>
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {lista.map(a => {
+        const on = marcados.includes(a.id);
+        return (
+          <button key={a.id} type="button" onClick={() => alternar(a.id)} aria-pressed={on}
+            className={cx('flex cursor-pointer items-baseline gap-1 rounded-full border-[1.5px] border-solid px-3 py-1.5 font-[inherit] text-[13px] font-bold',
+              on ? 'border-zippy bg-zippy text-white' : 'border-slate-200 bg-white text-slate-700 dark:border-noche-borde dark:bg-noche-alt dark:text-slate-200')}>
+            {on && '✓ '}{a.nombre}
+            <span className={cx('text-[11px] font-semibold', on ? 'text-orange-100' : 'text-slate-400')}>+{fmt(Number(a.precio))}</span>
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
 const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
   useCerrarConAtras(!!producto, onClose);
   const { addItem } = useCart();
@@ -26,23 +73,30 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
   // Nov 2026: adicionales que el negocio le puso a este producto
   const [adicionales, setAdicionales] = useState([]);
   const [marcados, setMarcados] = useState([]);
+  const [elegidas, setElegidas] = useState(null);
   const productoId = producto?.id;
+  const conOpciones = tieneOpciones(producto);
   const tieneAdicionales = !!producto?.adicionales?.length;
   useEffect(() => {
     setQty(1);
     setMarcados([]);
     setAdicionales([]);
+    setElegidas(opcionesIniciales(producto));
     if (!productoId || !tieneAdicionales) return;
     let activo = true;
     adicionalesService.deProducto(productoId)
       .then(({ data }) => { if (activo) setAdicionales(Array.isArray(data) ? data : []); })
       .catch(() => {});
     return () => { activo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productoId, tieneAdicionales]);
 
   if (!producto) return null;
   const elegidos = adicionales.filter(a => marcados.includes(a.id));
-  const precioUnidad = producto.precio + elegidos.reduce((s, a) => s + Number(a.precio || 0), 0);
+  const precioUnidad = precioConOpciones(producto, elegidas) + elegidos.reduce((s, a) => s + Number(a.precio || 0), 0);
+  const ops = producto.opciones || {};
+  const shots = conOpciones ? adicionales.filter(a => /shot/i.test(a.nombre)) : [];
+  const toppings = conOpciones ? adicionales.filter(a => !/shot/i.test(a.nombre)) : [];
   const alternar = (id) => setMarcados(m => (m.includes(id) ? m.filter(x => x !== id) : [...m, id]));
 
   const abierto = estaAbierto(producto);
@@ -52,7 +106,7 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
       addToast(`${producto.tienda} está cerrada ahora · ${textoCerrado(producto)}`, 'error');
       return;
     }
-    for (let i = 0; i < qty; i++) addItem(producto, elegidos);
+    for (let i = 0; i < qty; i++) addItem(producto, elegidos, elegidas);
     addToast(`${producto.nombre} agregado al carrito`, 'success');
     onClose();
   };
@@ -110,7 +164,20 @@ const UserProductModal = ({ producto, grad, emoji, iconName, onClose }) => {
 
           <p className="m-0 mb-5 text-sm leading-[1.65] text-slate-600 dark:text-slate-400">{producto.descripcion || 'Este producto todavía no tiene descripción.'}</p>
 
-          {adicionales.length > 0 && (
+          {conOpciones && elegidas && (
+            <>
+              <Segmentos titulo="Tamaño" valor={elegidas.tamano} onCambio={v => setElegidas(e => ({ ...e, tamano: v }))}
+                opciones={ops.tamanos.map(t => ({ valor: t.nombre, texto: t.nombre, sub: fmt(Number(t.precio)) }))} />
+              {ops.con_licor && ops.sin_licor != null && (
+                <Segmentos titulo="¿Con licor?" valor={!!elegidas.sin_licor} onCambio={v => setElegidas(e => ({ ...e, sin_licor: v }))}
+                  opciones={[{ valor: false, texto: 'Con licor' }, { valor: true, texto: 'Sin licor', sub: Number(ops.sin_licor) ? `−${fmt(Number(ops.sin_licor))}` : '' }]} />
+              )}
+              {toppings.length > 0 && <Chips titulo="Toppings" lista={toppings} marcados={marcados} alternar={alternar} />}
+              {shots.length > 0 && <Chips titulo="Shot extra" lista={shots} marcados={marcados} alternar={alternar} />}
+            </>
+          )}
+
+          {!conOpciones && adicionales.length > 0 && (
             <div className="mb-2">
               <div className="mb-1 flex items-baseline justify-between gap-2">
                 <p className="m-0 text-[11px] font-extrabold uppercase tracking-[0.6px] text-slate-400">Adicionales</p>

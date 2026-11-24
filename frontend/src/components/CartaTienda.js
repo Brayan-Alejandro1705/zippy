@@ -162,7 +162,7 @@ const CartaTienda = ({ tienda, productos, onCerrar, onAbrir, onAgregar, inCart, 
                   <p className="m-0 text-[14.5px] font-bold leading-snug text-slate-800 dark:text-slate-100">{p.nombre}</p>
                   {p.descripcion && <p className="m-0 mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-slate-500">{p.descripcion}</p>}
                   <p className="m-0 mt-1 flex items-baseline gap-2">
-                    <span className="text-[15px] font-black text-zippy">{fmt(p.precio)}</span>
+                    <span className="text-[15px] font-black text-zippy">{p.opciones?.tamanos?.length > 1 ? `desde ${fmt(p.precio)}` : fmt(p.precio)}</span>
                     {p.enOferta && p.precioOriginal && <span className="text-[12px] text-slate-400 line-through">{fmt(p.precioOriginal)}</span>}
                   </p>
                 </div>

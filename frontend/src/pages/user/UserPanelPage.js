@@ -1096,7 +1096,7 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
           metodoPago: o.metodo_pago,
           transferencia: o.transferencia_estado,
           // Se guarda el detalle crudo para poder repetir el pedido despues
-          itemsRaw: (o.items || []).map(it => ({ producto_id: it.producto_id, cantidad: it.cantidad, adicionales: adicionalesDeItem(it) })),
+          itemsRaw: (o.items || []).map(it => ({ producto_id: it.producto_id, cantidad: it.cantidad, adicionales: adicionalesDeItem(it), opciones: it.especificaciones?.opciones || null })),
         }));
 
         const especialesUI = especialesRaw.map(e => ({
@@ -1205,6 +1205,7 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
           precio: Number(prod.precio),
           foto: prod.imagenes?.[0] || null,
           adicionales: prod.adicionales || [],
+          opciones: prod.opciones || null,
           categoria: prod.categoria || 'Otros',
           stock: prod.stock,
           tienda: negocio?.nombre_negocio || pedido.tienda,
@@ -1220,7 +1221,10 @@ const UserPanelPage = ({ vista = 'perfil' }) => {
         // Los mismos adicionales de la vez pasada, si el producto todavía los ofrece
         const permitidos = new Set((prod.adicionales || []).map(String));
         const extras = (it.adicionales || []).filter(a => permitidos.has(String(a.id)));
-        for (let i = 0; i < cantidad; i++) addItem(paraCarrito, extras);
+        // Nov 2026: el mismo tamaño y con/sin licor de la vez pasada
+        const op = it.opciones && prod.opciones?.tamanos?.some(t => t.nombre === it.opciones.tamano)
+          ? { tamano: it.opciones.tamano, sin_licor: it.opciones.licor === 'Sin licor' } : null;
+        for (let i = 0; i < cantidad; i++) addItem(paraCarrito, extras, op);
         agregados++;
       });
 

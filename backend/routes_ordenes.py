@@ -25,6 +25,7 @@ from push import notificar_usuario, notificar_usuarios
 from restricciones import es_alcohol, es_tabaco, MENSAJE_EDAD, MENSAJE_TABACO
 import pago_qr
 from routes_adicionales import precio_de_adicionales
+import opciones_producto
 from routes_viajes import tiene_aventon_en_curso
 from routes_invitaciones import aplicar_domicilio_gratis, devolver_domicilio_gratis, premiar_si_toca
 
@@ -68,7 +69,9 @@ def calcular_total_orden(items_data: List[dict], db: Session, lat=None, lng=None
         
         # Nov 2026: los adicionales que marcó el cliente, con el precio de la base
         _, extra = precio_de_adicionales(db, producto, item.get('adicionales'))
-        subtotal += (producto.precio + extra) * item['cantidad']
+        # Nov 2026: tamaño y con/sin licor (Granizados)
+        base, _, _ = opciones_producto.aplicar(producto, item.get('opciones'))
+        subtotal += (base + extra) * item['cantidad']
     
     impuesto = subtotal * (Decimal(settings.IMPUESTO_IVA) / 100)
 
@@ -182,7 +185,15 @@ async def crear_orden(
     ).all()
     if any(es_tabaco(p.nombre, p.categoria) for p in productos_pedido):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_TABACO)
-    if any(es_alcohol(p, negocio) for p in productos_pedido) and not orden.confirma_mayor_edad:
+    # Nov 2026: en Granizados el licor depende de lo que escoja el cliente
+    por_id = {p.id: p for p in productos_pedido}
+    def _lleva_alcohol(it):
+        p = por_id.get(it.producto_id)
+        if not p:
+            return False
+        _, _, licor = opciones_producto.aplicar(p, it.opciones)
+        return licor if licor is not None else es_alcohol(p, negocio)
+    if any(_lleva_alcohol(it) for it in orden.items) and not orden.confirma_mayor_edad:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_EDAD)
 
     # Nov 2026: el cliente paga en efectivo o con transferencia por QR (si
@@ -196,7 +207,8 @@ async def crear_orden(
     orden.metodo_pago = metodo
 
     # Calcular totales
-    items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad, "adicionales": item.adicionales}
+    items_list = [{"producto_id": item.producto_id, "cantidad": item.cantidad, "adicionales": item.adicionales,
+                   "opciones": item.opciones}
                   for item in orden.items]
     subtotal, impuesto, costo_domicilio, total, cotizacion = calcular_total_orden(
         items_list, db, orden.latitud_entrega, orden.longitud_entrega
@@ -248,15 +260,18 @@ async def crear_orden(
         # Precio unitario = producto + sus adicionales; la copia de los
         # adicionales (nombre y precio de hoy) queda en especificaciones
         copia_adicionales, extra = precio_de_adicionales(db, producto, item_data.adicionales)
+        base, copia_opciones, _ = opciones_producto.aplicar(producto, item_data.opciones)
         especificaciones = dict(item_data.especificaciones or {})
         if copia_adicionales:
             especificaciones["adicionales"] = copia_adicionales
+        if copia_opciones:
+            especificaciones["opciones"] = copia_opciones
         item_orden = ItemOrden(
             orden_id=nueva_orden.id,
             producto_id=item_data.producto_id,
             cantidad=item_data.cantidad,
-            precio_unitario=producto.precio + extra,
-            subtotal=(producto.precio + extra) * item_data.cantidad,
+            precio_unitario=base + extra,
+            subtotal=(base + extra) * item_data.cantidad,
             especificaciones=especificaciones,
             fecha_creacion=datetime.utcnow()
         )

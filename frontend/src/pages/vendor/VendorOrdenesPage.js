@@ -4,6 +4,7 @@ import { ordenesService, negociosService, productosService, usuariosService } fr
 import ZLoader from '../../components/ZLoader';
 import { fechaCorta, minutosDesde } from '../../utils/fechas';
 import { conAdicionales, adicionalesDeItem } from '../../utils/adicionales';
+import { textoOpcionesItem } from '../../utils/opciones';
 import Icon from '../../components/Icons';
 import { cx, titulo, tarjeta, btn, chip, chipsFila, badge, badgeBase } from '../../ui/tw';
 import OrdenDetalleModal, { VENDEDOR_NEXT, llamar } from '../../components/vendor/OrdenDetalle';
@@ -59,7 +60,8 @@ const ordenDeApi = (o, negocioNombre, productosMap, clienteNombre, clienteTelefo
     // El nombre lleva los adicionales para la factura; base + adicionales
     // para mostrarlos uno debajo del otro en el detalle
     nombre: conAdicionales(productosMap[it.producto_id] || 'Producto', it),
-    base: productosMap[it.producto_id] || 'Producto',
+    // Nov 2026: tamaño y con/sin licor (Granizados) junto al nombre
+    base: textoOpcionesItem(it) ? `${productosMap[it.producto_id] || 'Producto'} (${textoOpcionesItem(it)})` : (productosMap[it.producto_id] || 'Producto'),
     adicionales: adicionalesDeItem(it).map(a => a.nombre),
     precio: Number(it.subtotal),
     qty: it.cantidad,

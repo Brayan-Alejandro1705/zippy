@@ -20,6 +20,7 @@ from schemas import ProductoCreate, ProductoUpdate, ProductoResponse, OfertaCrea
 from routes_auth import get_current_user
 from storage_supabase import subir_archivo, SupabaseStorageError
 import imagenes
+import opciones_producto
 from restricciones import es_tabaco, MENSAJE_TABACO
 import menu_ia
 from rate_limit import limiter
@@ -213,6 +214,11 @@ async def crear_producto(
         estado="activo",
         fecha_creacion=datetime.utcnow()
     )
+    # Nov 2026: tamaños y con/sin licor, solo negocios Granizados
+    if producto.opciones and opciones_producto.es_granizados(negocio):
+        nuevo_producto.opciones = opciones_producto.limpiar(producto.opciones)
+        if nuevo_producto.opciones:
+            nuevo_producto.precio = opciones_producto.precio_minimo(nuevo_producto.opciones)
     
     db.add(nuevo_producto)
     db.commit()
@@ -398,8 +404,14 @@ async def actualizar_producto(
     if es_tabaco(*(datos_actualizacion.get(k) for k in ("nombre", "descripcion", "categoria", "subcategoria"))):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=MENSAJE_TABACO)
     
+    opciones_nuevas = datos_actualizacion.pop("opciones", "sin_cambio")
     for campo, valor in datos_actualizacion.items():
         setattr(producto, campo, valor)
+    # Nov 2026: tamaños y con/sin licor, solo negocios Granizados
+    if opciones_nuevas != "sin_cambio" and opciones_producto.es_granizados(negocio):
+        producto.opciones = opciones_producto.limpiar(opciones_nuevas)
+        if producto.opciones:
+            producto.precio = opciones_producto.precio_minimo(producto.opciones)
     
     producto.fecha_ultima_actualizacion = datetime.utcnow()
     

@@ -7,6 +7,7 @@ import ZLoader from '../../components/ZLoader';
 import Icon from '../../components/Icons';
 import '../../styles/VendorProductos.css';
 import { useCategoriasProducto } from '../../hooks/useCategoriasProducto';
+import OpcionesGranizado, { opcionesParaGuardar, faltaEnOpciones } from '../../components/vendor/OpcionesGranizado';
 import CampoPesos, { PRECIO_MINIMO } from '../../components/CampoPesos';
 import BotonesFoto from '../../components/BotonesFoto';
 
@@ -36,6 +37,9 @@ const VendorNuevoProductoPage = () => {
   });
 
   const { opciones: catsOpciones, cargando: catsCargando, categoriaNegocio } = useCategoriasProducto();
+  // Nov 2026: tamaños y con/sin licor, solo negocios de la categoría Granizados
+  const esGranizados = (categoriaNegocio || '').trim().toLowerCase() === 'granizados';
+  const [opciones, setOpciones] = useState(null);
 
   // ── Validation ──────────────────────────────────────────────────────────────
   const errors = {
@@ -71,6 +75,8 @@ const VendorNuevoProductoPage = () => {
   };
 
   const handleSave = async () => {
+    const falta = esGranizados ? faltaEnOpciones(opciones) : null;
+    if (falta) { addToast(falta, 'error'); return; }
     setSaving(true);
     try {
       const { data: negocio } = await negociosService.miNegocio();
@@ -89,6 +95,7 @@ const VendorNuevoProductoPage = () => {
         descripcion: form.descripcion,
         es_visible:  form.disponible,
         imagenes,
+        ...(esGranizados && opcionesParaGuardar(opciones) && { opciones: opcionesParaGuardar(opciones) }),
       });
       addToast(`"${form.nombre}" añadido a tu catálogo`, 'success');
       navigate('/vendor/productos');
@@ -228,6 +235,8 @@ const VendorNuevoProductoPage = () => {
                     placeholder="Describe tu producto: ingredientes, presentación, uso..." rows={4}
                   />
                 </div>
+
+                {esGranizados && <OpcionesGranizado valor={opciones} onCambio={setOpciones} precioBase={form.precio} />}
 
                 <div className="vnp-field vnp-toggle-row">
                   <div>

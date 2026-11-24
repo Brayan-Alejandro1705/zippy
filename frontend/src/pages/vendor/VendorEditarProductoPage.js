@@ -4,6 +4,7 @@ import VendorLayout from '../../components/VendorLayout';
 import { useToast } from '../../context/ToastContext';
 import { productosService, adicionalesService } from '../../config/api';
 import ElegirAdicionales from '../../components/vendor/ElegirAdicionales';
+import OpcionesGranizado, { opcionesParaGuardar, faltaEnOpciones } from '../../components/vendor/OpcionesGranizado';
 import ZLoader from '../../components/ZLoader';
 import Icon from '../../components/Icons';
 import '../../styles/VendorProductos.css';
@@ -38,12 +39,15 @@ const VendorEditarProductoPage = () => {
   const [adicionales, setAdicionales] = useState([]);
   const [adicionalesAntes, setAdicionalesAntes] = useState([]);
   const [aplicarCategoria, setAplicarCategoria] = useState(false);
+  // Nov 2026: tamaños y con/sin licor (solo negocios Granizados)
+  const [opciones, setOpciones] = useState(null);
 
   const [form, setForm] = useState({
     nombre: '', categoria: '', precio: '', stock: '', descripcion: '', disponible: true,
   });
 
   const { opciones: catsOpciones, cargando: catsCargando, categoriaNegocio } = useCategoriasProducto(form.categoria);
+  const esGranizados = (categoriaNegocio || '').trim().toLowerCase() === 'granizados';
 
   useEffect(() => {
     let activo = true;
@@ -61,6 +65,7 @@ const VendorEditarProductoPage = () => {
         if (data.imagenes?.[0]) setPreview(data.imagenes[0]);
         setAdicionales(data.adicionales || []);
         setAdicionalesAntes(data.adicionales || []);
+        setOpciones(data.opciones || null);
       })
       .catch(() => { if (activo) setNotFound(true); })
       .finally(() => { if (activo) setLoading(false); });
@@ -100,6 +105,8 @@ const VendorEditarProductoPage = () => {
   };
 
   const handleSave = async () => {
+    const falta = esGranizados ? faltaEnOpciones(opciones) : null;
+    if (falta) { addToast(falta, 'error'); return; }
     setSaving(true);
     try {
       let imagenes;
@@ -116,6 +123,7 @@ const VendorEditarProductoPage = () => {
         descripcion: form.descripcion,
         es_visible:  form.disponible,
         ...(imagenes && { imagenes }),
+        ...(esGranizados && { opciones: opcionesParaGuardar(opciones) }),
       });
       const cambiaron = [...adicionales].sort().join() !== [...adicionalesAntes].sort().join();
       if (cambiaron || aplicarCategoria) {
@@ -291,6 +299,8 @@ const VendorEditarProductoPage = () => {
                     placeholder="Describe tu producto: ingredientes, presentación, uso..." rows={4}
                   />
                 </div>
+
+                {esGranizados && <OpcionesGranizado valor={opciones} onCambio={setOpciones} precioBase={form.precio} />}
 
                 <ElegirAdicionales
                   seleccion={adicionales}

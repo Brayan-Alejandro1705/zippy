@@ -243,6 +243,7 @@ def _revisar_precio(v):
 
 class ProductoCreate(ProductoBase):
     imagenes: Optional[List[str]] = []
+    opciones: Optional[Dict[str, Any]] = None
 
     @field_validator('precio')
     @classmethod
@@ -261,6 +262,8 @@ class ProductoUpdate(BaseModel):
     subcategoria: Optional[str] = None
     es_visible: Optional[bool] = None
     imagenes: Optional[List[str]] = None
+    # Nov 2026: {} o null las quita
+    opciones: Optional[Dict[str, Any]] = None
 
     @field_validator('precio')
     @classmethod
@@ -281,6 +284,8 @@ class ProductoResponse(ProductoBase):
     en_oferta: bool = False
     # Ids de los adicionales que se le pueden poner (detalle en /adicionales/producto/{id})
     adicionales: Optional[List[str]] = None
+    # Nov 2026: tamaños y con/sin licor (solo Granizados)
+    opciones: Optional[Dict[str, Any]] = None
 
     @field_validator('adicionales', mode='before')
     @classmethod
@@ -310,6 +315,8 @@ class ItemOrdenCreate(BaseModel):
     especificaciones: Optional[Dict[str, Any]] = {}
     # Nov 2026: ids de los adicionales que el cliente marcó para este producto
     adicionales: Optional[List[uuid.UUID]] = []
+    # Nov 2026: {"tamano": "20 oz", "sin_licor": false} (productos con opciones)
+    opciones: Optional[Dict[str, Any]] = None
 
 class ItemOrdenResponse(BaseModel):
     id: uuid.UUID

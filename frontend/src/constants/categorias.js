@@ -9,7 +9,7 @@
 
 export const CATEGORIAS_NEGOCIO = [
   'Restaurante', 'Comida rápida', 'Panadería', 'Cafetería', 'Frutas y verduras',
-  'Supermercado', 'Droguería', 'Licorera', 'Ropa', 'Electrónica', 'Mascotas', 'General',
+  'Supermercado', 'Droguería', 'Licorera', 'Granizados', 'Ropa', 'Electrónica', 'Mascotas', 'General',
 ];
 
 export const CATEGORIAS_SERVICIO = [
@@ -86,6 +86,10 @@ export const CATEGORIAS_PRODUCTO_POR_NEGOCIO = {
   'Licorera': [
     'Cerveza', 'Aguardiente y ron', 'Whisky y otros licores', 'Vinos',
     'Bebidas sin alcohol', 'Pasabocas', 'Hielo', 'Otros',
+  ],
+  // Nov 2026: los Granizados tienen productos con tamaños y con/sin licor
+  'Granizados': [
+    'Granizados', 'Granizados sin licor', 'Cremosos', 'Bebidas', 'Otros',
   ],
   'Ropa': [
     'Ropa de hombre', 'Ropa de mujer', 'Ropa infantil', 'Calzado',

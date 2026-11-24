@@ -303,6 +303,8 @@ class Producto(Base):
     # Nov 2026: ids de los adicionales (tabla adicionales) que el cliente
     # puede agregarle a este producto: gomas, shot, extra queso...
     adicionales = Column(JSON, default=[])
+    # Nov 2026: tamaños y con/sin licor (solo negocios Granizados, ver opciones_producto.py)
+    opciones = Column(JSON)
     
     # Categorización
     categoria = Column(String(100), index=True)
